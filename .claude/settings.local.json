@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-git)",
+      "Read(//Users/thearmmacbookpro/Documents/WINX CLUADE/**)",
+      "Bash(npx create-next-app@latest winx-backoffice --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-git)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(kill 2827)",
+      "Bash(lsof -ti:3001)",
+      "Bash(xargs kill)",
+      "Bash(lsof -ti:3000)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(curl -s http://localhost:3000/api/production/WNX-2503)",
+      "Bash(python3 -m json.tool)",
+      "Bash(mkdir -p \"/Users/thearmmacbookpro/Documents/WINX CLUADE/Back office WINXSTUDIO/src/app/api/orders/[id]\" && ls \"/Users/thearmmacbookpro/Documents/WINX CLUADE/Back office WINXSTUDIO/src/app/api/orders/[id]/\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}
