@@ -19,6 +19,17 @@ export default function ProductionTablePage() {
       .then((data) => { setOrder(data); setLoading(false); });
   }, [id]);
 
+  const markTableCreated = async () => {
+    if (order?.hasProductionTable) return;
+    const res = await fetch(`/api/orders/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ hasProductionTable: true }),
+    });
+    const data = await res.json();
+    if (data.order) setOrder(data.order);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32 text-muted">
@@ -37,12 +48,20 @@ export default function ProductionTablePage() {
         title="ตารางสั่งผลิต"
         subtitle={`${order.id} · ${order.teamName}`}
         action={
-          <Link href={`/orders/${order.id}`}>
-            <Button variant="outline">
-              <ArrowLeft className="h-4 w-4" />
-              กลับออเดอร์
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href={`/orders/${order.id}`}>
+              <Button variant="outline">
+                <ArrowLeft className="h-4 w-4" />
+                ไปออเดอร์
+              </Button>
+            </Link>
+            <Link href="/production-tables">
+              <Button variant="outline">
+                <ArrowLeft className="h-4 w-4" />
+                กลับรายการตาราง
+              </Button>
+            </Link>
+          </div>
         }
       />
       <div className="p-8">
@@ -51,6 +70,7 @@ export default function ProductionTablePage() {
           teamName={order.teamName}
           shirtType={order.shirtType ?? "-"}
           fabricType={order.fabricType ?? "-"}
+          onFirstSave={markTableCreated}
         />
       </div>
     </div>

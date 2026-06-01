@@ -46,11 +46,13 @@ export function ProductionTable({
   teamName,
   shirtType,
   fabricType,
+  onFirstSave,
 }: {
   orderId: string;
   teamName: string;
   shirtType: string;
   fabricType: string;
+  onFirstSave?: () => void;
 }) {
   const [fabric, setFabric] = useState(fabricType);
   const [collar, setCollar] = useState("คอกลม");
@@ -131,6 +133,7 @@ export function ProductionTable({
     savingRef.current = false;
     if (res.ok) {
       setSaveState("saved");
+      onFirstSave?.();
       setTimeout(() => setSaveState("idle"), 2500);
     } else {
       setSaveState("error");
