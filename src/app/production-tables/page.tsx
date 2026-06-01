@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { PageHeader, Card, Badge } from "@/components/ui";
 import { CUSTOMER_TYPE_LABEL, type Order } from "@/lib/types";
+import { useProductionColumns } from "@/lib/use-production-columns";
 import { formatDate } from "@/lib/utils";
 import { Loader2, FileSpreadsheet, ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -14,6 +15,7 @@ interface OrderWithCount extends Order {
 }
 
 export default function ProductionTablesPage() {
+  const productionColumns = useProductionColumns();
   const [orders, setOrders] = useState<OrderWithCount[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -105,6 +107,15 @@ export default function ProductionTablesPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-4 text-sm text-muted">
+                    {(() => {
+                      const col = productionColumns.find(c => c.id === o.productionStatus);
+                      return col ? (
+                        <span className="flex items-center gap-1.5 rounded-full border border-border px-2.5 py-0.5 text-xs font-medium text-foreground">
+                          <span className="h-1.5 w-1.5 rounded-full" style={{ background: col.accent }} />
+                          {col.title}
+                        </span>
+                      ) : null;
+                    })()}
                     <span>{formatDate(o.startDate)}</span>
                     <span>
                       {o.tableCount !== null ? `${o.tableCount} ตัว` : "—"}

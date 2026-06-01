@@ -23,6 +23,20 @@ export async function GET(
   return NextResponse.json(order);
 }
 
+// DELETE /api/orders/[id]
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const orders = readOrders();
+  const idx = orders.findIndex((o) => o.id === id);
+  if (idx === -1) return NextResponse.json({ error: "not found" }, { status: 404 });
+  orders.splice(idx, 1);
+  writeOrders(orders);
+  return NextResponse.json({ ok: true });
+}
+
 // PUT /api/orders/[id]
 export async function PUT(
   req: NextRequest,

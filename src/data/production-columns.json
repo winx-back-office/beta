@@ -1,0 +1,47 @@
+[
+  {
+    "id": "summary",
+    "title": "รอสรุปงานออกแบบ",
+    "accent": "var(--info)"
+  },
+  {
+    "id": "pattern_in",
+    "title": "เข้าแพทเทิร์น",
+    "accent": "var(--success)"
+  },
+  {
+    "id": "size",
+    "title": "วางไซส์",
+    "accent": "var(--info)"
+  },
+  {
+    "id": "print",
+    "title": "พิมพ์",
+    "accent": "var(--warn)"
+  },
+  {
+    "id": "pattern_cut",
+    "title": "ตัดแพทเทิร์น",
+    "accent": "var(--accent)"
+  },
+  {
+    "id": "sew",
+    "title": "รอส่ง-เย็บ",
+    "accent": "#a855f7"
+  },
+  {
+    "id": "col_1780341623530",
+    "title": "กำลังเย็บ",
+    "accent": "var(--warn)"
+  },
+  {
+    "id": "done",
+    "title": "ผลิตเสร็จแล้ว",
+    "accent": "var(--success)"
+  },
+  {
+    "id": "col_1780341606538",
+    "title": "เตรียมจัดส่ง",
+    "accent": "#f97316"
+  }
+]

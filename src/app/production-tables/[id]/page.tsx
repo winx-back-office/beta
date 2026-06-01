@@ -1,17 +1,39 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PageHeader, Button } from "@/components/ui";
 import { ProductionTable } from "@/components/production-table";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import type { Order } from "@/lib/types";
 
 export default function ProductionTablePage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isDirty, setIsDirty] = useState(false);
+  const isDirtyRef = useRef(false);
+
+  // keep ref in sync for beforeunload
+  useEffect(() => { isDirtyRef.current = isDirty; }, [isDirty]);
+
+  // warn on browser close/refresh
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (!isDirtyRef.current) return;
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, []);
+
+  const navigate = useCallback((href: string) => {
+    if (isDirtyRef.current) {
+      if (!confirm("มีข้อมูลที่ยังไม่ได้บันทึก ต้องการออกจากหน้านี้โดยไม่บันทึกใช่ไหม?")) return;
+    }
+    router.push(href);
+  }, [router]);
 
   useEffect(() => {
     fetch(`/api/orders/${id}`)
@@ -49,18 +71,14 @@ export default function ProductionTablePage() {
         subtitle={`${order.id} · ${order.teamName}`}
         action={
           <div className="flex gap-2">
-            <Link href={`/orders/${order.id}`}>
-              <Button variant="outline">
-                <ArrowLeft className="h-4 w-4" />
-                ไปออเดอร์
-              </Button>
-            </Link>
-            <Link href="/production-tables">
-              <Button variant="outline">
-                <ArrowLeft className="h-4 w-4" />
-                กลับรายการตาราง
-              </Button>
-            </Link>
+            <Button variant="outline" onClick={() => navigate(`/orders/${order.id}`)}>
+              <ArrowLeft className="h-4 w-4" />
+              ไปออเดอร์
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/production-tables")}>
+              <ArrowLeft className="h-4 w-4" />
+              กลับรายการตาราง
+            </Button>
           </div>
         }
       />
@@ -68,9 +86,20 @@ export default function ProductionTablePage() {
         <ProductionTable
           orderId={order.id}
           teamName={order.teamName}
-          shirtType={order.shirtType ?? "-"}
+          shirtType={order.shirtType ?? "เสื้อแขนสั้น"}
           fabricType={order.fabricType ?? "-"}
+          collarType={order.collarType ?? ""}
+          productionStatus={order.productionStatus}
+          onDirtyChange={setIsDirty}
           onFirstSave={markTableCreated}
+          onUpdateOrder={async (patch) => {
+            await fetch(`/api/orders/${order.id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(patch),
+            });
+            setOrder((prev) => prev ? { ...prev, ...patch } : prev);
+          }}
         />
       </div>
     </div>

@@ -97,6 +97,7 @@ export const productionColumns: QueueColumn[] = [
   { id: "print", title: "พิมพ์", accent: "var(--warn)" },
   { id: "pattern_cut", title: "ตัดแพทเทิร์น", accent: "var(--accent)" },
   { id: "sew", title: "รอส่ง-เย็บ", accent: "#a855f7" },
+  { id: "done", title: "ผลิตเสร็จแล้ว", accent: "var(--success)" },
 ];
 
 export const productionCards: QueueCard[] = [
