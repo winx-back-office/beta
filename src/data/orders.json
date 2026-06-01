@@ -1,0 +1,216 @@
+[
+  {
+    "type": "produce",
+    "teamName": "ทดสอบคำนวนต้นทุน 5",
+    "startDate": "2026-06-01",
+    "deposit": 600,
+    "shirtType": "เสื้อแขนสั้น",
+    "fabricType": "ผ้าเรียบ 140 แกรม",
+    "quantity": 10,
+    "productionPrice": 200,
+    "cost": {
+      "fabric": 30,
+      "paper": 15,
+      "ink": 30,
+      "cut": 15,
+      "sew": 45,
+      "other": 15
+    },
+    "costOverride": 150,
+    "shipping": 100,
+    "id": "WNX-2606260626062606260600",
+    "hasProductionTable": false
+  },
+  {
+    "type": "produce",
+    "teamName": "ทดสอบต้นทุนผลิต",
+    "startDate": "2026-06-01",
+    "deposit": 0,
+    "shirtType": "เสื้อแขนสั้น",
+    "fabricType": "ผ้าเรียบ 140 แกรม",
+    "quantity": 20,
+    "productionPrice": 300,
+    "cost": {
+      "fabric": 10,
+      "paper": 20,
+      "ink": 15,
+      "cut": 10,
+      "sew": 45,
+      "other": 10
+    },
+    "costOverride": 110,
+    "shipping": 150,
+    "id": "WNX-260626062606260604",
+    "hasProductionTable": false
+  },
+  {
+    "type": "design_produce",
+    "teamName": "DEMO TEAM",
+    "startDate": "2026-06-01",
+    "deposit": 500,
+    "designPackage": "แพคเกจ Standard (เสื้ออย่างเดียว)",
+    "designPackagePrice": 2000,
+    "shirtType": "เสื้อแขนสั้น",
+    "fabricType": "ผ้าเรียบ 140 แกรม",
+    "quantity": 30,
+    "productionPrice": 250,
+    "cost": {
+      "fabric": 0,
+      "paper": 0,
+      "ink": 0,
+      "cut": 0,
+      "sew": 0,
+      "other": 0
+    },
+    "costOverride": 150,
+    "shipping": 200,
+    "id": "WNX-26062606260603",
+    "hasProductionTable": false
+  },
+  {
+    "type": "design_produce",
+    "teamName": "555",
+    "startDate": "2026-06-01",
+    "deposit": 0,
+    "designPackage": "แพคเกจ Standard (เสื้ออย่างเดียว)",
+    "designPackagePrice": 1600,
+    "shirtType": "เสื้อแขนสั้น",
+    "fabricType": "ผ้าเรียบ 140 แกรม",
+    "productionPrice": 30,
+    "cost": {
+      "fabric": 0,
+      "paper": 0,
+      "ink": 0,
+      "cut": 0,
+      "sew": 0,
+      "other": 0
+    },
+    "shipping": 150,
+    "id": "WNX-2606260602",
+    "hasProductionTable": false
+  },
+  {
+    "type": "design_produce",
+    "teamName": "TEST FC",
+    "startDate": "2026-06-01",
+    "deposit": 1000,
+    "designPackage": "แพคเกจ Standard (เสื้ออย่างเดียว)",
+    "designPackagePrice": 5000,
+    "shirtType": "เสื้อแขนสั้น",
+    "fabricType": "ผ้าเรียบ 140 แกรม",
+    "productionPrice": 0,
+    "cost": {
+      "fabric": 0,
+      "paper": 0,
+      "ink": 0,
+      "cut": 0,
+      "sew": 0,
+      "other": 0
+    },
+    "shipping": 0,
+    "id": "WNX-260601",
+    "hasProductionTable": false
+  },
+  {
+    "id": "WNX-2501",
+    "type": "design_produce",
+    "teamName": "TOMKHOM FC",
+    "startDate": "2026-01-08",
+    "shirtType": "เสื้อแขนสั้น",
+    "fabricType": "ผ้าเรียบ 140 แกรม",
+    "productionPrice": 12000,
+    "cost": {
+      "fabric": 3200,
+      "paper": 600,
+      "ink": 800,
+      "cut": 700,
+      "sew": 1500,
+      "other": 400
+    },
+    "shipping": 150,
+    "deposit": 6000,
+    "hasProductionTable": true
+  },
+  {
+    "id": "WNX-2502",
+    "type": "design",
+    "teamName": "VYCE Jersey",
+    "startDate": "2026-01-12",
+    "designPackage": "แพคเกจ Premium (เสื้อ + กางเกง)",
+    "designPackagePrice": 3500,
+    "deposit": 1500,
+    "hasProductionTable": false
+  },
+  {
+    "id": "WNX-2503",
+    "type": "produce",
+    "teamName": "EGAT JACKET",
+    "startDate": "2026-01-15",
+    "shirtType": "แจ็คเก็ต",
+    "fabricType": "ผ้าไมโครพีช",
+    "productionPrice": 1000,
+    "cost": {
+      "fabric": 60,
+      "paper": 20,
+      "ink": 30,
+      "cut": 20,
+      "sew": 60,
+      "other": 10
+    },
+    "shipping": 200,
+    "deposit": 9000,
+    "hasProductionTable": true,
+    "quantity": 10,
+    "costOverride": 200
+  },
+  {
+    "id": "WNX-2504",
+    "type": "design_produce",
+    "teamName": "JONES500",
+    "startDate": "2026-01-20",
+    "shirtType": "เสื้อแขนสั้น",
+    "fabricType": "ผ้าจูติ",
+    "productionPrice": 9800,
+    "cost": {
+      "fabric": 2600,
+      "paper": 500,
+      "ink": 650,
+      "cut": 600,
+      "sew": 1300,
+      "other": 300
+    },
+    "shipping": 150,
+    "deposit": 0,
+    "hasProductionTable": false
+  },
+  {
+    "id": "WNX-2505",
+    "type": "design",
+    "teamName": "XBIO Esports",
+    "startDate": "2026-01-22",
+    "designPackage": "แพคเกจ Standard (เสื้ออย่างเดียว)",
+    "designPackagePrice": 2000,
+    "deposit": 2000,
+    "hasProductionTable": false
+  },
+  {
+    "id": "WNX-2506",
+    "type": "produce",
+    "teamName": "YVES Running",
+    "startDate": "2026-01-25",
+    "shirtType": "เสื้อกล้าม",
+    "fabricType": "ผ้าเรียบ 140 แกรม",
+    "productionPrice": 7200,
+    "cost": {
+      "fabric": 1900,
+      "paper": 400,
+      "ink": 500,
+      "cut": 450,
+      "sew": 950,
+      "other": 200
+    },
+    "shipping": 100,
+    "deposit": 3600,
+    "hasProductionTable": false
+  }
+]
