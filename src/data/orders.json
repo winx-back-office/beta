@@ -6,7 +6,7 @@
     "deposit": 600,
     "shirtType": "เสื้อแขนสั้น",
     "fabricType": "ผ้าเรียบ 140 แกรม",
-    "quantity": 10,
+    "quantity": 20,
     "productionPrice": 200,
     "cost": {
       "fabric": 30,
@@ -19,7 +19,7 @@
     "costOverride": 150,
     "shipping": 100,
     "id": "WNX-2606260626062606260600",
-    "hasProductionTable": false
+    "hasProductionTable": true
   },
   {
     "type": "produce",
