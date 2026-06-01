@@ -48,7 +48,7 @@
     },
     "players": []
   },
-  "WNX-260601": {
+  "WNX-2606-01": {
     "meta": {
       "fabric": "ผ้าเบริด์อาย",
       "collar": "คอปก",
@@ -81,7 +81,7 @@
       }
     ]
   },
-  "WNX-2606260602": {
+  "WNX-2606-02": {
     "meta": {
       "fabric": "ผ้าเรียบ 140 แกรม",
       "collar": "คอกลม",
@@ -114,7 +114,7 @@
       }
     ]
   },
-  "WNX-26062606260603": {
+  "WNX-2606-03": {
     "meta": {
       "fabric": "ผ้าเรียบ 140 แกรม",
       "collar": "คอกลม",
@@ -122,7 +122,7 @@
     },
     "players": []
   },
-  "WNX-260626062606260604": {
+  "WNX-2606-04": {
     "meta": {
       "fabric": "ผ้าเบริด์อาย",
       "collar": "คอปก",
@@ -155,7 +155,7 @@
       }
     ]
   },
-  "WNX-2606260626062606260600": {
+  "WNX-2606-05": {
     "meta": {
       "fabric": "ผ้าเบริด์อาย",
       "collar": "คอจีน",
@@ -169,6 +169,31 @@
         "number": "",
         "checked": false,
         "note": ""
+      },
+      {
+        "position": 1,
+        "name": "",
+        "size": "",
+        "number": "",
+        "checked": false,
+        "note": ""
+      }
+    ]
+  },
+  "WNX-2606-07": {
+    "meta": {
+      "fabric": "ผ้าไมโครพีช",
+      "collar": "คอกลม",
+      "imageUrl": null
+    },
+    "players": [
+      {
+        "position": 0,
+        "name": "NATNESZ",
+        "size": "L",
+        "number": "",
+        "checked": true,
+        "note": "5555"
       },
       {
         "position": 1,

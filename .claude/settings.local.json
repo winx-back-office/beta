@@ -15,7 +15,13 @@
       "Bash(python3 -m json.tool)",
       "Bash(mkdir -p \"/Users/thearmmacbookpro/Documents/WINX CLUADE/Back office WINXSTUDIO/src/app/api/orders/[id]\" && ls \"/Users/thearmmacbookpro/Documents/WINX CLUADE/Back office WINXSTUDIO/src/app/api/orders/[id]/\")",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(o['id'], o.get\\('hasProductionTable','—'\\)\\) for o in d]\")",
+      "Bash(mkdir -p \"/Users/thearmmacbookpro/Documents/WINX CLUADE/Back office WINXSTUDIO/src/app/production-tables/[id]\")",
+      "Bash(git -C \"/Users/thearmmacbookpro/Documents/WINX CLUADE/Back office WINXSTUDIO\" status)",
+      "Bash(git -C \"/Users/thearmmacbookpro/Documents/WINX CLUADE/Back office WINXSTUDIO\" diff --stat)",
+      "Bash(python3 -c \"import json,sys; [print\\(o['id'], o['teamName']\\) for o in json.load\\(sys.stdin\\)]\")",
+      "Bash(python3 -c \"import json,sys; [print\\(k\\) for k in json.load\\(sys.stdin\\).keys\\(\\)]\")"
     ]
   }
 }

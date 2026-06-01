@@ -21,10 +21,10 @@ function generateId(orders: Order[]): string {
   const now = new Date();
   const yy = String(now.getFullYear()).slice(-2);
   const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const prefix = `WNX-${yy}${mm}`;
+  const prefix = `WNX-${yy}${mm}-`;
   const existing = orders
     .filter((o) => o.id.startsWith(prefix))
-    .map((o) => parseInt(o.id.split("-").pop() ?? "0"))
+    .map((o) => parseInt(o.id.slice(prefix.length)))
     .filter((n) => !isNaN(n));
   const next = existing.length > 0 ? Math.max(...existing) + 1 : 1;
   return `${prefix}${String(next).padStart(2, "0")}`;

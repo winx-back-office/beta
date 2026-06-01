@@ -1,6 +1,38 @@
 [
   {
     "type": "produce",
+    "teamName": "NATNESZ",
+    "startDate": "2026-06-01",
+    "deposit": 500,
+    "shirtType": "เสื้อแขนยาว",
+    "fabricType": "ผ้าไมโครพีช",
+    "quantity": 10,
+    "productionPrice": 150,
+    "cost": {
+      "fabric": 0,
+      "paper": 0,
+      "ink": 0,
+      "cut": 0,
+      "sew": 0,
+      "other": 0
+    },
+    "costOverride": 100,
+    "shipping": 0,
+    "id": "WNX-2606-07",
+    "hasProductionTable": true
+  },
+  {
+    "type": "design",
+    "teamName": "55555",
+    "startDate": "2026-06-01",
+    "deposit": 0,
+    "designPackage": "แพคเกจ Standard (เสื้ออย่างเดียว)",
+    "designPackagePrice": 0,
+    "id": "WNX-2606-06",
+    "hasProductionTable": false
+  },
+  {
+    "type": "produce",
     "teamName": "ทดสอบคำนวนต้นทุน 5",
     "startDate": "2026-06-01",
     "deposit": 600,
@@ -18,7 +50,7 @@
     },
     "costOverride": 150,
     "shipping": 100,
-    "id": "WNX-2606260626062606260600",
+    "id": "WNX-2606-05",
     "hasProductionTable": true
   },
   {
@@ -40,7 +72,7 @@
     },
     "costOverride": 110,
     "shipping": 150,
-    "id": "WNX-260626062606260604",
+    "id": "WNX-2606-04",
     "hasProductionTable": false
   },
   {
@@ -64,7 +96,7 @@
     },
     "costOverride": 150,
     "shipping": 200,
-    "id": "WNX-26062606260603",
+    "id": "WNX-2606-03",
     "hasProductionTable": false
   },
   {
@@ -86,7 +118,7 @@
       "other": 0
     },
     "shipping": 150,
-    "id": "WNX-2606260602",
+    "id": "WNX-2606-02",
     "hasProductionTable": false
   },
   {
@@ -108,7 +140,7 @@
       "other": 0
     },
     "shipping": 0,
-    "id": "WNX-260601",
+    "id": "WNX-2606-01",
     "hasProductionTable": false
   },
   {
