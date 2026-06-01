@@ -10,14 +10,17 @@ import {
   Save,
   Check,
   Loader2,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui";
+import { useProductionColumns } from "@/lib/use-production-columns";
 import {
   loadProduction,
   saveProduction,
   subscribeProduction,
   supabaseEnabled,
   type PlayerRow,
+  type ProductionImage,
 } from "@/lib/production-db";
 
 const SIZES = ["SS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL", "6XL", "7XL", "พิเศษ"];
@@ -41,38 +44,65 @@ function emptyRow(): PlayerRow {
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
+const SHIRT_TYPES = ["เสื้อแขนสั้น", "เสื้อแขนยาว", "เสื้อกล้าม", "แจ็คเก็ต", "เสื้อโปโล", "อื่นๆ"];
+
 export function ProductionTable({
   orderId,
-  teamName,
-  shirtType,
+  teamName: teamNameProp,
+  shirtType: shirtTypeProp,
   fabricType,
+  collarType,
+  productionStatus,
   onFirstSave,
+  onUpdateOrder,
+  onDirtyChange,
 }: {
   orderId: string;
   teamName: string;
   shirtType: string;
   fabricType: string;
+  collarType: string;
+  productionStatus?: string;
   onFirstSave?: () => void;
+  onUpdateOrder?: (patch: { teamName?: string; shirtType?: string }) => Promise<void>;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
+  const productionColumns = useProductionColumns();
   const [fabric, setFabric] = useState(fabricType);
-  const [collar, setCollar] = useState("คอกลม");
-  const [image, setImage] = useState<string | null>(null);
+  const [collar, setCollar] = useState(collarType || "คอกลม");
+  const [teamName, setTeamName] = useState(teamNameProp);
+  const [shirt, setShirt] = useState(shirtTypeProp);
+  const [images, setImages] = useState<ProductionImage[]>([]);
   const [rows, setRows] = useState<PlayerRow[]>([emptyRow(), emptyRow()]);
   const [loading, setLoading] = useState(true);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [errMsg, setErrMsg] = useState<string>("");
+  const [isDirty, setIsDirty] = useState(false);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const savingRef = useRef(false);
+  const initializedRef = useRef(false);
+
+  // notify parent when dirty state changes
+  useEffect(() => { onDirtyChange?.(isDirty); }, [isDirty, onDirtyChange]);
 
   // ===== โหลดข้อมูล =====
   const refresh = useCallback(async () => {
     const data = await loadProduction(orderId, fabricType);
-    setFabric(data.meta.fabric);
-    setCollar(data.meta.collar);
-    setImage(data.meta.imageUrl);
+    setFabric(fabricType); // always mirror the order's fabricType
+    setCollar(collarType || data.meta.collar);
+    // migrate legacy single imageUrl → images array
+    if (data.meta.images && data.meta.images.length > 0) {
+      setImages(data.meta.images);
+    } else if (data.meta.imageUrl) {
+      setImages([{ url: data.meta.imageUrl, isMain: true }]);
+    } else {
+      setImages([]);
+    }
     setRows(data.players.length > 0 ? data.players : [emptyRow(), emptyRow()]);
     setLoading(false);
+    initializedRef.current = true;
+    setIsDirty(false);
   }, [orderId, fabricType]);
 
   useEffect(() => {
@@ -98,29 +128,63 @@ export function ProductionTable({
 
   const total = Object.values(sizeCounts).reduce((a, b) => a + b, 0);
 
-  const update = (id: string, patch: Partial<PlayerRow>) =>
+  const markDirty = () => { if (initializedRef.current) setIsDirty(true); };
+
+  const update = (id: string, patch: Partial<PlayerRow>) => {
+    markDirty();
     setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  };
 
-  const addRow = () => setRows((rs) => [...rs, emptyRow()]);
+  const addRow = () => { markDirty(); setRows((rs) => [...rs, emptyRow()]); };
 
-  const removeRow = (id: string) =>
-    setRows((rs) => rs.filter((r) => r.id !== id));
+  const removeRow = (id: string) => { markDirty(); setRows((rs) => rs.filter((r) => r.id !== id)); };
 
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setImage(reader.result as string); // data URL (เก็บลง DB ได้เลย)
-    reader.readAsDataURL(file);
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImages((prev) => {
+          const isFirst = prev.length === 0;
+          return [...prev, { url: reader.result as string, isMain: isFirst }];
+        });
+        markDirty();
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = "";
+  };
+
+  const setMain = (idx: number) => {
+    markDirty();
+    setImages((prev) => prev.map((img, i) => ({ ...img, isMain: i === idx })));
+  };
+
+  const removeImage = (idx: number) => {
+    markDirty();
+    setImages((prev) => {
+      const next = prev.filter((_, i) => i !== idx);
+      // ถ้าลบรูป main ให้ตั้งรูปแรกเป็น main แทน
+      if (prev[idx].isMain && next.length > 0) next[0].isMain = true;
+      return next;
+    });
   };
 
   // ===== บันทึก =====
   const onSave = async () => {
     setSaveState("saving");
     savingRef.current = true;
+    const mainImage = images.find((img) => img.isMain) ?? images[0] ?? null;
+    // sync teamName / shirtType back to order if changed
+    const orderPatch: { teamName?: string; shirtType?: string } = {};
+    if (teamName !== teamNameProp) orderPatch.teamName = teamName;
+    if (shirt !== shirtTypeProp) orderPatch.shirtType = shirt;
+    if (Object.keys(orderPatch).length > 0) await onUpdateOrder?.(orderPatch);
+
     const res = await saveProduction(
       orderId,
-      { fabric, collar, imageUrl: image },
+      { fabric, collar, imageUrl: mainImage?.url ?? null, images },
       rows.map((r) => ({
         position: r.position,
         name: r.name,
@@ -133,6 +197,7 @@ export function ProductionTable({
     savingRef.current = false;
     if (res.ok) {
       setSaveState("saved");
+      setIsDirty(false);
       onFirstSave?.();
       setTimeout(() => setSaveState("idle"), 2500);
     } else {
@@ -152,9 +217,9 @@ export function ProductionTable({
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface">
-        {/* WINX banner */}
-        <div className="relative flex items-center justify-between overflow-hidden bg-gradient-to-r from-black via-[#0f1310] to-black px-8 py-6">
+      {/* WINX banner — กรอบแยก */}
+      <div className="overflow-hidden rounded-[var(--radius-lg)] border border-accent bg-black">
+        <div className="relative flex items-center justify-between overflow-hidden px-8 py-6">
           <div
             className="pointer-events-none absolute inset-0 opacity-[0.07]"
             style={{
@@ -172,55 +237,111 @@ export function ProductionTable({
               Looking good at every stage.
             </div>
           </div>
-          <div className="relative text-right text-xs text-white/60">
-            <div>f WNX.TH</div>
-            <div>◎ WINX.JERSEY</div>
+          <div className="relative text-right">
+            {(() => {
+              const col = productionColumns.find(c => c.id === productionStatus);
+              return col ? (
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full" style={{ background: col.accent }} />
+                  <span className="text-xs font-semibold text-white/80">{col.title}</span>
+                </div>
+              ) : (
+                <span className="text-xs text-white/40">ยังไม่มีสถานะ</span>
+              );
+            })()}
+          </div>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface">
+        {/* Fabric / collar selectors */}
+        <div className="flex flex-wrap items-center gap-3 border-b border-border bg-surface-2 px-6 py-4">
+          <span className="flex items-center gap-2 text-sm text-muted">
+            ทีม
+            <input
+              value={teamName}
+              onChange={e => { setTeamName(e.target.value); markDirty(); }}
+              className="rounded-md bg-transparent px-2 py-1 font-bold text-foreground outline-none hover:bg-surface-3 focus:bg-surface-3"
+            />
+          </span>
+          <SelectField value={fabric} onChange={v => { setFabric(v); markDirty(); }} options={FABRIC_OPTIONS} />
+          <SelectField value={collar} onChange={v => { setCollar(v); markDirty(); }} options={COLLAR_OPTIONS} />
+          <SelectField value={shirt} onChange={v => { setShirt(v); markDirty(); }} options={SHIRT_TYPES} />
+          <div className="ml-auto flex items-center gap-3">
+            {saveState === "saved" && (
+              <span className="flex items-center gap-1 text-sm text-success">
+                <Check className="h-4 w-4" /> บันทึกแล้ว
+              </span>
+            )}
+            {saveState === "error" && (
+              <span className="text-sm text-danger">{errMsg}</span>
+            )}
+            <Button onClick={onSave} disabled={saveState === "saving"}>
+              {saveState === "saving" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              บันทึก
+            </Button>
           </div>
         </div>
 
-        {/* Fabric / collar selectors */}
-        <div className="flex flex-wrap items-center gap-3 border-b border-border bg-surface-2 px-6 py-4">
-          <SelectField value={fabric} onChange={setFabric} options={FABRIC_OPTIONS} />
-          <SelectField value={collar} onChange={setCollar} options={COLLAR_OPTIONS} />
-          <span className="ml-auto text-sm text-muted">
-            ทีม <strong className="text-foreground">{teamName}</strong> · {shirtType}
-          </span>
-        </div>
-
         <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-3">
-          {/* Image */}
+          {/* Images */}
           <div className="lg:col-span-2">
             <input
               ref={fileRef}
               type="file"
               accept="image/*"
+              multiple
               className="hidden"
               onChange={onFile}
             />
-            {image ? (
-              <div className="group relative h-full min-h-[360px] overflow-hidden rounded-[var(--radius-md)] border border-border">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={image} alt="งานลูกค้า" className="h-full w-full object-contain" />
-                <button
-                  onClick={() => setImage(null)}
-                  className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity hover:bg-black/80 group-hover:opacity-100"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {images.map((img, idx) => (
+                <div key={idx} className="group relative aspect-square overflow-hidden rounded-[var(--radius-md)] border border-border bg-surface-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={img.url} alt={`รูป ${idx + 1}`} className="h-full w-full object-cover" />
+                  {/* star badge */}
+                  {img.isMain && (
+                    <div className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-400 shadow">
+                      <Star className="h-3.5 w-3.5 fill-black text-black" />
+                    </div>
+                  )}
+                  {/* hover controls */}
+                  <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                    {!img.isMain && (
+                      <button
+                        onClick={() => setMain(idx)}
+                        title="ตั้งเป็นรูปหลัก"
+                        className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-400 text-black hover:bg-yellow-300"
+                      >
+                        <Star className="h-4 w-4" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => removeImage(idx)}
+                      title="ลบรูป"
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white hover:bg-red-500"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {/* Upload button */}
               <button
                 onClick={() => fileRef.current?.click()}
-                className="flex h-full min-h-[360px] w-full flex-col items-center justify-center rounded-[var(--radius-md)] border-2 border-dashed border-border-strong bg-surface-2 text-center transition-colors hover:border-accent hover:bg-surface-3"
+                className="flex aspect-square flex-col items-center justify-center rounded-[var(--radius-md)] border-2 border-dashed border-border-strong bg-surface-2 text-center transition-colors hover:border-accent hover:bg-surface-3"
               >
-                <ImageIcon className="mb-3 h-10 w-10 text-muted-2" />
-                <p className="font-medium text-muted">ช่องสำหรับโชว์ภาพงานลูกค้า</p>
-                <p className="mt-1 flex items-center gap-1 text-xs text-muted-2">
-                  <Upload className="h-3.5 w-3.5" />
-                  คลิกเพื่ออัปโหลดรูป
+                <ImageIcon className="mb-1.5 h-7 w-7 text-muted-2" />
+                <p className="text-xs text-muted">เพิ่มรูป</p>
+                <p className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-2">
+                  <Upload className="h-3 w-3" /> อัปโหลด
                 </p>
               </button>
-            )}
+            </div>
           </div>
 
           {/* Size summary */}
@@ -338,25 +459,6 @@ export function ProductionTable({
         </div>
       </div>
 
-      {/* Save bar */}
-      <div className="flex items-center justify-end gap-3">
-        {saveState === "saved" && (
-          <span className="flex items-center gap-1 text-sm text-success">
-            <Check className="h-4 w-4" /> บันทึกแล้ว
-          </span>
-        )}
-        {saveState === "error" && (
-          <span className="text-sm text-danger">{errMsg}</span>
-        )}
-        <Button onClick={onSave} disabled={saveState === "saving"}>
-          {saveState === "saving" ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4" />
-          )}
-          บันทึกตารางผลิต
-        </Button>
-      </div>
     </div>
   );
 }

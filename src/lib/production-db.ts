@@ -10,10 +10,16 @@ export interface PlayerRow {
   note: string;
 }
 
+export interface ProductionImage {
+  url: string;
+  isMain: boolean;
+}
+
 export interface ProductionMeta {
   fabric: string;
   collar: string;
-  imageUrl: string | null;
+  imageUrl: string | null; // main image (backward compat)
+  images?: ProductionImage[];
 }
 
 export interface ProductionData {
@@ -38,6 +44,7 @@ export async function loadProduction(
           fabric: json.meta?.fabric || fallbackFabric,
           collar: json.meta?.collar || "คอกลม",
           imageUrl: json.meta?.imageUrl || null,
+          images: json.meta?.images ?? undefined,
         },
         players: (json.players || []).map(
           (p: PlayerRow, i: number): PlayerRow => ({
@@ -71,6 +78,7 @@ export async function loadProduction(
         fabric: metaRes.data.fabric ?? fallbackFabric,
         collar: metaRes.data.collar ?? "คอกลม",
         imageUrl: metaRes.data.image_url ?? null,
+        images: metaRes.data.images ?? undefined,
       }
     : { fabric: fallbackFabric, collar: "คอกลม", imageUrl: null };
 

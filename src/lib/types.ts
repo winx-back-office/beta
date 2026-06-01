@@ -9,9 +9,9 @@ export type CustomerType =
   | "produce"; // C: มีแบบเอง + ผลิตอย่างเดียว
 
 export const CUSTOMER_TYPE_LABEL: Record<CustomerType, string> = {
-  design: "ออกแบบอย่างเดียว",
+  design: "ออกแบบ",
   design_produce: "ออกแบบ + ผลิต",
-  produce: "ผลิตอย่างเดียว",
+  produce: "ผลิต",
 };
 
 // ต้นทุนผลิต (กลุ่ม B, C)
@@ -37,11 +37,13 @@ export interface Order {
   // กลุ่ม B, C — ผลิต
   shirtType?: string; // ประเภทเสื้อ
   fabricType?: string; // ประเภทเนื้อผ้า
+  collarType?: string; // ประเภทคอ
   quantity?: number; // จำนวนตัว
   productionPrice?: number; // ราคาผลิตต่อตัว (ขาย)
   cost?: ProductionCost; // ต้นทุนแยกรายการ
   costOverride?: number; // ต้นทุนผลิตรวมที่พิมพ์เองแทนการรวมอัตโนมัติ
   shipping?: number; // ค่าจัดส่ง
+  productionStatus?: string; // kanban column id
 
   // การเงินรวม
   deposit: number; // ยอดมัดจำ

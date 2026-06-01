@@ -13,6 +13,10 @@ import {
 } from "@/lib/types";
 import { formatBaht, formatDate } from "@/lib/utils";
 import { ArrowLeft, FileSpreadsheet, Table2, Loader2, Pencil, X, Check } from "lucide-react";
+
+const SHIRT_TYPES = ["เสื้อแขนสั้น", "เสื้อแขนยาว", "เสื้อกล้าม", "แจ็คเก็ต", "เสื้อโปโล", "อื่นๆ"];
+const FABRIC_TYPES = ["ผ้าเรียบ 140 แกรม", "ผ้าไมโครพีช", "ผ้าจูติ", "ผ้าเบริด์อาย", "ผ้าเกล็ดปลา"];
+const COLLAR_TYPES = ["คอกลม", "คอวี", "คอปก", "คอจีน"];
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
@@ -70,32 +74,17 @@ export default function OrderDetailPage() {
         {/* Left */}
         <div className="space-y-6 lg:col-span-2">
           <OrderInfoCard order={order} onSave={save} />
-          {isProduce && order.cost && <CostCard order={order} onSave={save} />}
+          {isProduce && <FinanceCard order={order} onSave={save} />}
+          {isProduce && order.hasProductionTable && <ProductionSummaryCard orderId={order.id} />}
         </div>
 
         {/* Right */}
         <div className="space-y-6">
-          <FinanceCard order={order} onSave={save} />
+          {!isProduce && <FinanceCard order={order} onSave={save} />}
+          {isProduce && order.cost && <CostCard order={order} onSave={save} />}
 
           {isProduce && (
-            <Card className="p-6">
-              <div className="mb-3 flex items-center gap-2 text-sm font-medium">
-                <Table2 className="h-4 w-4 text-accent" />
-                ตารางสั่งผลิต
-              </div>
-              <p className="mb-4 text-xs text-muted">
-                สร้างตารางรายชื่อผู้เล่นและไซส์ — ระบบจะดึงชื่อทีม ประเภทเสื้อ และเนื้อผ้าไปให้อัตโนมัติ
-              </p>
-              <Link href={`/production-tables/${order.id}`}>
-                <Button className="w-full">
-                  <FileSpreadsheet className="h-4 w-4" />
-                  {order.hasProductionTable ? "เปิดตารางสั่งผลิต" : "สร้างตารางสั่งผลิต"}
-                </Button>
-              </Link>
-              {order.hasProductionTable && (
-                <Badge tone="success" className="mt-3">สร้างแล้ว</Badge>
-              )}
-            </Card>
+            <ProductionTableCard order={order} onSave={save} />
           )}
         </div>
       </div>
@@ -115,6 +104,7 @@ function OrderInfoCard({ order, onSave }: { order: Order; onSave: (p: Partial<Or
       startDate: order.startDate,
       shirtType: order.shirtType,
       fabricType: order.fabricType,
+      collarType: order.collarType,
       quantity: order.quantity,
       designPackage: order.designPackage,
     });
@@ -149,10 +139,28 @@ function OrderInfoCard({ order, onSave }: { order: Order; onSave: (p: Partial<Or
             ) : (
               <>
                 <EditField label="ประเภทเสื้อ">
-                  <input className="field-input" value={draft.shirtType ?? ""} onChange={e => setDraft(d => ({ ...d, shirtType: e.target.value }))} />
+                  <select className="field-input" value={draft.shirtType ?? ""} onChange={e => setDraft(d => ({ ...d, shirtType: e.target.value }))}>
+                    {!SHIRT_TYPES.includes(draft.shirtType ?? "") && draft.shirtType && (
+                      <option value={draft.shirtType}>{draft.shirtType}</option>
+                    )}
+                    {SHIRT_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
                 </EditField>
                 <EditField label="เนื้อผ้า">
-                  <input className="field-input" value={draft.fabricType ?? ""} onChange={e => setDraft(d => ({ ...d, fabricType: e.target.value }))} />
+                  <select className="field-input" value={draft.fabricType ?? ""} onChange={e => setDraft(d => ({ ...d, fabricType: e.target.value }))}>
+                    {!FABRIC_TYPES.includes(draft.fabricType ?? "") && draft.fabricType && (
+                      <option value={draft.fabricType}>{draft.fabricType}</option>
+                    )}
+                    {FABRIC_TYPES.map(f => <option key={f} value={f}>{f}</option>)}
+                  </select>
+                </EditField>
+                <EditField label="ประเภทคอ">
+                  <select className="field-input" value={draft.collarType ?? ""} onChange={e => setDraft(d => ({ ...d, collarType: e.target.value }))}>
+                    {!COLLAR_TYPES.includes(draft.collarType ?? "") && draft.collarType && (
+                      <option value={draft.collarType}>{draft.collarType}</option>
+                    )}
+                    {COLLAR_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
                 </EditField>
                 <EditField label="จำนวนตัว">
                   <input type="number" min={1} className="field-input" value={draft.quantity ?? ""} onChange={e => setDraft(d => ({ ...d, quantity: Number(e.target.value) }))} />
@@ -170,6 +178,7 @@ function OrderInfoCard({ order, onSave }: { order: Order; onSave: (p: Partial<Or
               <>
                 <Field label="ประเภทเสื้อ" value={order.shirtType ?? "-"} />
                 <Field label="เนื้อผ้า" value={order.fabricType ?? "-"} />
+                <Field label="ประเภทคอ" value={order.collarType ?? "-"} />
                 <Field label="จำนวนตัว" value={`${order.quantity ?? 1} ตัว`} />
               </>
             )}
@@ -182,12 +191,12 @@ function OrderInfoCard({ order, onSave }: { order: Order; onSave: (p: Partial<Or
 
 // ── ต้นทุนการผลิต ───────────────────────────────────────────
 const COST_FIELDS: { key: keyof ProductionCost; label: string }[] = [
-  { key: "fabric", label: "ต้นทุนผ้า" },
-  { key: "paper",  label: "ต้นทุนกระดาษซับ" },
-  { key: "ink",    label: "ต้นทุนหมึก" },
-  { key: "cut",    label: "ต้นทุนตัด" },
-  { key: "sew",    label: "ต้นทุนเย็บ" },
-  { key: "other",  label: "ต้นทุนอื่นๆ" },
+  { key: "fabric", label: "ผ้า" },
+  { key: "paper",  label: "กระดาษ" },
+  { key: "ink",    label: "หมึก" },
+  { key: "cut",    label: "ตัด" },
+  { key: "sew",    label: "เย็บ" },
+  { key: "other",  label: "อื่นๆ" },
 ];
 
 function CostCard({ order, onSave }: { order: Order; onSave: (p: Partial<Order>) => Promise<void> }) {
@@ -404,5 +413,166 @@ function SummaryRow({ label, value, muted }: { label: string; value: number; mut
       <span className={muted ? "text-muted" : ""}>{label}</span>
       <span className="font-medium">{formatBaht(value)}</span>
     </div>
+  );
+}
+
+// ── การ์ดตารางสั่งผลิต (พร้อมตรวจจำนวน) ─────────────────────
+function ProductionTableCard({ order, onSave }: { order: Order; onSave: (p: Partial<Order>) => Promise<void> }) {
+  const [tableQty, setTableQty] = useState<number | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [updating, setUpdating] = useState(false);
+
+  useEffect(() => {
+    if (!order.hasProductionTable) return;
+    fetch(`/api/production/${order.id}`, { cache: "no-store" })
+      .then(r => r.json())
+      .then(data => {
+        const count = (data.players as { name: string; size: string }[]).filter(p => p.name || p.size).length;
+        setTableQty(count);
+      })
+      .catch(() => {});
+  }, [order.id, order.hasProductionTable]);
+
+  const mismatch = tableQty !== null && tableQty !== (order.quantity ?? 0);
+
+  const handleUpdate = async () => {
+    setUpdating(true);
+    await onSave({ quantity: tableQty! });
+    setUpdating(false);
+    setConfirmOpen(false);
+  };
+
+  return (
+    <>
+      <Card className="p-6">
+        <div className="mb-3 flex items-center gap-2 text-sm font-medium">
+          <Table2 className="h-4 w-4 text-accent" />
+          ตารางสั่งผลิต
+        </div>
+        <p className="mb-4 text-xs text-muted">
+          สร้างตารางรายชื่อผู้เล่นและไซส์ — ระบบจะดึงชื่อทีม ประเภทเสื้อ และเนื้อผ้าไปให้อัตโนมัติ
+        </p>
+        <Link href={`/production-tables/${order.id}`}>
+          <Button className="w-full">
+            <FileSpreadsheet className="h-4 w-4" />
+            {order.hasProductionTable ? "เปิดตารางสั่งผลิต" : "สร้างตารางสั่งผลิต"}
+          </Button>
+        </Link>
+        {order.hasProductionTable && (
+          <Badge tone="success" className="mt-3">สร้างแล้ว</Badge>
+        )}
+        {mismatch && (
+          <div className="mt-4 rounded-[var(--radius-md)] border border-warn/40 bg-warn/10 p-3 text-xs">
+            <p className="mb-2 text-warn font-medium">
+              จำนวนในตารางผลิต ({tableQty} คน) ไม่ตรงกับออเดอร์ ({order.quantity} ตัว)
+            </p>
+            <button
+              onClick={() => setConfirmOpen(true)}
+              className="rounded-md bg-warn px-3 py-1.5 text-xs font-semibold text-black"
+            >
+              อัพเดทจำนวนออเดอร์ให้ตรงกับตาราง
+            </button>
+          </div>
+        )}
+      </Card>
+
+      {confirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-80 rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-xl">
+            <h3 className="mb-2 font-semibold">ยืนยันการอัพเดท</h3>
+            <p className="mb-5 text-sm text-muted">
+              เปลี่ยนจำนวนตัวในออเดอร์จาก <strong className="text-foreground">{order.quantity} ตัว</strong> เป็น <strong className="text-foreground">{tableQty} ตัว</strong> ตามรายชื่อในตารางผลิต?
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmOpen(false)}
+                className="flex-1 rounded-md border border-border py-2 text-sm text-muted hover:bg-surface-2"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleUpdate}
+                disabled={updating}
+                className="flex-1 rounded-md bg-accent py-2 text-sm font-semibold text-accent-foreground disabled:opacity-60"
+              >
+                {updating ? "กำลังอัพเดท…" : "ยืนยัน"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── สรุปตารางสั่งผลิต ────────────────────────────────────────
+const SIZES = ["SS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL", "6XL", "7XL", "พิเศษ"];
+
+function ProductionSummaryCard({ orderId }: { orderId: string }) {
+  const [data, setData] = useState<{ meta: { fabric: string; collar: string }; players: { name: string; size: string; number: string; checked: boolean }[] } | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/production/${orderId}`, { cache: "no-store" })
+      .then(r => r.json())
+      .then(setData)
+      .catch(() => {});
+  }, [orderId]);
+
+  if (!data) return null;
+
+  const players = data.players.filter(p => p.name || p.size);
+  const sizeCounts = SIZES.reduce<Record<string, number>>((acc, s) => {
+    acc[s] = players.filter(p => p.size === s).length;
+    return acc;
+  }, {});
+  const total = players.length;
+  const checkedCount = players.filter(p => p.checked).length;
+
+  return (
+    <Card className="p-6">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-2">สรุปตารางผลิต</h2>
+        <div className="flex items-center gap-2 text-xs text-muted">
+          <span>{data.meta.fabric}</span>
+          <span>·</span>
+          <span>{data.meta.collar}</span>
+        </div>
+      </div>
+
+      {/* รายชื่อ */}
+      <div className="mb-4 max-h-48 overflow-y-auto divide-y divide-border rounded-[var(--radius-md)] border border-border text-sm">
+        {players.length === 0 ? (
+          <p className="px-4 py-3 text-center text-muted">ยังไม่มีรายชื่อ</p>
+        ) : (
+          players.map((p, i) => (
+            <div key={i} className="flex items-center justify-between px-4 py-2">
+              <div className="flex items-center gap-2">
+                <span className="w-5 text-xs text-muted-2">{i + 1}</span>
+                <span className={p.checked ? "line-through text-muted" : ""}>{p.name || "—"}</span>
+                {p.number && <span className="text-xs text-muted">#{p.number}</span>}
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="rounded bg-surface-2 px-2 py-0.5 text-xs font-medium">{p.size || "—"}</span>
+                {p.checked && <span className="text-xs text-success">✓</span>}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* สรุปไซส์ */}
+      <div className="flex flex-wrap gap-2">
+        {SIZES.filter(s => sizeCounts[s] > 0).map(s => (
+          <span key={s} className="rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent">
+            {s} × {sizeCounts[s]}
+          </span>
+        ))}
+      </div>
+
+      <div className="mt-3 flex items-center justify-between text-xs text-muted border-t border-border pt-3">
+        <span>รวม {total} ตัว</span>
+        <span>เช็คสินค้าแล้ว {checkedCount}/{total}</span>
+      </div>
+    </Card>
   );
 }
