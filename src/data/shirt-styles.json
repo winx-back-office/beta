@@ -1,0 +1,26 @@
+[
+  {
+    "id": "basic-jersey",
+    "name": "Basic Jersey",
+    "pricing": [
+      { "minQty": 10, "maxQty": 20, "basePrice": 339 },
+      { "minQty": 21, "maxQty": 40, "basePrice": 329 },
+      { "minQty": 41, "maxQty": 50, "basePrice": 319 },
+      { "minQty": 51, "maxQty": 80, "basePrice": 279 }
+    ],
+    "collars": [
+      { "name": "คอกลม",       "price": 0 },
+      { "name": "คอวี",         "price": 0 },
+      { "name": "คอวีสองชั้น", "price": 0 },
+      { "name": "วีไขว้",      "price": 0 },
+      { "name": "วีคางหมู",    "price": 0 },
+      { "name": "คอปกวี",      "price": 30 },
+      { "name": "ปกกระดุม",    "price": 30 }
+    ],
+    "fabrics": [
+      { "name": "ผ้าเรียบ",        "price": 0 },
+      { "name": "ผ้าทอพิเศษ",     "price": 20 },
+      { "name": "ผ้าวอร์มพิเศษ",  "price": 30 }
+    ]
+  }
+]

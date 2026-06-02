@@ -5,9 +5,10 @@ import { X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui";
 import { cn, formatBaht } from "@/lib/utils";
 import type { CustomerType, Order } from "@/lib/types";
-
-const SHIRT_TYPES = ["เสื้อแขนสั้น", "เสื้อแขนยาว", "เสื้อกล้าม", "แจ็คเก็ต", "เสื้อโปโล", "อื่นๆ"];
-const FABRIC_TYPES = ["ผ้าเรียบ 140 แกรม", "ผ้าไมโครพีช", "ผ้าจูติ", "ผ้าเบริด์อาย", "ผ้าเกล็ดปลา"];
+import {
+  useFabricOptions, useShirtStyleOptions, useCollarOptions,
+  useShirtStyles, useFabricsData, calcProductionPrice,
+} from "@/lib/use-catalog";
 const DESIGN_PACKAGES = [
   "แพคเกจ Standard (เสื้ออย่างเดียว)",
   "แพคเกจ Premium (เสื้อ + กางเกง)",
@@ -26,13 +27,20 @@ interface Props {
 export function AddOrderModal({ open, onClose, onCreated, editOrder }: Props) {
   const isEdit = !!editOrder;
 
+  const shirtOptions  = useShirtStyleOptions();
+  const fabricOptions = useFabricOptions();
+  const collarOptions = useCollarOptions();
+  const shirtStyles   = useShirtStyles();
+  const fabricsData   = useFabricsData();
+
   const [type, setType] = useState<CustomerType>("design");
   const [teamName, setTeamName] = useState("");
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
   const [designPackage, setDesignPackage] = useState(DESIGN_PACKAGES[0]);
   const [designPackagePrice, setDesignPackagePrice] = useState("");
-  const [shirtType, setShirtType] = useState(SHIRT_TYPES[0]);
-  const [fabricType, setFabricType] = useState(FABRIC_TYPES[0]);
+  const [shirtType, setShirtType] = useState("");
+  const [fabricType, setFabricType] = useState("");
+  const [collarType, setCollarType] = useState("");
   const [quantity, setQuantity] = useState("");
   const [productionPrice, setProductionPrice] = useState("");
   const [cost, setCost] = useState(DEFAULT_COST);
@@ -50,8 +58,9 @@ export function AddOrderModal({ open, onClose, onCreated, editOrder }: Props) {
       setStartDate(editOrder.startDate);
       setDesignPackage(editOrder.designPackage ?? DESIGN_PACKAGES[0]);
       setDesignPackagePrice(String(editOrder.designPackagePrice ?? ""));
-      setShirtType(editOrder.shirtType ?? SHIRT_TYPES[0]);
-      setFabricType(editOrder.fabricType ?? FABRIC_TYPES[0]);
+      setShirtType(editOrder.shirtType ?? "");
+      setFabricType(editOrder.fabricType ?? "");
+      setCollarType(editOrder.collarType ?? "");
       setQuantity(String(editOrder.quantity ?? ""));
       setProductionPrice(String(editOrder.productionPrice ?? ""));
       setCost(editOrder.cost ?? DEFAULT_COST);
@@ -67,6 +76,21 @@ export function AddOrderModal({ open, onClose, onCreated, editOrder }: Props) {
 
   const isDesign = type === "design" || type === "design_produce";
   const isProduce = type === "produce" || type === "design_produce";
+
+  const [priceHint, setPriceHint] = useState<string>("");
+
+  // auto-calc ราคาผลิต/ตัว เมื่อเลือก ทรงเสื้อ / ผ้า / คอ / จำนวน
+  useEffect(() => {
+    if (!isProduce || !shirtType || !fabricType || !collarType) { setPriceHint(""); return; }
+    const qty = parseFloat(quantity) || 0;
+    const result = calcProductionPrice(shirtStyles, fabricsData, shirtType, fabricType, collarType, qty);
+    if (result !== null) {
+      setProductionPrice(String(result.price));
+      setPriceHint(result.inRange ? "" : "⚠️ จำนวนอยู่นอกช่วงราคา — ใช้ราคาใกล้เคียง");
+    } else {
+      setPriceHint("");
+    }
+  }, [shirtType, fabricType, collarType, quantity, shirtStyles, fabricsData, isProduce]);
 
   const updateCost = (key: keyof typeof DEFAULT_COST, val: string) => {
     setCost((prev) => {
@@ -97,7 +121,7 @@ export function AddOrderModal({ open, onClose, onCreated, editOrder }: Props) {
     setType("design");
     setTeamName(""); setStartDate(new Date().toISOString().slice(0, 10));
     setDesignPackage(DESIGN_PACKAGES[0]); setDesignPackagePrice("");
-    setShirtType(SHIRT_TYPES[0]); setFabricType(FABRIC_TYPES[0]);
+    setShirtType(""); setFabricType(""); setCollarType("");
     setQuantity(""); setProductionPrice(""); setCost(DEFAULT_COST);
     setCostOverride(""); setShipping(""); setDeposit(""); setError("");
   };
@@ -121,6 +145,7 @@ export function AddOrderModal({ open, onClose, onCreated, editOrder }: Props) {
         ...(isProduce && {
           shirtType,
           fabricType,
+          collarType,
           quantity: parseFloat(quantity) || 1,
           productionPrice: parseFloat(productionPrice) || 0,
           cost,
@@ -226,13 +251,22 @@ export function AddOrderModal({ open, onClose, onCreated, editOrder }: Props) {
                 <div>
                   <Label>ประเภทเสื้อ</Label>
                   <Select value={shirtType} onChange={e => setShirtType(e.target.value)}>
-                    {SHIRT_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
+                    <option value="">— เลือกทรงเสื้อ —</option>
+                    {shirtOptions.map(s => <option key={s} value={s}>{s}</option>)}
                   </Select>
                 </div>
                 <div>
                   <Label>เนื้อผ้า</Label>
                   <Select value={fabricType} onChange={e => setFabricType(e.target.value)}>
-                    {FABRIC_TYPES.map(f => <option key={f} value={f}>{f}</option>)}
+                    <option value="">— เลือกเนื้อผ้า —</option>
+                    {fabricOptions.map(f => <option key={f} value={f}>{f}</option>)}
+                  </Select>
+                </div>
+                <div>
+                  <Label>ประเภทคอ</Label>
+                  <Select value={collarType} onChange={e => setCollarType(e.target.value)}>
+                    <option value="">— เลือกประเภทคอ —</option>
+                    {collarOptions.map(c => <option key={c} value={c}>{c}</option>)}
                   </Select>
                 </div>
                 <div>
@@ -242,6 +276,7 @@ export function AddOrderModal({ open, onClose, onCreated, editOrder }: Props) {
                 <div>
                   <Label>ราคาผลิตต่อตัว (บาท)</Label>
                   <Input type="number" value={productionPrice} onChange={e => setProductionPrice(e.target.value)} placeholder="0" />
+                  {priceHint && <p className="mt-1 text-xs text-warn">{priceHint}</p>}
                 </div>
                 <div>
                   <Label>ค่าจัดส่ง (บาท)</Label>

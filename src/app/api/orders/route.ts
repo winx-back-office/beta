@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     let prod: Record<string, unknown> = {};
     try { prod = JSON.parse(fs.readFileSync(prodPath, "utf-8")); } catch { /* empty */ }
     prod[newOrder.id] = {
-      meta: { fabric: newOrder.fabricType ?? "", collar: "คอกลม", imageUrl: null },
+      meta: { fabric: newOrder.fabricType ?? "", collar: newOrder.collarType ?? "", imageUrl: null },
       players: [],
     };
     fs.writeFileSync(prodPath, JSON.stringify(prod, null, 2), "utf-8");

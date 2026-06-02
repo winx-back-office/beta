@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { Search, CheckCircle2, Circle, Loader2, Table2 } from "lucide-react";
 import { Button, Card, Badge } from "@/components/ui";
-import { designColumns, designCards, productionColumns, productionCards } from "@/lib/mock-data";
+import { designColumns, designCards } from "@/lib/mock-data";
+import { useProductionColumns } from "@/lib/use-production-columns";
 import { CUSTOMER_TYPE_LABEL, type Order, type QueueColumn } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 
@@ -73,8 +74,8 @@ export function Tracker() {
 }
 
 function TrackResult({ order }: { order: Order }) {
+  const productionColumns = useProductionColumns();
   const designCard = designCards.find((c) => c.orderId === order.id);
-  const prodCard = productionCards.find((c) => c.orderId === order.id);
 
   return (
     <Card className="overflow-hidden">
@@ -102,16 +103,14 @@ function TrackResult({ order }: { order: Order }) {
           <Stepper
             title="ขั้นตอนผลิต"
             columns={productionColumns}
-            currentColumnId={prodCard?.columnId}
+            currentColumnId={order.productionStatus}
           />
         )}
 
-        {(designCard || prodCard) && (
+        {designCard && (
           <div className="rounded-[var(--radius-md)] bg-surface-2 px-4 py-3 text-sm text-muted">
             กำหนดส่ง:{" "}
-            <strong className="text-foreground">
-              {formatDate((prodCard ?? designCard)!.dueDate)}
-            </strong>
+            <strong className="text-foreground">{formatDate(designCard.dueDate)}</strong>
           </div>
         )}
 

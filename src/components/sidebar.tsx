@@ -9,6 +9,8 @@ import {
   Factory,
   Search,
   TableProperties,
+  Shirt,
+  Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +20,8 @@ const nav = [
   { href: "/queue/design", label: "คิวออกแบบ", icon: Palette },
   { href: "/queue/production", label: "คิวผลิต", icon: Factory },
   { href: "/production-tables", label: "ตารางสั่งผลิต", icon: TableProperties },
+  { href: "/shirt-styles", label: "ข้อมูลทรงเสื้อ", icon: Shirt },
+  { href: "/fabrics", label: "ข้อมูลเนื้อผ้า", icon: Layers },
   { href: "/track", label: "ติดตามสถานะ (ลูกค้า)", icon: Search },
 ];
 

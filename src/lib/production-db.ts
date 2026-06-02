@@ -7,6 +7,7 @@ export interface PlayerRow {
   size: string;
   number: string;
   checked: boolean;
+  status: string;  // ข้อความสถานะจากชีต (แทน checkbox)
   note: string;
 }
 
@@ -20,6 +21,8 @@ export interface ProductionMeta {
   collar: string;
   imageUrl: string | null; // main image (backward compat)
   images?: ProductionImage[];
+  columnLabels?: string[]; // หัว column จาก sheet import เช่น ["ชื่อผู้เล่น","ไซส์","เลข","เช็คสินค้า",...]
+  sheetsUrl?: string;     // Google Sheets URL สำหรับ auto-sync
 }
 
 export interface ProductionData {
@@ -32,7 +35,8 @@ export { supabaseEnabled };
 // ===== โหลดตารางผลิต =====
 export async function loadProduction(
   orderId: string,
-  fallbackFabric: string
+  fallbackFabric: string,
+  fallbackCollar = ""
 ): Promise<ProductionData> {
   // Local API (ไม่มี Supabase)
   if (!supabaseEnabled) {
@@ -42,9 +46,11 @@ export async function loadProduction(
       return {
         meta: {
           fabric: json.meta?.fabric || fallbackFabric,
-          collar: json.meta?.collar || "คอกลม",
+          collar: json.meta?.collar || fallbackCollar,
           imageUrl: json.meta?.imageUrl || null,
           images: json.meta?.images ?? undefined,
+          columnLabels: json.meta?.columnLabels ?? undefined,
+          sheetsUrl: json.meta?.sheetsUrl ?? undefined,
         },
         players: (json.players || []).map(
           (p: PlayerRow, i: number): PlayerRow => ({
@@ -54,12 +60,13 @@ export async function loadProduction(
             size: p.size || "",
             number: p.number || "",
             checked: !!p.checked,
+            status: p.status || "",
             note: p.note || "",
           })
         ),
       };
     } catch {
-      return { meta: { fabric: fallbackFabric, collar: "คอกลม", imageUrl: null }, players: [] };
+      return { meta: { fabric: fallbackFabric, collar: fallbackCollar, imageUrl: null }, players: [] };
     }
   }
 

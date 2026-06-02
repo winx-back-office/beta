@@ -14,11 +14,9 @@ import {
 import { formatBaht, formatDate } from "@/lib/utils";
 import { ArrowLeft, FileSpreadsheet, Table2, Loader2, Pencil, X, Check } from "lucide-react";
 
-const SHIRT_TYPES = ["เสื้อแขนสั้น", "เสื้อแขนยาว", "เสื้อกล้าม", "แจ็คเก็ต", "เสื้อโปโล", "อื่นๆ"];
-const FABRIC_TYPES = ["ผ้าเรียบ 140 แกรม", "ผ้าไมโครพีช", "ผ้าจูติ", "ผ้าเบริด์อาย", "ผ้าเกล็ดปลา"];
-const COLLAR_TYPES = ["คอกลม", "คอวี", "คอปก", "คอจีน"];
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useFabricOptions, useShirtStyleOptions, useCollarOptions } from "@/lib/use-catalog";
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -97,6 +95,9 @@ function OrderInfoCard({ order, onSave }: { order: Order; onSave: (p: Partial<Or
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Partial<Order>>({});
   const [saving, setSaving] = useState(false);
+  const shirtOptions  = useShirtStyleOptions();
+  const fabricOptions = useFabricOptions();
+  const collarOptions = useCollarOptions();
 
   const start = () => {
     setDraft({
@@ -140,26 +141,29 @@ function OrderInfoCard({ order, onSave }: { order: Order; onSave: (p: Partial<Or
               <>
                 <EditField label="ประเภทเสื้อ">
                   <select className="field-input" value={draft.shirtType ?? ""} onChange={e => setDraft(d => ({ ...d, shirtType: e.target.value }))}>
-                    {!SHIRT_TYPES.includes(draft.shirtType ?? "") && draft.shirtType && (
+                    <option value="">— เลือกทรงเสื้อ —</option>
+                    {!shirtOptions.includes(draft.shirtType ?? "") && draft.shirtType && (
                       <option value={draft.shirtType}>{draft.shirtType}</option>
                     )}
-                    {SHIRT_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
+                    {shirtOptions.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </EditField>
                 <EditField label="เนื้อผ้า">
                   <select className="field-input" value={draft.fabricType ?? ""} onChange={e => setDraft(d => ({ ...d, fabricType: e.target.value }))}>
-                    {!FABRIC_TYPES.includes(draft.fabricType ?? "") && draft.fabricType && (
+                    <option value="">— เลือกเนื้อผ้า —</option>
+                    {!fabricOptions.includes(draft.fabricType ?? "") && draft.fabricType && (
                       <option value={draft.fabricType}>{draft.fabricType}</option>
                     )}
-                    {FABRIC_TYPES.map(f => <option key={f} value={f}>{f}</option>)}
+                    {fabricOptions.map(f => <option key={f} value={f}>{f}</option>)}
                   </select>
                 </EditField>
                 <EditField label="ประเภทคอ">
                   <select className="field-input" value={draft.collarType ?? ""} onChange={e => setDraft(d => ({ ...d, collarType: e.target.value }))}>
-                    {!COLLAR_TYPES.includes(draft.collarType ?? "") && draft.collarType && (
+                    <option value="">— เลือกประเภทคอ —</option>
+                    {!collarOptions.includes(draft.collarType ?? "") && draft.collarType && (
                       <option value={draft.collarType}>{draft.collarType}</option>
                     )}
-                    {COLLAR_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
+                    {collarOptions.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </EditField>
                 <EditField label="จำนวนตัว">
@@ -202,43 +206,110 @@ const COST_FIELDS: { key: keyof ProductionCost; label: string }[] = [
 function CostCard({ order, onSave }: { order: Order; onSave: (p: Partial<Order>) => Promise<void> }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<ProductionCost>({ ...(order.cost!) });
+  const [useOverride, setUseOverride] = useState(!!(order.costOverride && order.costOverride > 0));
+  const [overrideDraft, setOverrideDraft] = useState<number>(order.costOverride ?? 0);
   const [saving, setSaving] = useState(false);
 
-  const start = () => { setDraft({ ...(order.cost!) }); setEditing(true); };
+  const qty = order.quantity || 1;
+
+  const start = () => {
+    setDraft({ ...(order.cost!) });
+    setUseOverride(!!(order.costOverride && order.costOverride > 0));
+    setOverrideDraft(order.costOverride ?? 0);
+    setEditing(true);
+  };
   const cancel = () => setEditing(false);
   const submit = async () => {
     setSaving(true);
-    await onSave({ cost: draft });
+    if (useOverride) {
+      await onSave({ costOverride: overrideDraft, cost: draft });
+    } else {
+      await onSave({ cost: draft, costOverride: 0 });
+    }
     setSaving(false);
     setEditing(false);
   };
+
+  const previewTotal = useOverride
+    ? overrideDraft * qty
+    : Object.values(draft).reduce((a, b) => a + b, 0) * qty;
 
   return (
     <Card className="p-6">
       <CardHeader title="ต้นทุนการผลิต" editing={editing} saving={saving} onEdit={start} onCancel={cancel} onSave={submit} />
       <div className="space-y-2.5 text-sm">
-        {COST_FIELDS.map(({ key, label }) =>
+
+        {/* Toggle แยกรายการ / กำหนดรวม */}
+        {editing && (
+          <div className="flex gap-1 rounded-[var(--radius-md)] border border-border bg-surface-2 p-1 mb-3">
+            {([false, true] as const).map((v) => (
+              <button
+                key={String(v)}
+                type="button"
+                onClick={() => setUseOverride(v)}
+                className={`flex-1 rounded-[var(--radius-sm)] px-3 py-1.5 text-xs font-medium transition-colors ${
+                  useOverride === v
+                    ? "bg-surface text-foreground shadow-sm"
+                    : "text-muted hover:text-foreground"
+                }`}
+              >
+                {v ? "กำหนดรวมเอง" : "แยกรายการ"}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Override mode */}
+        {useOverride ? (
           editing ? (
-            <div key={key} className="flex items-center justify-between gap-4">
-              <span className="text-muted">{label}</span>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-muted">ต้นทุนรวม/ตัว</span>
               <input
                 type="number"
                 min={0}
                 className="field-input w-32 text-right"
-                value={draft[key]}
-                onChange={e => setDraft(d => ({ ...d, [key]: Number(e.target.value) }))}
+                value={overrideDraft}
+                onChange={e => setOverrideDraft(Number(e.target.value))}
               />
             </div>
           ) : (
-            <CostRow key={key} label={label} value={order.cost![key]} />
+            <CostRow label="ต้นทุนรวม/ตัว" value={order.costOverride ?? 0} />
+          )
+        ) : (
+          /* แยกรายการ */
+          COST_FIELDS.map(({ key, label }) =>
+            editing ? (
+              <div key={key} className="flex items-center justify-between gap-4">
+                <span className="text-muted">{label}</span>
+                <input
+                  type="number"
+                  min={0}
+                  className="field-input w-32 text-right"
+                  value={draft[key]}
+                  onChange={e => setDraft(d => ({ ...d, [key]: Number(e.target.value) }))}
+                />
+              </div>
+            ) : (
+              <CostRow key={key} label={label} value={order.cost![key]} />
+            )
           )
         )}
-        <div className="mt-2 flex justify-between border-t border-border pt-3 font-semibold">
+
+        {/* ต้นทุนรวมต่อตัว — แสดงเฉพาะโหมดแยกรายการ */}
+        {!useOverride && (
+          <div className="flex justify-between border-t border-border pt-2.5 text-sm text-muted">
+            <span>ต้นทุนรวมต่อตัว</span>
+            <span>{formatBaht(
+              editing
+                ? Object.values(draft).reduce((a, b) => a + b, 0)
+                : Object.values(order.cost ?? {}).reduce((a: number, b: number) => a + b, 0)
+            )}</span>
+          </div>
+        )}
+
+        <div className="mt-1 flex justify-between border-t border-border pt-2.5 font-semibold">
           <span>รวมต้นทุนผลิต</span>
-          <span>{formatBaht(editing
-            ? Object.values(draft).reduce((a, b) => a + b, 0) * (order.quantity ?? 1)
-            : costTotal(order)
-          )}</span>
+          <span>{formatBaht(editing ? previewTotal : costTotal(order))}</span>
         </div>
       </div>
     </Card>
@@ -298,10 +369,13 @@ function FinanceCard({ order, onSave }: { order: Order; onSave: (p: Partial<Orde
                 onChange={v => setDraft(d => ({ ...d, productionPrice: v }))}
               />
             ) : (
-              <SummaryRow
-                label={`ราคาผลิต (${formatBaht(order.productionPrice ?? 0)}/ตัว × ${order.quantity ?? 1} ตัว)`}
-                value={(order.productionPrice ?? 0) * (order.quantity ?? 1)}
-              />
+              <div className="flex items-start justify-between gap-4 text-sm">
+                <div>
+                  <div>ราคาผลิต</div>
+                  <div className="text-xs text-muted mt-0.5">{formatBaht(order.productionPrice ?? 0)}/ตัว × {order.quantity ?? 1} ตัว</div>
+                </div>
+                <span className="font-medium">{formatBaht((order.productionPrice ?? 0) * (order.quantity ?? 1))}</span>
+              </div>
             )}
             {editing ? (
               <EditNumRow label="ค่าจัดส่ง" value={draft.shipping ?? 0} onChange={v => setDraft(d => ({ ...d, shipping: v }))} />
