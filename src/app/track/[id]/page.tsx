@@ -7,11 +7,16 @@ import { CUSTOMER_TYPE_LABEL, type Order } from "@/lib/types";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useProductionColumns } from "@/lib/use-production-columns";
+
+// column ที่ lock และหลังจากนี้ลูกค้าแก้ไขไม่ได้
+const LOCK_FROM_COLUMN = "size"; // วางไซส์
 
 export default function CustomerProductionTablePage() {
   const { id } = useParams<{ id: string }>();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const productionColumns = useProductionColumns();
 
   useEffect(() => {
     fetch(`/api/orders/${id}`)
@@ -56,6 +61,14 @@ export default function CustomerProductionTablePage() {
           teamName={order.teamName}
           shirtType={order.shirtType ?? "-"}
           fabricType={order.fabricType ?? "-"}
+          collarType={order.collarType ?? ""}
+          productionStatus={order.productionStatus}
+          hideSync
+          readOnly={(() => {
+            const lockIdx = productionColumns.findIndex(c => c.id === LOCK_FROM_COLUMN);
+            const curIdx  = productionColumns.findIndex(c => c.id === order.productionStatus);
+            return lockIdx !== -1 && curIdx >= lockIdx;
+          })()}
         />
       </div>
     </div>

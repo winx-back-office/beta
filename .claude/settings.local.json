@@ -22,7 +22,15 @@
       "Bash(git -C \"/Users/thearmmacbookpro/Documents/WINX CLUADE/Back office WINXSTUDIO\" diff --stat)",
       "Bash(python3 -c \"import json,sys; [print\\(o['id'], o['teamName']\\) for o in json.load\\(sys.stdin\\)]\")",
       "Bash(python3 -c \"import json,sys; [print\\(k\\) for k in json.load\\(sys.stdin\\).keys\\(\\)]\")",
-      "Bash(python3 -c \"import json; d=json.load\\(open\\('/Users/thearmmacbookpro/Documents/WINX CLUADE/Back office WINXSTUDIO/src/data/orders.json'\\)\\); [print\\(o['id'], repr\\(o['teamName']\\), o.get\\('fabricType',''\\), o.get\\('shirtType',''\\)\\) for o in d[:5]]\")"
+      "Bash(python3 -c \"import json; d=json.load\\(open\\('/Users/thearmmacbookpro/Documents/WINX CLUADE/Back office WINXSTUDIO/src/data/orders.json'\\)\\); [print\\(o['id'], repr\\(o['teamName']\\), o.get\\('fabricType',''\\), o.get\\('shirtType',''\\)\\) for o in d[:5]]\")",
+      "Bash(curl -s \"https://docs.google.com/spreadsheets/d/1271CYMpDU3oBQF6kotONMVBTEemR14T98kAxkDszWxM/gviz/tq?tqx=out:csv&gid=1796305302\")",
+      "Bash(curl -s \"http://localhost:3000/api/import/production-sheet?url=https://docs.google.com/spreadsheets/d/1271CYMpDU3oBQF6kotONMVBTEemR14T98kAxkDszWxM/edit?gid=1796305302\")",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s \"https://spreadsheets.google.com/feeds/worksheets/1271CYMpDU3oBQF6kotONMVBTEemR14T98kAxkDszWxM/public/basic?alt=json\")",
+      "Bash(curl -s \"https://docs.google.com/spreadsheets/d/1271CYMpDU3oBQF6kotONMVBTEemR14T98kAxkDszWxM/gviz/tq?tqx=out:json&gid=1796305302\")",
+      "Bash(curl -sL \"https://docs.google.com/spreadsheets/d/1271CYMpDU3oBQF6kotONMVBTEemR14T98kAxkDszWxM/edit#gid=1796305302\")",
+      "Bash(curl -sL \"https://docs.google.com/spreadsheets/d/1271CYMpDU3oBQF6kotONMVBTEemR14T98kAxkDszWxM/export?format=xlsx&gid=1796305302\" -o /tmp/test.xlsx)",
+      "Bash(curl -sL \"https://docs.google.com/spreadsheets/d/1271CYMpDU3oBQF6kotONMVBTEemR14T98kAxkDszWxM/edit\")"
     ]
   }
 }

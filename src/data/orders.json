@@ -1,13 +1,80 @@
 [
   {
     "type": "produce",
-    "teamName": "ARM",
+    "teamName": "WINX 2",
+    "startDate": "2026-06-02",
+    "deposit": 0,
+    "shirtType": "Basic Jersey",
+    "fabricType": "ผ้าเม็ดข้าวสาร",
+    "collarType": "คอวี",
+    "quantity": 1,
+    "productionPrice": 359,
+    "cost": {
+      "fabric": 0,
+      "paper": 0,
+      "ink": 0,
+      "cut": 0,
+      "sew": 0,
+      "other": 0
+    },
+    "shipping": 0,
+    "id": "WNX-2606-13",
+    "hasProductionTable": false
+  },
+  {
+    "type": "produce",
+    "teamName": "WINX 1",
+    "startDate": "2026-06-02",
+    "deposit": 0,
+    "shirtType": "Basic Jersey",
+    "fabricType": "ผ้าเรียบ",
+    "collarType": "คอกลม",
+    "quantity": 1,
+    "productionPrice": 339,
+    "cost": {
+      "fabric": 0,
+      "paper": 0,
+      "ink": 0,
+      "cut": 0,
+      "sew": 0,
+      "other": 0
+    },
+    "shipping": 0,
+    "id": "WNX-2606-12",
+    "hasProductionTable": false
+  },
+  {
+    "type": "produce",
+    "teamName": "FRG - 11 MAY 26 - รายชื่อเสื้อทีม",
+    "startDate": "2026-06-02",
+    "deposit": 0,
+    "shirtType": "เสื้อแขนสั้น",
+    "fabricType": "ผ้าไมโครพีช",
+    "quantity": 43,
+    "productionPrice": 350,
+    "cost": {
+      "fabric": 30,
+      "paper": 15,
+      "ink": 30,
+      "cut": 10,
+      "sew": 45,
+      "other": 10
+    },
+    "shipping": 100,
+    "id": "WNX-2606-11",
+    "hasProductionTable": true,
+    "collarType": "คอวี",
+    "productionStatus": "pattern_in"
+  },
+  {
+    "type": "produce",
+    "teamName": "เลอะเทอะ HOOD - รายชื่อเสื้อทีม",
     "startDate": "2026-06-01",
     "deposit": 0,
     "shirtType": "เสื้อแขนสั้น",
-    "fabricType": "ผ้าเรียบ 140 แกรม",
-    "quantity": 10,
-    "productionPrice": 300,
+    "fabricType": "วอร์ม 210 แกรม",
+    "quantity": 23,
+    "productionPrice": 950,
     "cost": {
       "fabric": 20,
       "paper": 20,
@@ -19,7 +86,8 @@
     "shipping": 0,
     "id": "WNX-2606-10",
     "hasProductionTable": true,
-    "productionStatus": "summary"
+    "productionStatus": "summary",
+    "collarType": "คอกลม"
   },
   {
     "type": "produce",
@@ -27,22 +95,22 @@
     "startDate": "2026-06-03",
     "deposit": 0,
     "shirtType": "เสื้อแขนสั้น",
-    "fabricType": "ผ้าไมโครพีช",
-    "quantity": 9,
-    "productionPrice": 390,
+    "fabricType": "เม็ดข้าวสาร 150 แกรม",
+    "quantity": 43,
+    "productionPrice": 950,
     "cost": {
-      "fabric": 50,
-      "paper": 15,
-      "ink": 30,
-      "cut": 15,
-      "sew": 35,
+      "fabric": 100,
+      "paper": 30,
+      "ink": 40,
+      "cut": 20,
+      "sew": 60,
       "other": 10
     },
-    "costOverride": 175,
-    "shipping": 0,
+    "costOverride": 0,
+    "shipping": 200,
     "id": "WNX-2606-08",
     "hasProductionTable": true,
-    "collarType": "คอวี",
+    "collarType": "คอปกวี",
     "productionStatus": "pattern_in"
   },
   {

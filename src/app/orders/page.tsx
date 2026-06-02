@@ -5,7 +5,7 @@ import { PageHeader, Badge, Button, Card } from "@/components/ui";
 import { AddOrderModal } from "@/components/add-order-modal";
 import { orderTotal, orderBalance, CUSTOMER_TYPE_LABEL, type Order } from "@/lib/types";
 import { formatBaht, formatDate } from "@/lib/utils";
-import { Plus, Loader2, Trash2 } from "lucide-react";
+import { Plus, Loader2, Trash2, Sheet } from "lucide-react";
 import { useRef, useCallback } from "react";
 import Link from "next/link";
 
@@ -49,10 +49,18 @@ export default function OrdersPage() {
         title="รายการออเดอร์"
         subtitle="จัดการออเดอร์และการเงินของลูกค้าทุกกลุ่ม"
         action={
-          <Button onClick={() => setModalOpen(true)}>
-            <Plus className="h-4 w-4" />
-            เพิ่มออเดอร์
-          </Button>
+          <div className="flex gap-2">
+            <Link href="/orders/import">
+              <Button variant="outline">
+                <Sheet className="h-4 w-4" />
+                นำเข้าจาก Sheets
+              </Button>
+            </Link>
+            <Button onClick={() => setModalOpen(true)}>
+              <Plus className="h-4 w-4" />
+              เพิ่มออเดอร์
+            </Button>
+          </div>
         }
       />
 
