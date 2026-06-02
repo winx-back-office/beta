@@ -131,7 +131,8 @@
     "deposit": 9000,
     "hasProductionTable": true,
     "quantity": 2,
-    "costOverride": 200
+    "costOverride": 200,
+    "productionStatus": "col_1780379059593"
   },
   {
     "id": "WNX-2504",
@@ -172,7 +173,7 @@
     "shipping": 100,
     "deposit": 3600,
     "hasProductionTable": true,
-    "productionStatus": "size",
+    "productionStatus": "col_1780379059593",
     "quantity": 2
   }
 ]
