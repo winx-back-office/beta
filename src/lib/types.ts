@@ -54,7 +54,7 @@ export interface Order {
 
 // ===== Financial helpers =====
 export function costTotal(o: Order): number {
-  const qty = o.quantity ?? 1;
+  const qty = o.quantity || 1;
   // ถ้ากรอก costOverride ไว้ใช้ค่านั้น × จำนวนตัว
   if (o.costOverride !== undefined && o.costOverride > 0) return o.costOverride * qty;
   const c = o.cost;
@@ -67,7 +67,7 @@ export function costTotal(o: Order): number {
 export function orderTotal(o: Order): number {
   if (o.type === "design") return o.designPackagePrice ?? 0;
   const designFee = o.type === "design_produce" ? (o.designPackagePrice ?? 0) : 0;
-  const prodTotal = (o.productionPrice ?? 0) * (o.quantity ?? 1);
+  const prodTotal = (o.productionPrice ?? 0) * (o.quantity || 1);
   return designFee + prodTotal + (o.shipping ?? 0);
 }
 
@@ -78,7 +78,7 @@ export function orderBalance(o: Order): number {
 // กำไร (สำหรับกลุ่มผลิต)
 export function orderProfit(o: Order): number | null {
   if (o.type === "design") return null;
-  const prodTotal = (o.productionPrice ?? 0) * (o.quantity ?? 1);
+  const prodTotal = (o.productionPrice ?? 0) * (o.quantity || 1);
   return prodTotal - costTotal(o);
 }
 

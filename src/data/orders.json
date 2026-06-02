@@ -1,6 +1,28 @@
 [
   {
     "type": "produce",
+    "teamName": "ARM",
+    "startDate": "2026-06-01",
+    "deposit": 0,
+    "shirtType": "เสื้อแขนสั้น",
+    "fabricType": "ผ้าเรียบ 140 แกรม",
+    "quantity": 10,
+    "productionPrice": 300,
+    "cost": {
+      "fabric": 20,
+      "paper": 20,
+      "ink": 20,
+      "cut": 2,
+      "sew": 20,
+      "other": 0
+    },
+    "shipping": 0,
+    "id": "WNX-2606-10",
+    "hasProductionTable": true,
+    "productionStatus": "summary"
+  },
+  {
+    "type": "produce",
     "teamName": "Winxminton V3",
     "startDate": "2026-06-03",
     "deposit": 0,
@@ -9,7 +31,7 @@
     "quantity": 9,
     "productionPrice": 390,
     "cost": {
-      "fabric": 70,
+      "fabric": 50,
       "paper": 15,
       "ink": 30,
       "cut": 15,

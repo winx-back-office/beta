@@ -476,5 +476,39 @@
         "note": ""
       }
     ]
+  },
+  "WNX-2606-09": {
+    "meta": {
+      "fabric": "ยังไม่มีข้อมูล",
+      "collar": "คอกลม",
+      "imageUrl": null
+    },
+    "players": []
+  },
+  "WNX-2606-10": {
+    "meta": {
+      "fabric": "ผ้าเรียบ 140 แกรม",
+      "collar": "คอกลม",
+      "imageUrl": null,
+      "images": []
+    },
+    "players": [
+      {
+        "position": 0,
+        "name": "",
+        "size": "",
+        "number": "",
+        "checked": false,
+        "note": ""
+      },
+      {
+        "position": 0,
+        "name": "",
+        "size": "",
+        "number": "",
+        "checked": false,
+        "note": ""
+      }
+    ]
   }
 }

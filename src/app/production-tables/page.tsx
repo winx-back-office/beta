@@ -8,6 +8,8 @@ import { formatDate } from "@/lib/utils";
 import { Loader2, FileSpreadsheet, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
+const EMPTY = "ยังไม่มีข้อมูล";
+
 interface OrderWithCount extends Order {
   tableCount: number | null;
   tableFabric: string | null;
@@ -31,14 +33,16 @@ export default function ProductionTablesPage() {
               .catch(() => null)
           )
         );
-        setOrders(withTable.map((o, i) => ({
-          ...o,
-          tableCount: prodData[i]
-            ? (prodData[i].players as { size: string }[] ?? []).filter((p) => p.size).length
-            : null,
-          tableFabric: prodData[i]?.meta?.fabric ?? null,
-          tableCollar: prodData[i]?.meta?.collar ?? null,
-        })));
+        setOrders(
+          withTable.map((o, i) => ({
+            ...o,
+            tableCount: prodData[i]
+              ? (prodData[i].players as { size: string }[] ?? []).filter((p) => p.size).length
+              : null,
+            tableFabric: prodData[i]?.meta?.fabric ?? null,
+            tableCollar: prodData[i]?.meta?.collar ?? null,
+          }))
+        );
         setLoading(false);
       });
   }, []);
@@ -90,14 +94,14 @@ export default function ProductionTablesPage() {
                         </Badge>
                       </div>
                       <div className="flex items-center gap-3 mt-1.5 text-xs text-muted">
-                        {o.shirtType && <span>{o.shirtType}</span>}
-                        {o.tableFabric && (
+                        {o.shirtType && o.shirtType !== EMPTY && <span>{o.shirtType}</span>}
+                        {o.tableFabric && o.tableFabric !== EMPTY && (
                           <>
-                            {o.shirtType && <span className="text-border">·</span>}
+                            {o.shirtType && o.shirtType !== EMPTY && <span className="text-border">·</span>}
                             <span>{o.tableFabric}</span>
                           </>
                         )}
-                        {o.tableCollar && (
+                        {o.tableCollar && o.tableCollar !== EMPTY && (
                           <>
                             <span className="text-border">·</span>
                             <span>{o.tableCollar}</span>
@@ -108,7 +112,7 @@ export default function ProductionTablesPage() {
                   </div>
                   <div className="flex items-center gap-4 text-sm text-muted">
                     {(() => {
-                      const col = productionColumns.find(c => c.id === o.productionStatus);
+                      const col = productionColumns.find((c) => c.id === o.productionStatus);
                       return col ? (
                         <span className="flex items-center gap-1.5 rounded-full border border-border px-2.5 py-0.5 text-xs font-medium text-foreground">
                           <span className="h-1.5 w-1.5 rounded-full" style={{ background: col.accent }} />
@@ -117,9 +121,7 @@ export default function ProductionTablesPage() {
                       ) : null;
                     })()}
                     <span>{formatDate(o.startDate)}</span>
-                    <span>
-                      {o.tableCount !== null ? `${o.tableCount} ตัว` : "—"}
-                    </span>
+                    <span>{o.tableCount !== null ? `${o.tableCount} ตัว` : "—"}</span>
                     <ChevronRight className="h-4 w-4" />
                   </div>
                 </Link>
