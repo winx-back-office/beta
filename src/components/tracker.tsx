@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Search, CheckCircle2, Circle, Loader2, Table2 } from "lucide-react";
 import { Button, Card, Badge } from "@/components/ui";
@@ -76,6 +76,17 @@ export function Tracker() {
 function TrackResult({ order }: { order: Order }) {
   const productionColumns = useProductionColumns();
   const designCard = designCards.find((c) => c.orderId === order.id);
+  const [hasProductionTable, setHasProductionTable] = useState(false);
+
+  useEffect(() => {
+    if (order.type === "design") return;
+    fetch(`/api/production/${order.id}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((data) => {
+        setHasProductionTable(Array.isArray(data.players) && data.players.length > 0);
+      })
+      .catch(() => {});
+  }, [order.id, order.type]);
 
   return (
     <Card className="overflow-hidden">
@@ -99,7 +110,7 @@ function TrackResult({ order }: { order: Order }) {
             currentColumnId={designCard?.columnId}
           />
         )}
-        {order.type !== "design" && (
+        {order.type !== "design" && hasProductionTable && (
           <Stepper
             title="ขั้นตอนผลิต"
             columns={productionColumns}
@@ -115,12 +126,21 @@ function TrackResult({ order }: { order: Order }) {
         )}
 
         {order.type !== "design" && (
-          <Link href={`/track/${order.id}`} className="block">
-            <Button className="w-full">
-              <Table2 className="h-4 w-4" />
-              เปิด/แก้ไขตารางผลิตของทีม
-            </Button>
-          </Link>
+          hasProductionTable ? (
+            <Link href={`/track/${order.id}`} className="block">
+              <Button className="w-full">
+                <Table2 className="h-4 w-4" />
+                เปิด/แก้ไขตารางผลิตของทีม
+              </Button>
+            </Link>
+          ) : (
+            <Link href={`/track/${order.id}`} className="block">
+              <Button className="w-full" variant="outline">
+                <Table2 className="h-4 w-4" />
+                สร้างตารางสั่งผลิต
+              </Button>
+            </Link>
+          )
         )}
       </div>
     </Card>

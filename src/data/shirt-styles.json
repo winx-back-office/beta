@@ -3,24 +3,170 @@
     "id": "basic-jersey",
     "name": "Basic Jersey",
     "pricing": [
-      { "minQty": 10, "maxQty": 20, "basePrice": 339 },
-      { "minQty": 21, "maxQty": 40, "basePrice": 329 },
-      { "minQty": 41, "maxQty": 50, "basePrice": 319 },
-      { "minQty": 51, "maxQty": 80, "basePrice": 279 }
+      {
+        "minQty": 10,
+        "maxQty": 20,
+        "basePrice": 339
+      },
+      {
+        "minQty": 21,
+        "maxQty": 40,
+        "basePrice": 329
+      },
+      {
+        "minQty": 41,
+        "maxQty": 50,
+        "basePrice": 319
+      },
+      {
+        "minQty": 51,
+        "maxQty": 80,
+        "basePrice": 279
+      }
     ],
     "collars": [
-      { "name": "คอกลม",       "price": 0 },
-      { "name": "คอวี",         "price": 0 },
-      { "name": "คอวีสองชั้น", "price": 0 },
-      { "name": "วีไขว้",      "price": 0 },
-      { "name": "วีคางหมู",    "price": 0 },
-      { "name": "คอปกวี",      "price": 30 },
-      { "name": "ปกกระดุม",    "price": 30 }
+      {
+        "name": "คอกลม",
+        "price": 0,
+        "patternPieces": 6
+      },
+      {
+        "name": "คอวี",
+        "price": 0,
+        "patternPieces": 6
+      },
+      {
+        "name": "คอวีสองชั้น",
+        "price": 0,
+        "patternPieces": 7
+      },
+      {
+        "name": "วีไขว้",
+        "price": 0,
+        "patternPieces": 7
+      },
+      {
+        "name": "วีคางหมู",
+        "price": 0,
+        "patternPieces": 7
+      },
+      {
+        "name": "คอปกวี",
+        "price": 30,
+        "patternPieces": 7
+      },
+      {
+        "name": "ปกกระดุม",
+        "price": 30,
+        "patternPieces": 7
+      }
     ],
     "fabrics": [
-      { "name": "ผ้าเรียบ",        "price": 0 },
-      { "name": "ผ้าทอพิเศษ",     "price": 20 },
-      { "name": "ผ้าวอร์มพิเศษ",  "price": 30 }
+      {
+        "name": "ผ้าเรียบ",
+        "price": 0
+      },
+      {
+        "name": "ผ้าเม็ดข้าวสาร",
+        "price": 20
+      },
+      {
+        "name": "ผ้ารังผึ้ง",
+        "price": 20
+      },
+      {
+        "name": "ผ้า Air flow",
+        "price": 20
+      },
+      {
+        "name": "ผ้าวอร์ม",
+        "price": 30
+      }
+    ]
+  },
+  {
+    "id": "pro-ovs-1780390008077",
+    "name": "PRO OVS",
+    "pricing": [
+      {
+        "minQty": 10,
+        "maxQty": 20,
+        "basePrice": 395
+      },
+      {
+        "minQty": 21,
+        "maxQty": 40,
+        "basePrice": 379
+      }
+    ],
+    "collars": [
+      {
+        "name": "คอปกคางหมู",
+        "price": 0,
+        "patternPieces": 8
+      }
+    ],
+    "fabrics": [
+      {
+        "name": "ผ้าเรียบ",
+        "price": 0
+      },
+      {
+        "name": "ผ้าเม็ดข้าวสาร",
+        "price": 20
+      },
+      {
+        "name": "ผ้ารังผึ้ง",
+        "price": 20
+      },
+      {
+        "name": "ผ้าวอร์ม",
+        "price": 30
+      }
+    ]
+  },
+  {
+    "id": "baseball-1780393539304",
+    "name": "BASEBALL",
+    "pricing": [
+      {
+        "minQty": 10,
+        "maxQty": 20,
+        "basePrice": 459
+      }
+    ],
+    "collars": [
+      {
+        "name": "Baseball",
+        "price": 0,
+        "patternPieces": 8
+      }
+    ],
+    "fabrics": [
+      {
+        "name": "ผ้าเรียบ",
+        "price": 0
+      },
+      {
+        "name": "ผ้าเม็ดข้าวสาร",
+        "price": 20
+      },
+      {
+        "name": "ผ้ารังผึ้ง",
+        "price": 20
+      },
+      {
+        "name": "ผ้า Air flow",
+        "price": 20
+      },
+      {
+        "name": "ผ้าตาข่าย",
+        "price": 20
+      },
+      {
+        "name": "ผ้าวอร์ม",
+        "price": 30
+      }
     ]
   }
 ]

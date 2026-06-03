@@ -6,7 +6,7 @@ import { Button } from "@/components/ui";
 import { cn, formatBaht } from "@/lib/utils";
 import type { CustomerType, Order } from "@/lib/types";
 import {
-  useFabricOptions, useShirtStyleOptions, useCollarOptions,
+  useShirtStyleOptions,
   useShirtStyles, useFabricsData, calcProductionPrice,
 } from "@/lib/use-catalog";
 const DESIGN_PACKAGES = [
@@ -28,12 +28,10 @@ export function AddOrderModal({ open, onClose, onCreated, editOrder }: Props) {
   const isEdit = !!editOrder;
 
   const shirtOptions  = useShirtStyleOptions();
-  const fabricOptions = useFabricOptions();
-  const collarOptions = useCollarOptions();
   const shirtStyles   = useShirtStyles();
   const fabricsData   = useFabricsData();
 
-  const [type, setType] = useState<CustomerType>("design");
+  const [type, setType] = useState<CustomerType>("produce");
   const [teamName, setTeamName] = useState("");
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
   const [designPackage, setDesignPackage] = useState(DESIGN_PACKAGES[0]);
@@ -77,7 +75,22 @@ export function AddOrderModal({ open, onClose, onCreated, editOrder }: Props) {
   const isDesign = type === "design" || type === "design_produce";
   const isProduce = type === "produce" || type === "design_produce";
 
+  // options ที่ filter ตาม shirtType ที่เลือก
+  const selectedStyle = shirtStyles.find(s => s.name === shirtType);
+  const filteredFabricOptions = selectedStyle
+    ? selectedStyle.fabrics.map(sf => ({ name: sf.name, price: sf.price }))
+    : fabricsData.flatMap(f => f.variants.length > 0 ? f.variants.map(v => ({ name: v.name, price: 0 })) : [{ name: f.name, price: 0 }]);
+  const filteredCollarOptions = selectedStyle
+    ? selectedStyle.collars.map(c => ({ name: c.name, price: c.price }))
+    : shirtStyles.flatMap(s => s.collars.map(c => ({ name: c.name, price: c.price }))).filter((v, i, a) => a.findIndex(x => x.name === v.name) === i);
+
   const [priceHint, setPriceHint] = useState<string>("");
+
+  // reset เนื้อผ้า/คอ เมื่อเปลี่ยนทรงเสื้อ
+  useEffect(() => {
+    if (!isEdit) { setFabricType(""); setCollarType(""); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shirtType]);
 
   // auto-calc ราคาผลิต/ตัว เมื่อเลือก ทรงเสื้อ / ผ้า / คอ / จำนวน
   useEffect(() => {
@@ -118,7 +131,7 @@ export function AddOrderModal({ open, onClose, onCreated, editOrder }: Props) {
   }, [cost, costOverride, quantity]);
 
   const reset = () => {
-    setType("design");
+    setType("produce");
     setTeamName(""); setStartDate(new Date().toISOString().slice(0, 10));
     setDesignPackage(DESIGN_PACKAGES[0]); setDesignPackagePrice("");
     setShirtType(""); setFabricType(""); setCollarType("");
@@ -200,8 +213,8 @@ export function AddOrderModal({ open, onClose, onCreated, editOrder }: Props) {
             <Label>ประเภทลูกค้า</Label>
             <div className="mt-2 flex gap-2">
               {([
-                ["design", "ออกแบบอย่างเดียว"],
-                ["produce", "ผลิตอย่างเดียว"],
+                ["produce", "ผลิต"],
+                ["design", "ออกแบบ"],
               ] as [CustomerType, string][]).map(([v, label]) => (
                 <button key={v} type="button"
                   onClick={() => !isEdit && setType(v)}
@@ -257,16 +270,24 @@ export function AddOrderModal({ open, onClose, onCreated, editOrder }: Props) {
                 </div>
                 <div>
                   <Label>เนื้อผ้า</Label>
-                  <Select value={fabricType} onChange={e => setFabricType(e.target.value)}>
-                    <option value="">— เลือกเนื้อผ้า —</option>
-                    {fabricOptions.map(f => <option key={f} value={f}>{f}</option>)}
+                  <Select value={fabricType} onChange={e => setFabricType(e.target.value)} disabled={!shirtType}>
+                    <option value="">{shirtType ? "— เลือกเนื้อผ้า —" : "— เลือกทรงเสื้อก่อน —"}</option>
+                    {filteredFabricOptions.map(f => (
+                      <option key={f.name} value={f.name}>
+                        {f.name}{f.price > 0 ? ` (+${f.price} บาท)` : ""}
+                      </option>
+                    ))}
                   </Select>
                 </div>
                 <div>
                   <Label>ประเภทคอ</Label>
-                  <Select value={collarType} onChange={e => setCollarType(e.target.value)}>
-                    <option value="">— เลือกประเภทคอ —</option>
-                    {collarOptions.map(c => <option key={c} value={c}>{c}</option>)}
+                  <Select value={collarType} onChange={e => setCollarType(e.target.value)} disabled={!shirtType}>
+                    <option value="">{shirtType ? "— เลือกประเภทคอ —" : "— เลือกทรงเสื้อก่อน —"}</option>
+                    {filteredCollarOptions.map(c => (
+                      <option key={c.name} value={c.name}>
+                        {c.name}{c.price > 0 ? ` (+${c.price} บาท)` : ""}
+                      </option>
+                    ))}
                   </Select>
                 </div>
                 <div>

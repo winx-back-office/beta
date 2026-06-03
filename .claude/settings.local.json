@@ -30,7 +30,17 @@
       "Bash(curl -s \"https://docs.google.com/spreadsheets/d/1271CYMpDU3oBQF6kotONMVBTEemR14T98kAxkDszWxM/gviz/tq?tqx=out:json&gid=1796305302\")",
       "Bash(curl -sL \"https://docs.google.com/spreadsheets/d/1271CYMpDU3oBQF6kotONMVBTEemR14T98kAxkDszWxM/edit#gid=1796305302\")",
       "Bash(curl -sL \"https://docs.google.com/spreadsheets/d/1271CYMpDU3oBQF6kotONMVBTEemR14T98kAxkDszWxM/export?format=xlsx&gid=1796305302\" -o /tmp/test.xlsx)",
-      "Bash(curl -sL \"https://docs.google.com/spreadsheets/d/1271CYMpDU3oBQF6kotONMVBTEemR14T98kAxkDszWxM/edit\")"
+      "Bash(curl -sL \"https://docs.google.com/spreadsheets/d/1271CYMpDU3oBQF6kotONMVBTEemR14T98kAxkDszWxM/edit\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(list\\(d.keys\\(\\)\\)[:5]\\)\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(k, len\\(v.get\\('players',[]\\)\\)\\) for k,v in list\\(d.items\\(\\)\\)[:6]]\")",
+      "Bash(curl -s \"http://localhost:3000/api/orders\")",
+      "Bash(python3 -c \"import sys,json; orders=json.load\\(sys.stdin\\); [print\\(o['id'], o['teamName']\\) for o in orders if o['id'] in ['WNX-2606-01','WNX-2606-02','WNX-2503','WNX-2506']]\")",
+      "Bash(curl -s \"http://localhost:3000/track\" -o /dev/null -w \"%{http_code}\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d[0], indent=2, ensure_ascii=False\\)\\)\")",
+      "Bash(mkdir -p \"src/app/api/shirt-styles/[id]\")",
+      "Bash(npx tsc *)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); s=[x for x in d if x['name']=='PRO OVS'][0]; print\\(json.dumps\\(s['fabrics'], ensure_ascii=False, indent=2\\)\\)\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(f['name'], '->', [v['name'] for v in f.get\\('variants',[]\\)]\\) for f in d]\")"
     ]
   }
 }

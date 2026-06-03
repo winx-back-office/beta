@@ -1,8 +1,8 @@
 [
   {
     "id": "summary",
-    "title": "รอสรุปงานออกแบบ",
-    "accent": "var(--info)"
+    "title": "รอสรุปงาน",
+    "accent": "#f97316"
   },
   {
     "id": "pattern_in",

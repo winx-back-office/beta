@@ -8,20 +8,16 @@ function readDB() {
   return JSON.parse(fs.readFileSync(DB_PATH, "utf-8"));
 }
 
-export async function GET() {
-  return NextResponse.json(readDB());
-}
-
-export async function POST(req: NextRequest) {
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
   const body = await req.json();
   const data = readDB();
-  // generate id from name
-  const id = body.name
-    .toLowerCase()
-    .replace(/[^a-z0-9ก-๙]+/g, "-")
-    .replace(/^-+|-+$/g, "") + "-" + Date.now();
-  const newStyle = { id, ...body };
-  data.push(newStyle);
+  const idx = data.findIndex((s: { id: string }) => s.id === id);
+  if (idx === -1) return NextResponse.json({ error: "not found" }, { status: 404 });
+  data[idx] = { id, ...body };
   fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), "utf-8");
-  return NextResponse.json(newStyle, { status: 201 });
+  return NextResponse.json(data[idx]);
 }

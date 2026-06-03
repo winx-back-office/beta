@@ -1345,10 +1345,133 @@
   },
   "WNX-2606-13": {
     "meta": {
-      "fabric": "ผ้าเม็ดข้าวสาร",
+      "fabric": "ผ้าเรียบ",
       "collar": "คอวี",
-      "imageUrl": null
+      "imageUrl": null,
+      "images": []
     },
-    "players": []
+    "players": [
+      {
+        "position": 0,
+        "name": "ARM",
+        "size": "L",
+        "number": "",
+        "checked": false,
+        "status": "",
+        "note": ""
+      },
+      {
+        "position": 1,
+        "name": "",
+        "size": "",
+        "number": "",
+        "checked": false,
+        "status": "",
+        "note": ""
+      }
+    ]
+  },
+  "WNX-2606-14": {
+    "meta": {
+      "fabric": "ผ้าเรียบ",
+      "collar": "คอกลม",
+      "imageUrl": null,
+      "images": []
+    },
+    "players": [
+      {
+        "position": 0,
+        "name": "",
+        "size": "",
+        "number": "",
+        "checked": false,
+        "status": "",
+        "note": ""
+      },
+      {
+        "position": 1,
+        "name": "",
+        "size": "",
+        "number": "",
+        "checked": false,
+        "status": "",
+        "note": ""
+      }
+    ]
+  },
+  "WNX-2606-15": {
+    "meta": {
+      "fabric": "ผ้าเรียบ",
+      "collar": "คอกลม",
+      "imageUrl": null,
+      "images": []
+    },
+    "players": [
+      {
+        "position": 0,
+        "name": "",
+        "size": "",
+        "number": "",
+        "checked": false,
+        "status": "",
+        "note": ""
+      },
+      {
+        "position": 0,
+        "name": "",
+        "size": "",
+        "number": "",
+        "checked": false,
+        "status": "",
+        "note": ""
+      }
+    ]
+  },
+  "WNX-2606-16": {
+    "meta": {
+      "fabric": "ผ้าเม็ดข้าวสาร",
+      "collar": "Baseball",
+      "imageUrl": null,
+      "images": []
+    },
+    "players": [
+      {
+        "position": 0,
+        "name": "ARRM",
+        "size": "2XL",
+        "number": "",
+        "checked": false,
+        "status": "",
+        "note": ""
+      },
+      {
+        "position": 1,
+        "name": "",
+        "size": "",
+        "number": "",
+        "checked": false,
+        "status": "",
+        "note": ""
+      }
+    ]
+  },
+  "WNX-2606-17": {
+    "meta": {
+      "fabric": "ผ้าเรียบ",
+      "collar": "คอปกคางหมู",
+      "imageUrl": null,
+      "images": []
+    },
+    "players": [
+      {
+        "position": 0,
+        "name": "",
+        "size": "SS",
+        "number": "",
+        "checked": false,
+        "status": "",
+        "note": ""
+      }
+    ]
   }
 }

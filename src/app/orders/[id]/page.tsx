@@ -16,7 +16,7 @@ import { ArrowLeft, FileSpreadsheet, Table2, Loader2, Pencil, X, Check } from "l
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useFabricOptions, useShirtStyleOptions, useCollarOptions } from "@/lib/use-catalog";
+import { useShirtStyleOptions, useShirtStyles, useFabricsData, calcProductionPrice } from "@/lib/use-catalog";
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -96,8 +96,16 @@ function OrderInfoCard({ order, onSave }: { order: Order; onSave: (p: Partial<Or
   const [draft, setDraft] = useState<Partial<Order>>({});
   const [saving, setSaving] = useState(false);
   const shirtOptions  = useShirtStyleOptions();
-  const fabricOptions = useFabricOptions();
-  const collarOptions = useCollarOptions();
+  const shirtStyles   = useShirtStyles();
+  const fabricsData   = useFabricsData();
+
+  const selectedStyle = shirtStyles.find(s => s.name === (draft.shirtType ?? order?.shirtType ?? ""));
+  const filteredFabricOptions = selectedStyle
+    ? selectedStyle.fabrics.map(sf => ({ name: sf.name, price: sf.price }))
+    : fabricsData.flatMap(f => f.variants.length > 0 ? f.variants.map(v => ({ name: v.name, price: 0 })) : [{ name: f.name, price: 0 }]);
+  const filteredCollarOptions = selectedStyle
+    ? selectedStyle.collars.map(c => ({ name: c.name, price: c.price }))
+    : shirtStyles.flatMap(s => s.collars.map(c => ({ name: c.name, price: c.price }))).filter((v, i, a) => a.findIndex(x => x.name === v.name) === i);
 
   const start = () => {
     setDraft({
@@ -107,12 +115,25 @@ function OrderInfoCard({ order, onSave }: { order: Order; onSave: (p: Partial<Or
       fabricType: order.fabricType,
       collarType: order.collarType,
       quantity: order.quantity,
+      productionPrice: order.productionPrice,
       designPackage: order.designPackage,
     });
     setEditing(true);
   };
 
   const cancel = () => setEditing(false);
+
+  // auto-recalculate productionPrice เมื่อ shirtType/fabricType/collarType/quantity เปลี่ยน
+  useEffect(() => {
+    if (!editing) return;
+    const { shirtType, fabricType, collarType, quantity } = draft;
+    if (!shirtType || !fabricType || !collarType) return;
+    const result = calcProductionPrice(shirtStyles, fabricsData, shirtType, fabricType, collarType, quantity ?? 1);
+    if (result !== null) {
+      setDraft(d => ({ ...d, productionPrice: result.price }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft.shirtType, draft.fabricType, draft.collarType, draft.quantity]);
 
   const submit = async () => {
     setSaving(true);
@@ -140,7 +161,7 @@ function OrderInfoCard({ order, onSave }: { order: Order; onSave: (p: Partial<Or
             ) : (
               <>
                 <EditField label="ประเภทเสื้อ">
-                  <select className="field-input" value={draft.shirtType ?? ""} onChange={e => setDraft(d => ({ ...d, shirtType: e.target.value }))}>
+                  <select className="field-input" value={draft.shirtType ?? ""} onChange={e => setDraft(d => ({ ...d, shirtType: e.target.value, fabricType: "", collarType: "" }))}>
                     <option value="">— เลือกทรงเสื้อ —</option>
                     {!shirtOptions.includes(draft.shirtType ?? "") && draft.shirtType && (
                       <option value={draft.shirtType}>{draft.shirtType}</option>
@@ -149,21 +170,29 @@ function OrderInfoCard({ order, onSave }: { order: Order; onSave: (p: Partial<Or
                   </select>
                 </EditField>
                 <EditField label="เนื้อผ้า">
-                  <select className="field-input" value={draft.fabricType ?? ""} onChange={e => setDraft(d => ({ ...d, fabricType: e.target.value }))}>
-                    <option value="">— เลือกเนื้อผ้า —</option>
-                    {!fabricOptions.includes(draft.fabricType ?? "") && draft.fabricType && (
+                  <select className="field-input" value={draft.fabricType ?? ""} onChange={e => setDraft(d => ({ ...d, fabricType: e.target.value }))} disabled={!draft.shirtType}>
+                    <option value="">{draft.shirtType ? "— เลือกเนื้อผ้า —" : "— เลือกทรงเสื้อก่อน —"}</option>
+                    {!filteredFabricOptions.some(f => f.name === (draft.fabricType ?? "")) && draft.fabricType && (
                       <option value={draft.fabricType}>{draft.fabricType}</option>
                     )}
-                    {fabricOptions.map(f => <option key={f} value={f}>{f}</option>)}
+                    {filteredFabricOptions.map(f => (
+                      <option key={f.name} value={f.name}>
+                        {f.name}{f.price > 0 ? ` (+${f.price} บาท)` : ""}
+                      </option>
+                    ))}
                   </select>
                 </EditField>
                 <EditField label="ประเภทคอ">
-                  <select className="field-input" value={draft.collarType ?? ""} onChange={e => setDraft(d => ({ ...d, collarType: e.target.value }))}>
-                    <option value="">— เลือกประเภทคอ —</option>
-                    {!collarOptions.includes(draft.collarType ?? "") && draft.collarType && (
+                  <select className="field-input" value={draft.collarType ?? ""} onChange={e => setDraft(d => ({ ...d, collarType: e.target.value }))} disabled={!draft.shirtType}>
+                    <option value="">{draft.shirtType ? "— เลือกประเภทคอ —" : "— เลือกทรงเสื้อก่อน —"}</option>
+                    {!filteredCollarOptions.some(c => c.name === (draft.collarType ?? "")) && draft.collarType && (
                       <option value={draft.collarType}>{draft.collarType}</option>
                     )}
-                    {collarOptions.map(c => <option key={c} value={c}>{c}</option>)}
+                    {filteredCollarOptions.map(c => (
+                      <option key={c.name} value={c.name}>
+                        {c.name}{c.price > 0 ? ` (+${c.price} บาท)` : ""}
+                      </option>
+                    ))}
                   </select>
                 </EditField>
                 <EditField label="จำนวนตัว">
@@ -321,6 +350,11 @@ function FinanceCard({ order, onSave }: { order: Order; onSave: (p: Partial<Orde
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Partial<Order>>({});
   const [saving, setSaving] = useState(false);
+  const shirtStylesForFinance = useShirtStyles();
+  const fabricExtra = shirtStylesForFinance
+    .find(s => s.name === order.shirtType)
+    ?.fabrics.find(f => f.name === order.fabricType)
+    ?.price ?? 0;
 
   const start = () => {
     setDraft({
@@ -375,6 +409,15 @@ function FinanceCard({ order, onSave }: { order: Order; onSave: (p: Partial<Orde
                   <div className="text-xs text-muted mt-0.5">{formatBaht(order.productionPrice ?? 0)}/ตัว × {order.quantity ?? 1} ตัว</div>
                 </div>
                 <span className="font-medium">{formatBaht((order.productionPrice ?? 0) * (order.quantity ?? 1))}</span>
+              </div>
+            )}
+            {!editing && fabricExtra > 0 && (
+              <div className="flex items-start justify-between gap-4 text-sm">
+                <div>
+                  <div>ค่าผ้าพิเศษ</div>
+                  <div className="text-xs text-muted mt-0.5">{order.fabricType} · +{fabricExtra} บาท/ตัว × {order.quantity ?? 1} ตัว</div>
+                </div>
+                <span className="font-medium">{formatBaht(fabricExtra * (order.quantity ?? 1))}</span>
               </div>
             )}
             {editing ? (
