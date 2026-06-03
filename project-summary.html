@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WINX Studio Back Office — สรุปฟีเจอร์</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', 'Noto Sans Thai', sans-serif;
+    background: #0f1117;
+    color: #e2e8f0;
+    line-height: 1.6;
+    padding: 24px;
+  }
+  .header {
+    text-align: center;
+    padding: 40px 20px 32px;
+    border-bottom: 1px solid #2d3748;
+    margin-bottom: 36px;
+  }
+  .header h1 { font-size: 2rem; color: #fff; letter-spacing: 0.05em; }
+  .header .sub { color: #718096; margin-top: 6px; font-size: 0.95rem; }
+  .badge {
+    display: inline-block;
+    background: #1a202c;
+    border: 1px solid #4a5568;
+    border-radius: 999px;
+    padding: 4px 14px;
+    font-size: 0.78rem;
+    color: #a0aec0;
+    margin-top: 12px;
+    letter-spacing: 0.08em;
+  }
+
+  /* Stats bar */
+  .stats-bar {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 40px;
+  }
+  .stat {
+    background: #1a202c;
+    border: 1px solid #2d3748;
+    border-radius: 12px;
+    padding: 14px 24px;
+    text-align: center;
+    min-width: 130px;
+  }
+  .stat .num { font-size: 1.8rem; font-weight: 700; color: #63b3ed; }
+  .stat .lbl { font-size: 0.78rem; color: #718096; margin-top: 2px; }
+
+  /* Section */
+  .section {
+    margin-bottom: 48px;
+  }
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .section-title .icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+  .section-title h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+  }
+  .section-title .en { font-size: 0.8rem; color: #718096; margin-left: 4px; }
+
+  /* Page card */
+  .page-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+  }
+  .page-card {
+    background: #1a202c;
+    border: 1px solid #2d3748;
+    border-radius: 14px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .page-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    border-radius: 4px 0 0 4px;
+  }
+  .page-card.c-blue::before { background: #4299e1; }
+  .page-card.c-green::before { background: #48bb78; }
+  .page-card.c-orange::before { background: #ed8936; }
+  .page-card.c-purple::before { background: #9f7aea; }
+  .page-card.c-pink::before { background: #ed64a6; }
+  .page-card.c-teal::before { background: #38b2ac; }
+  .page-card.c-yellow::before { background: #ecc94b; }
+  .page-card.c-red::before { background: #fc8181; }
+
+  .page-card h3 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .page-card .route {
+    font-size: 0.72rem;
+    color: #4a5568;
+    font-family: monospace;
+    margin-bottom: 14px;
+  }
+
+  /* Feature list */
+  .feat-group { margin-bottom: 12px; }
+  .feat-group .feat-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: #4a5568;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .feat-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .feat-list li {
+    font-size: 0.82rem;
+    color: #a0aec0;
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+  }
+  .feat-list li .dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: #4a5568;
+    margin-top: 6px;
+    flex-shrink: 0;
+  }
+  .feat-list li.action .dot { background: #4299e1; }
+  .feat-list li.modal .dot { background: #9f7aea; }
+  .feat-list li.display .dot { background: #48bb78; }
+  .feat-list li.calc .dot { background: #ecc94b; }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+    padding: 14px 20px;
+    background: #1a202c;
+    border: 1px solid #2d3748;
+    border-radius: 10px;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.78rem; color: #a0aec0;
+  }
+  .legend-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+
+  /* Data model */
+  .model-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+  }
+  .model-card {
+    background: #1a202c;
+    border: 1px solid #2d3748;
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .model-card h4 {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #63b3ed;
+    margin-bottom: 10px;
+    font-family: monospace;
+  }
+  .field-list { list-style: none; }
+  .field-list li {
+    font-size: 0.78rem;
+    color: #718096;
+    padding: 2px 0;
+    border-bottom: 1px solid #2d3748;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .field-list li:last-child { border-bottom: none; }
+  .field-list .field-name { color: #a0aec0; }
+  .field-list .field-type { color: #4a5568; font-size: 0.7rem; font-family: monospace; }
+
+  /* API table */
+  .api-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .api-table th {
+    text-align: left;
+    padding: 10px 14px;
+    background: #171923;
+    color: #718096;
+    font-weight: 600;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    border-bottom: 1px solid #2d3748;
+  }
+  .api-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #1a202c;
+    color: #a0aec0;
+    vertical-align: top;
+  }
+  .api-table tr:hover td { background: #1a202c; }
+  .method {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    font-family: monospace;
+    margin-right: 4px;
+  }
+  .GET { background: #1c4532; color: #68d391; }
+  .POST { background: #2a4365; color: #63b3ed; }
+  .PUT { background: #3c2a00; color: #f6ad55; }
+  .DELETE { background: #3d1515; color: #fc8181; }
+
+  .route-path { font-family: monospace; color: #63b3ed; }
+
+  footer {
+    text-align: center;
+    padding: 32px 0 16px;
+    color: #4a5568;
+    font-size: 0.8rem;
+    border-top: 1px solid #2d3748;
+    margin-top: 48px;
+  }
+
+  /* responsive */
+  @media (max-width: 600px) {
+    .page-grid { grid-template-columns: 1fr; }
+    .model-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>WINX Studio Back Office</h1>
+  <div class="sub">สรุปฟีเจอร์และฟังก์ชั่นของระบบ</div>
+  <span class="badge">Current: v0.1.0 → Target: Beta 1.1</span>
+</div>
+
+<!-- Stats -->
+<div class="stats-bar">
+  <div class="stat"><div class="num">8</div><div class="lbl">หน้าหลัก</div></div>
+  <div class="stat"><div class="num">10</div><div class="lbl">API Routes</div></div>
+  <div class="stat"><div class="num">3</div><div class="lbl">ประเภทออเดอร์</div></div>
+  <div class="stat"><div class="num">10</div><div class="lbl">สถานะผลิต</div></div>
+  <div class="stat"><div class="num">5</div><div class="lbl">สถานะออกแบบ</div></div>
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#48bb78"></div> แสดงข้อมูล</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#4299e1"></div> Action / ฟังก์ชั่น</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#9f7aea"></div> Modal / Popup</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#ecc94b"></div> คำนวณอัตโนมัติ</div>
+</div>
+
+<!-- ===== SECTION 1: หน้าหลัก ===== -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:#1a365d">📊</div>
+    <h2>ภาพรวมและออเดอร์ <span class="en">Dashboard & Orders</span></h2>
+  </div>
+  <div class="page-grid">
+
+    <!-- Dashboard -->
+    <div class="page-card c-blue">
+      <h3>🏠 Dashboard — ภาพรวม</h3>
+      <div class="route">/</div>
+      <div class="feat-group">
+        <div class="feat-label">แสดงข้อมูล</div>
+        <ul class="feat-list">
+          <li class="display"><span class="dot"></span>ยอดขายรวม (Total Revenue)</li>
+          <li class="display"><span class="dot"></span>รับชำระแล้ว (Amount Received)</li>
+          <li class="display"><span class="dot"></span>ยอดคงค้าง (Outstanding Balance)</li>
+          <li class="display"><span class="dot"></span>จำนวนงานในคิวออกแบบ</li>
+          <li class="display"><span class="dot"></span>จำนวนงานในคิวผลิต</li>
+          <li class="display"><span class="dot"></span>ออเดอร์ล่าสุด 5 รายการ</li>
+        </ul>
+      </div>
+      <div class="feat-group">
+        <div class="feat-label">ฟังก์ชั่น</div>
+        <ul class="feat-list">
+          <li class="action"><span class="dot"></span>คลิกการ์ดคิวเพื่อไปหน้าคิว</li>
+          <li class="action"><span class="dot"></span>ลิงก์ "ดูทั้งหมด" → หน้าออเดอร์</li>
+          <li class="calc"><span class="dot"></span>คำนวณยอดเงินจากออเดอร์ทั้งหมด</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Orders List -->
+    <div class="page-card c-blue">
+      <h3>📋 รายการออเดอร์</h3>
+      <div class="route">/orders</div>
+      <div class="feat-group">
+        <div class="feat-label">แสดงข้อมูล</div>
+        <ul class="feat-list">
+          <li class="display"><span class="dot"></span>ตารางออเดอร์: ID, วันเริ่ม, ทีม, ประเภท, ทรงเสื้อ, จำนวน, ยอดรวม, มัดจำ, คงค้าง</li>
+          <li class="display"><span class="dot"></span>จุดสี (Color dot) ระบุสีออเดอร์</li>
+          <li class="display"><span class="dot"></span>Tooltip hover: ทรงเสื้อ / ผ้า / ปก</li>
+          <li class="display"><span class="dot"></span>Badge แจ้งเตือน "ตารางมีการอัปเดต"</li>
+        </ul>
+      </div>
+      <div class="feat-group">
+        <div class="feat-label">ฟังก์ชั่น</div>
+        <ul class="feat-list">
+          <li class="action"><span class="dot"></span>เพิ่มออเดอร์ใหม่</li>
+          <li class="action"><span class="dot"></span>นำเข้าจาก Google Sheets</li>
+          <li class="action"><span class="dot"></span>กำหนดสีออเดอร์ (9 สี)</li>
+          <li class="action"><span class="dot"></span>แก้ไขวันที่ inline (double-click)</li>
+          <li class="action"><span class="dot"></span>ลบออเดอร์ (hover trash icon)</li>
+          <li class="action"><span class="dot"></span>คลิกแถวเพื่อดูรายละเอียด</li>
+        </ul>
+      </div>
+      <div class="feat-group">
+        <div class="feat-label">Modal / Popup</div>
+        <ul class="feat-list">
+          <li class="modal"><span class="dot"></span>Modal เพิ่มออเดอร์: เลือกประเภท, ทีม, วันที่, แพ็กเกจ, ราคา, ต้นทุน, มัดจำ</li>
+          <li class="modal"><span class="dot"></span>Modal นำเข้า Sheets: 2 แท็บ (ตารางผลิต / หลายออเดอร์)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Order Detail -->
+    <div class="page-card c-blue">
+      <h3>🔍 รายละเอียดออเดอร์</h3>
+      <div class="route">/orders/[id]</div>
+      <div class="feat-group">
+        <div class="feat-label">แสดงข้อมูล (คอลัมน์ซ้าย)</div>
+        <ul class="feat-list">
+          <li class="display"><span class="dot"></span>ข้อมูลออเดอร์: ทีม, วันเริ่ม, ทรงเสื้อ, ผ้า, ปก</li>
+          <li class="display"><span class="dot"></span>การเงิน: ราคา, จำนวน, ค่าส่ง, ค่าบริการ, VAT, ยอดรวม, มัดจำ, คงค้าง</li>
+        </ul>
+      </div>
+      <div class="feat-group">
+        <div class="feat-label">แสดงข้อมูล (คอลัมน์ขวา)</div>
+        <ul class="feat-list">
+          <li class="display"><span class="dot"></span>กำไรประมาณการ</li>
+          <li class="display"><span class="dot"></span>ต้นทุนต่อตัว (ผ้า, กระดาษ, หมึก, ตัด, เย็บ, อื่นๆ)</li>
+          <li class="display"><span class="dot"></span>ตารางสั่งผลิต: รายชื่อผู้เล่น, การกระจายไซส์, ติ๊กรับ</li>
+        </ul>
+      </div>
+      <div class="feat-group">
+        <div class="feat-label">ฟังก์ชั่น</div>
+        <ul class="feat-list">
+          <li class="action"><span class="dot"></span>แก้ไขข้อมูลออเดอร์ (toggle edit mode)</li>
+          <li class="action"><span class="dot"></span>สลับ VAT on/off</li>
+          <li class="action"><span class="dot"></span>สลับต้นทุนแบบรายหมวด / override</li>
+          <li class="action"><span class="dot"></span>ลิงก์ไปยังตารางผลิต</li>
+          <li class="action"><span class="dot"></span>ปุ่ม "ส่งลูกค้า" (screenshot สรุปการเงิน)</li>
+          <li class="calc"><span class="dot"></span>คำนวณราคาอัตโนมัติตามทรงเสื้อ/ผ้า/ปก/จำนวน</li>
+          <li class="action"><span class="dot"></span>แจ้งเตือนและซิงค์จำนวนถ้าไม่ตรงกับตาราง</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== SECTION 2: คิว ===== -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:#1a2744">🗂️</div>
+    <h2>ระบบคิว <span class="en">Queue Management</span></h2>
+  </div>
+  <div class="page-grid">
+
+    <!-- Design Queue -->
+    <div class="page-card c-purple">
+      <h3>🎨 คิวออกแบบ</h3>
+      <div class="route">/queue/design</div>
+      <div class="feat-group">
+        <div class="feat-label">แสดงข้อมูล</div>
+        <ul class="feat-list">
+          <li class="display"><span class="dot"></span>Kanban 5 คอลัมน์: รอออกแบบ → กำลังออกแบบ → รอแก้ไข → รออนุมัติ → เสร็จสิ้น</li>
+          <li class="display"><span class="dot"></span>การ์ดแสดง: ชื่อทีม, ทรงเสื้อ, วันเริ่ม</li>
+        </ul>
+      </div>
+      <div class="feat-group">
+        <div class="feat-label">ฟังก์ชั่น</div>
+        <ul class="feat-list">
+          <li class="action"><span class="dot"></span>ลาก-วางการ์ดระหว่างคอลัมน์</li>
+          <li class="action"><span class="dot"></span>จัดเรียงคอลัมน์ด้วยการลาก</li>
+          <li class="action"><span class="dot"></span>เพิ่มงานเข้าคิว</li>
+          <li class="action"><span class="dot"></span>จุดสีบอกสถานะ</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Production Queue -->
+    <div class="page-card c-orange">
+      <h3>🏭 คิวผลิต</h3>
+      <div class="route">/queue/production</div>
+      <div class="feat-group">
+        <div class="feat-label">10 สถานะในสายการผลิต</div>
+        <ul class="feat-list">
+          <li class="display"><span class="dot"></span>รอสรุปงาน → เข้าแพทเทิร์น → วางไซส์</li>
+          <li class="display"><span class="dot"></span>พิมพ์ → ตัดแพทเทิร์น → รอส่ง-เย็บ</li>
+          <li class="display"><span class="dot"></span>กำลังเย็บ → แพ็คสินค้า → เตรียมจัดส่ง → จัดส่งเรียบร้อย</li>
+        </ul>
+      </div>
+      <div class="feat-group">
+        <div class="feat-label">ฟังก์ชั่น</div>
+        <ul class="feat-list">
+          <li class="action"><span class="dot"></span>ลาก-วางการ์ดระหว่างสถานะ</li>
+          <li class="action"><span class="dot"></span>จัดการคอลัมน์: เพิ่ม/ลบ/แก้ชื่อ/เปลี่ยนสี</li>
+          <li class="modal"><span class="dot"></span>Modal เพิ่มงาน: เลือกออเดอร์ + คอลัมน์เป้าหมาย</li>
+          <li class="action"><span class="dot"></span>โหลดภาพตารางผลิตจาก API อัตโนมัติ</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== SECTION 3: ตารางผลิต ===== -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:#1a3a2a">📝</div>
+    <h2>ตารางสั่งผลิต <span class="en">Production Tables</span></h2>
+  </div>
+  <div class="page-grid">
+
+    <!-- Production Tables List -->
+    <div class="page-card c-green">
+      <h3>📂 รายการตารางผลิต</h3>
+      <div class="route">/production-tables</div>
+      <div class="feat-group">
+        <div class="feat-label">แสดงข้อมูล</div>
+        <ul class="feat-list">
+          <li class="display"><span class="dot"></span>การ์ดออเดอร์ที่มีตารางผลิต</li>
+          <li class="display"><span class="dot"></span>ชื่อทีม, ID, ประเภท, ทรงเสื้อ, ผ้า, ปก, สถานะ, วันเริ่ม, จำนวนตัว</li>
+        </ul>
+      </div>
+      <div class="feat-group">
+        <div class="feat-label">ฟังก์ชั่น</div>
+        <ul class="feat-list">
+          <li class="action"><span class="dot"></span>คลิกเพื่อเปิดตารางผลิต</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Production Table Editor -->
+    <div class="page-card c-green">
+      <h3>✏️ แก้ไขตารางผลิต</h3>
+      <div class="route">/production-tables/[id]</div>
+      <div class="feat-group">
+        <div class="feat-label">แสดงข้อมูล</div>
+        <ul class="feat-list">
+          <li class="display"><span class="dot"></span>ตารางผู้เล่น: ชื่อ, หมายเลข, ไซส์, หมายเหตุ, สถานะติ๊ก</li>
+          <li class="display"><span class="dot"></span>คอลัมน์ไซส์ตามทรงเสื้อ (SS–Special)</li>
+          <li class="display"><span class="dot"></span>สรุปจำนวนแต่ละไซส์ + ยอดรวม</li>
+          <li class="display"><span class="dot"></span>ผ้า / ปกในส่วนหัว</li>
+        </ul>
+      </div>
+      <div class="feat-group">
+        <div class="feat-label">ฟังก์ชั่น</div>
+        <ul class="feat-list">
+          <li class="action"><span class="dot"></span>เพิ่ม / แก้ไข / ลบแถวผู้เล่น</li>
+          <li class="action"><span class="dot"></span>ติ๊กรับสินค้า (check-off)</li>
+          <li class="action"><span class="dot"></span>อัปโหลดภาพ (หลายภาพ, ตั้งภาพหลัก)</li>
+          <li class="action"><span class="dot"></span>Auto-save เมื่อมีการเปลี่ยนแปลง</li>
+          <li class="action"><span class="dot"></span>แจ้งเตือนก่อนออกเมื่อยังไม่ได้บันทึก</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== SECTION 4: ข้อมูลหลัก ===== -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:#2d1b69">⚙️</div>
+    <h2>ข้อมูลหลัก <span class="en">Master Data</span></h2>
+  </div>
+  <div class="page-grid">
+
+    <!-- Shirt Styles -->
+    <div class="page-card c-purple">
+      <h3>👕 ข้อมูลทรงเสื้อ</h3>
+      <div class="route">/shirt-styles</div>
+      <div class="feat-group">
+        <div class="feat-label">แสดงข้อมูล</div>
+        <ul class="feat-list">
+          <li class="display"><span class="dot"></span>ราคาตามช่วงจำนวน (Pricing tiers) vs ผ้าแต่ละชนิด</li>
+          <li class="display"><span class="dot"></span>รายการปก (Collar): ชื่อ, ราคาเพิ่ม, จำนวนชิ้นแพทเทิร์น</li>
+          <li class="display"><span class="dot"></span>รายการผ้า: ชื่อ, ราคาเพิ่ม</li>
+        </ul>
+      </div>
+      <div class="feat-group">
+        <div class="feat-label">ฟังก์ชั่น</div>
+        <ul class="feat-list">
+          <li class="action"><span class="dot"></span>เพิ่มทรงเสื้อใหม่</li>
+          <li class="modal"><span class="dot"></span>Modal แก้ไข: ชื่อ, ช่วงราคา, ปก, ผ้า</li>
+          <li class="action"><span class="dot"></span>เพิ่ม/ลบปกและผ้าจาก master list</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Fabrics -->
+    <div class="page-card c-teal">
+      <h3>🧵 ข้อมูลเนื้อผ้า</h3>
+      <div class="route">/fabrics</div>
+      <div class="feat-group">
+        <div class="feat-label">แสดงข้อมูล</div>
+        <ul class="feat-list">
+          <li class="display"><span class="dot"></span>หมวดผ้า 4 ประเภท: เรียบ, ทอพิเศษ, วอร์มพิเศษ, ร่ม</li>
+          <li class="display"><span class="dot"></span>Variant chips ในแต่ละหมวด</li>
+        </ul>
+      </div>
+      <div class="feat-group">
+        <div class="feat-label">ฟังก์ชั่น</div>
+        <ul class="feat-list">
+          <li class="action"><span class="dot"></span>เพิ่ม variant ใหม่ในแต่ละหมวด</li>
+          <li class="action"><span class="dot"></span>ลบ variant (กดปุ่ม X)</li>
+          <li class="action"><span class="dot"></span>Auto-save ทุกครั้งที่แก้ไข</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Customer Tracker -->
+    <div class="page-card c-yellow">
+      <h3>🔎 ติดตามสถานะ (ลูกค้า)</h3>
+      <div class="route">/track &amp; /track/[id]</div>
+      <div class="feat-group">
+        <div class="feat-label">แสดงข้อมูล</div>
+        <ul class="feat-list">
+          <li class="display"><span class="dot"></span>ค้นหาด้วย Order ID หรือชื่อทีม</li>
+          <li class="display"><span class="dot"></span>สถานะคิวออกแบบ + คิวผลิต (พร้อมสี)</li>
+          <li class="display"><span class="dot"></span>สรุปการเงิน: ยอดรวม, มัดจำ, คงค้าง</li>
+          <li class="display"><span class="dot"></span>ลิงก์ตารางผลิต (ถ้ามี)</li>
+        </ul>
+      </div>
+      <div class="feat-group">
+        <div class="feat-label">ฟังก์ชั่น</div>
+        <ul class="feat-list">
+          <li class="action"><span class="dot"></span>ค้นหา (กดปุ่มหรือ Enter)</li>
+          <li class="action"><span class="dot"></span>ไม่พบ → แสดงข้อความแจ้ง</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== SECTION 5: Data Models ===== -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:#1a2a3a">🗄️</div>
+    <h2>โครงสร้างข้อมูล <span class="en">Data Models</span></h2>
+  </div>
+  <div class="model-grid">
+
+    <div class="model-card">
+      <h4>Order</h4>
+      <ul class="field-list">
+        <li><span class="field-name">id</span><span class="field-type">string</span></li>
+        <li><span class="field-name">type</span><span class="field-type">design | produce | design_produce</span></li>
+        <li><span class="field-name">teamName</span><span class="field-type">string</span></li>
+        <li><span class="field-name">startDate</span><span class="field-type">string</span></li>
+        <li><span class="field-name">shirtType / fabricType / collarType</span><span class="field-type">string</span></li>
+        <li><span class="field-name">quantity</span><span class="field-type">number</span></li>
+        <li><span class="field-name">productionPrice</span><span class="field-type">number</span></li>
+        <li><span class="field-name">cost</span><span class="field-type">ProductionCost</span></li>
+        <li><span class="field-name">costOverride</span><span class="field-type">number?</span></li>
+        <li><span class="field-name">shipping / serviceCharge</span><span class="field-type">number</span></li>
+        <li><span class="field-name">vat</span><span class="field-type">boolean</span></li>
+        <li><span class="field-name">deposit</span><span class="field-type">number</span></li>
+        <li><span class="field-name">color</span><span class="field-type">string?</span></li>
+        <li><span class="field-name">hasProductionTable</span><span class="field-type">boolean</span></li>
+        <li><span class="field-name">productionStatus</span><span class="field-type">string?</span></li>
+        <li><span class="field-name">designPackage / designPackagePrice</span><span class="field-type">string / number</span></li>
+      </ul>
+    </div>
+
+    <div class="model-card">
+      <h4>ProductionCost</h4>
+      <ul class="field-list">
+        <li><span class="field-name">fabric</span><span class="field-type">number (ต่อตัว)</span></li>
+        <li><span class="field-name">paper</span><span class="field-type">number</span></li>
+        <li><span class="field-name">ink</span><span class="field-type">number</span></li>
+        <li><span class="field-name">cut</span><span class="field-type">number</span></li>
+        <li><span class="field-name">sew</span><span class="field-type">number</span></li>
+        <li><span class="field-name">other</span><span class="field-type">number</span></li>
+      </ul>
+    </div>
+
+    <div class="model-card">
+      <h4>ShirtStyle</h4>
+      <ul class="field-list">
+        <li><span class="field-name">id / name</span><span class="field-type">string</span></li>
+        <li><span class="field-name">pricingTiers</span><span class="field-type">PricingTier[]</span></li>
+        <li><span class="field-name">collars</span><span class="field-type">CollarOption[]</span></li>
+        <li><span class="field-name">fabrics</span><span class="field-type">FabricOption[]</span></li>
+      </ul>
+    </div>
+
+    <div class="model-card">
+      <h4>ProductionTable</h4>
+      <ul class="field-list">
+        <li><span class="field-name">orderId</span><span class="field-type">string</span></li>
+        <li><span class="field-name">fabricType / collarType</span><span class="field-type">string</span></li>
+        <li><span class="field-name">players</span><span class="field-type">PlayerEntry[]</span></li>
+        <li><span class="field-name">imageUrl</span><span class="field-type">string?</span></li>
+        <li><span class="field-name">images</span><span class="field-type">{url, isMain}[]</span></li>
+      </ul>
+    </div>
+
+    <div class="model-card">
+      <h4>PlayerEntry</h4>
+      <ul class="field-list">
+        <li><span class="field-name">position</span><span class="field-type">number</span></li>
+        <li><span class="field-name">name</span><span class="field-type">string</span></li>
+        <li><span class="field-name">number</span><span class="field-type">string</span></li>
+        <li><span class="field-name">size</span><span class="field-type">SS|S|M|L|XL|2XL…Special</span></li>
+        <li><span class="field-name">checked</span><span class="field-type">boolean</span></li>
+        <li><span class="field-name">notes</span><span class="field-type">string?</span></li>
+      </ul>
+    </div>
+
+    <div class="model-card">
+      <h4>QueueCard / QueueColumn</h4>
+      <ul class="field-list">
+        <li><span class="field-name">id / orderId</span><span class="field-type">string</span></li>
+        <li><span class="field-name">teamName / shirtType</span><span class="field-type">string</span></li>
+        <li><span class="field-name">dueDate / image</span><span class="field-type">string?</span></li>
+        <li><span class="field-name">columnId</span><span class="field-type">string</span></li>
+        <li><span class="field-name">title (column)</span><span class="field-type">string</span></li>
+        <li><span class="field-name">accent (column)</span><span class="field-type">CSS color</span></li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== SECTION 6: API Routes ===== -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:#1a2a1a">🔌</div>
+    <h2>API Routes</h2>
+  </div>
+  <div style="background:#1a202c; border:1px solid #2d3748; border-radius:14px; overflow:hidden;">
+    <table class="api-table">
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Endpoint</th>
+          <th>หน้าที่</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="method GET">GET</span><span class="method POST">POST</span></td>
+          <td class="route-path">/api/orders</td>
+          <td>ดึงรายการ / สร้างออเดอร์ใหม่</td>
+        </tr>
+        <tr>
+          <td><span class="method GET">GET</span><span class="method PUT">PUT</span><span class="method DELETE">DELETE</span></td>
+          <td class="route-path">/api/orders/[id]</td>
+          <td>ดูรายละเอียด / แก้ไข / ลบออเดอร์</td>
+        </tr>
+        <tr>
+          <td><span class="method GET">GET</span><span class="method POST">POST</span></td>
+          <td class="route-path">/api/production/[id]</td>
+          <td>ดึง / บันทึกตารางผลิต</td>
+        </tr>
+        <tr>
+          <td><span class="method GET">GET</span></td>
+          <td class="route-path">/api/production/summary</td>
+          <td>Timestamp อัปเดตล่าสุดต่อออเดอร์</td>
+        </tr>
+        <tr>
+          <td><span class="method GET">GET</span><span class="method PUT">PUT</span></td>
+          <td class="route-path">/api/shirt-styles</td>
+          <td>ดึง / อัปเดต catalog ทรงเสื้อ</td>
+        </tr>
+        <tr>
+          <td><span class="method GET">GET</span><span class="method PUT">PUT</span></td>
+          <td class="route-path">/api/fabrics</td>
+          <td>ดึง / อัปเดต catalog ผ้า</td>
+        </tr>
+        <tr>
+          <td><span class="method GET">GET</span><span class="method POST">POST</span></td>
+          <td class="route-path">/api/production-columns</td>
+          <td>จัดการคอลัมน์ Kanban ผลิต</td>
+        </tr>
+        <tr>
+          <td><span class="method GET">GET</span><span class="method POST">POST</span></td>
+          <td class="route-path">/api/import/sheets</td>
+          <td>นำเข้าหลายออเดอร์จาก Google Sheets</td>
+        </tr>
+        <tr>
+          <td><span class="method GET">GET</span><span class="method POST">POST</span></td>
+          <td class="route-path">/api/import/production-sheet</td>
+          <td>นำเข้า roster ผู้เล่นจาก Sheets</td>
+        </tr>
+        <tr>
+          <td><span class="method GET">GET</span><span class="method POST">POST</span></td>
+          <td class="route-path">/api/groups</td>
+          <td>จัดกลุ่มออเดอร์ (Order Groups)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== SECTION 7: ประเภทออเดอร์ ===== -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:#2d1a00">🏷️</div>
+    <h2>ประเภทออเดอร์ <span class="en">Order Types</span></h2>
+  </div>
+  <div style="display:flex; gap:14px; flex-wrap:wrap;">
+    <div style="flex:1; min-width:200px; background:#1a202c; border:1px solid #2d3748; border-radius:12px; padding:18px; border-left:4px solid #63b3ed;">
+      <div style="font-weight:700; color:#63b3ed; margin-bottom:8px;">🎨 ออกแบบ (Design)</div>
+      <div style="font-size:0.82rem; color:#a0aec0;">เลือกแพ็กเกจ: Standard / Premium / Full Set<br>กรอกราคาออกแบบ</div>
+    </div>
+    <div style="flex:1; min-width:200px; background:#1a202c; border:1px solid #2d3748; border-radius:12px; padding:18px; border-left:4px solid #48bb78;">
+      <div style="font-weight:700; color:#48bb78; margin-bottom:8px;">🏭 ผลิต (Produce)</div>
+      <div style="font-size:0.82rem; color:#a0aec0;">เลือกทรงเสื้อ / ผ้า / ปก<br>คำนวณราคาอัตโนมัติตาม tier</div>
+    </div>
+    <div style="flex:1; min-width:200px; background:#1a202c; border:1px solid #2d3748; border-radius:12px; padding:18px; border-left:4px solid #9f7aea;">
+      <div style="font-weight:700; color:#9f7aea; margin-bottom:8px;">🎨🏭 ออกแบบ + ผลิต</div>
+      <div style="font-size:0.82rem; color:#a0aec0;">รวมทั้งสองอย่าง<br>คำนวณรวมทั้งสองราคา</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  WINX Studio Back Office — สร้างสรุปจาก codebase จริง · v0.1.0 → Beta 1.1
+</footer>
+
+</body>
+</html>

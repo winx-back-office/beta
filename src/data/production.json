@@ -3516,5 +3516,13 @@
       }
     ],
     "updatedAt": "2026-06-03T17:13:11.255Z"
+  },
+  "WNX-2606-23": {
+    "meta": {
+      "fabric": "",
+      "collar": "",
+      "imageUrl": null
+    },
+    "players": []
   }
 }

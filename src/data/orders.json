@@ -1,10 +1,33 @@
 [
   {
     "type": "produce",
+    "teamName": "ทดสอบเรียกเก็บเงิน",
+    "startDate": "2026-06-03",
+    "deposit": 0,
+    "shirtType": "BASIC JERSEY",
+    "fabricType": "",
+    "collarType": "",
+    "quantity": 1,
+    "productionPrice": 10,
+    "cost": {
+      "fabric": 0,
+      "paper": 0,
+      "ink": 0,
+      "cut": 0,
+      "sew": 0,
+      "other": 0
+    },
+    "shipping": 0,
+    "id": "WNX-2606-23",
+    "hasProductionTable": false,
+    "paymentLink": "http://localhost:3000/pay/4dfb0f04-a1e6-4c17-a9e9-8a27e23f8400"
+  },
+  {
+    "type": "produce",
     "teamName": "เลอะเทอะ 30 APR 26",
     "shirtType": "BASIC OVERSIZE",
     "fabricType": "เม็ดข้าวสาร 150 แกรม",
-    "productionPrice": 309,
+    "productionPrice": 345,
     "deposit": 10350,
     "quantity": 60,
     "cost": {
@@ -19,7 +42,9 @@
     "id": "WNX-2606-22",
     "hasProductionTable": true,
     "collarType": "คอกลม",
-    "color": ""
+    "color": "",
+    "productionStatus": "done",
+    "paymentLink": "http://localhost:3000/pay/31294e9a-04b9-4b74-832a-2306f43dcb3c"
   },
   {
     "type": "produce",
@@ -43,7 +68,7 @@
     "id": "WNX-2606-21",
     "hasProductionTable": true,
     "productionStatus": "pattern_in",
-    "color": "#3b82f6"
+    "color": "#ef4444"
   },
   {
     "type": "produce",
@@ -69,7 +94,7 @@
     "hasProductionTable": true,
     "productionStatus": "pattern_in",
     "vat": true,
-    "color": "#ef4444"
+    "color": ""
   },
   {
     "type": "produce",
@@ -141,6 +166,7 @@
     "hasProductionTable": true,
     "productionStatus": "done",
     "collarType": "HOOD สวม",
-    "serviceCharge": 300
+    "serviceCharge": 300,
+    "paymentLink": "http://localhost:3000/pay/ce94bda0-c079-4f89-912b-f65637def983"
   }
 ]
