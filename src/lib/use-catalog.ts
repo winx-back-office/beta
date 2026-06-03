@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 interface FabricVariant { name: string }
 interface Fabric { id: string; name: string; variants: FabricVariant[] }
 
-export interface CollarOption { name: string; price: number }
+export interface CollarOption { name: string; price: number; patternPieces?: number }
 export interface FabricOption { name: string; price: number }
 export interface PricingTier { minQty: number; maxQty: number; basePrice: number }
 export interface ShirtStyle {
@@ -81,16 +81,24 @@ export function calcProductionPrice(
   const tier = exactTier ?? fallbackTier;
   const inRange = !!exactTier;
 
-  // หา extra ผ้า — map variant → ชื่อ parent → หา price ใน style.fabrics
+  // หา extra ผ้า — ค้นตรงจาก style.fabrics ก่อน (ชื่อตรง)
+  // ถ้าไม่เจอ fallback ไป map ผ่าน fabricsData (กรณีชื่อ variant ต่างจาก style)
   let fabricExtra = 0;
-  for (const fabric of fabricsData) {
-    const isMatch =
-      fabric.name === fabricVariantName ||
-      fabric.variants.some(v => v.name === fabricVariantName);
-    if (isMatch) {
-      const found = style.fabrics.find(f => f.name === fabric.name);
-      fabricExtra = found?.price ?? 0;
-      break;
+  const directMatch = style.fabrics.find(f => f.name === fabricVariantName);
+  if (directMatch) {
+    fabricExtra = directMatch.price;
+  } else {
+    for (const fabric of fabricsData) {
+      const isMatch =
+        fabric.name === fabricVariantName ||
+        fabric.variants.some(v => v.name === fabricVariantName);
+      if (isMatch) {
+        const found = style.fabrics.find(f =>
+          f.name === fabric.name || fabric.variants.some(v => v.name === f.name)
+        );
+        fabricExtra = found?.price ?? 0;
+        break;
+      }
     }
   }
 

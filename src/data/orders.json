@@ -1,11 +1,103 @@
 [
   {
     "type": "produce",
+    "teamName": "BS1",
+    "startDate": "2026-06-02",
+    "deposit": 0,
+    "shirtType": "PRO OVS",
+    "fabricType": "ผ้าเรียบ",
+    "collarType": "คอปกคางหมู",
+    "quantity": 1,
+    "productionPrice": 395,
+    "cost": {
+      "fabric": 0,
+      "paper": 0,
+      "ink": 0,
+      "cut": 0,
+      "sew": 0,
+      "other": 0
+    },
+    "shipping": 0,
+    "id": "WNX-2606-17",
+    "hasProductionTable": true,
+    "costOverride": 180
+  },
+  {
+    "type": "produce",
+    "teamName": "WINX5",
+    "startDate": "2026-06-02",
+    "deposit": 0,
+    "shirtType": "BASEBALL",
+    "fabricType": "ผ้าเม็ดข้าวสาร",
+    "collarType": "Baseball",
+    "quantity": 1,
+    "productionPrice": 425,
+    "cost": {
+      "fabric": 0,
+      "paper": 0,
+      "ink": 0,
+      "cut": 0,
+      "sew": 0,
+      "other": 0
+    },
+    "shipping": 100,
+    "id": "WNX-2606-16",
+    "hasProductionTable": true,
+    "costOverride": 180,
+    "productionStatus": "summary"
+  },
+  {
+    "type": "produce",
+    "teamName": "WINX 4",
+    "startDate": "2026-06-02",
+    "deposit": 0,
+    "shirtType": "Basic Jersey",
+    "fabricType": "ผ้าเรียบ",
+    "collarType": "คอกลม",
+    "quantity": 1,
+    "productionPrice": 339,
+    "cost": {
+      "fabric": 0,
+      "paper": 0,
+      "ink": 0,
+      "cut": 0,
+      "sew": 0,
+      "other": 0
+    },
+    "shipping": 0,
+    "id": "WNX-2606-15",
+    "hasProductionTable": true,
+    "productionStatus": "print"
+  },
+  {
+    "type": "produce",
+    "teamName": "WINX 3",
+    "startDate": "2026-06-02",
+    "deposit": 0,
+    "shirtType": "Basic Jersey",
+    "fabricType": "ผ้าเรียบ",
+    "collarType": "คอกลม",
+    "quantity": 1,
+    "productionPrice": 339,
+    "cost": {
+      "fabric": 0,
+      "paper": 0,
+      "ink": 0,
+      "cut": 0,
+      "sew": 0,
+      "other": 0
+    },
+    "shipping": 0,
+    "id": "WNX-2606-14",
+    "hasProductionTable": true
+  },
+  {
+    "type": "produce",
     "teamName": "WINX 2",
     "startDate": "2026-06-02",
     "deposit": 0,
     "shirtType": "Basic Jersey",
-    "fabricType": "ผ้าเม็ดข้าวสาร",
+    "fabricType": "ผ้าเรียบ",
     "collarType": "คอวี",
     "quantity": 1,
     "productionPrice": 359,
@@ -19,7 +111,7 @@
     },
     "shipping": 0,
     "id": "WNX-2606-13",
-    "hasProductionTable": false
+    "hasProductionTable": true
   },
   {
     "type": "produce",

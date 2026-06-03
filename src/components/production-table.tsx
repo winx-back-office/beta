@@ -25,7 +25,7 @@ import {
   type PlayerRow,
   type ProductionImage,
 } from "@/lib/production-db";
-import { useFabricOptions, useShirtStyleOptions, useCollarOptions } from "@/lib/use-catalog";
+import { useShirtStyleOptions, useShirtStyles, useFabricsData } from "@/lib/use-catalog";
 
 const SIZES = ["SS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL", "6XL", "7XL", "พิเศษ"];
 
@@ -66,13 +66,21 @@ export function ProductionTable({
   onDirtyChange?: (dirty: boolean) => void;
 }) {
   const productionColumns = useProductionColumns();
-  const fabricOptions = useFabricOptions();
   const shirtOptions  = useShirtStyleOptions();
-  const collarOptions = useCollarOptions();
+  const shirtStyles   = useShirtStyles();
+  const fabricsData   = useFabricsData();
   const [fabric, setFabric] = useState(fabricType);
   const [collar, setCollar] = useState(collarType || "คอกลม");
   const [teamName, setTeamName] = useState(teamNameProp);
   const [shirt, setShirt] = useState(shirtTypeProp);
+
+  const selectedStyle = shirtStyles.find(s => s.name === shirt);
+  const filteredFabricOptions = selectedStyle
+    ? selectedStyle.fabrics.map(sf => sf.name)
+    : fabricsData.flatMap(f => f.variants.length > 0 ? f.variants.map(v => v.name) : [f.name]);
+  const filteredCollarOptions = selectedStyle
+    ? selectedStyle.collars.map(c => c.name)
+    : shirtStyles.flatMap(s => s.collars.map(c => c.name)).filter((v, i, a) => a.indexOf(v) === i);
   const [images, setImages] = useState<ProductionImage[]>([]);
   const [rows, setRows] = useState<PlayerRow[]>([emptyRow(), emptyRow()]);
   const [loading, setLoading] = useState(true);
@@ -370,9 +378,9 @@ export function ProductionTable({
               className="rounded-md bg-transparent px-2 py-1 font-bold text-foreground outline-none hover:bg-surface-3 focus:bg-surface-3"
             />
           </span>
-          <SelectField value={fabric} onChange={v => { setFabric(v); markDirty(); }} options={fabricOptions} />
-          <SelectField value={collar} onChange={v => { setCollar(v); markDirty(); }} options={collarOptions} />
-          <SelectField value={shirt} onChange={v => { setShirt(v); markDirty(); }} options={shirtOptions} />
+          <SelectField value={shirt} onChange={v => { setShirt(v); setFabric(""); setCollar(""); markDirty(); }} options={shirtOptions} />
+          <SelectField value={fabric} onChange={v => { setFabric(v); markDirty(); }} options={filteredFabricOptions} disabled={!shirt} />
+          <SelectField value={collar} onChange={v => { setCollar(v); markDirty(); }} options={filteredCollarOptions} disabled={!shirt} />
           <div className="ml-auto flex items-center gap-3" style={{ display: readOnly ? "none" : undefined }}>
             {saveState === "saved" && (
               <span className="flex items-center gap-1 text-sm text-success">
@@ -722,18 +730,22 @@ function SelectField({
   value,
   onChange,
   options,
+  disabled,
 }: {
   value: string;
   onChange: (v: string) => void;
   options: string[];
+  disabled?: boolean;
 }) {
   return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="rounded-full bg-surface-3 px-4 py-2 text-sm font-medium outline-none focus:ring-1 focus:ring-accent"
+      disabled={disabled}
+      className="rounded-full bg-surface-3 px-4 py-2 text-sm font-medium outline-none focus:ring-1 focus:ring-accent disabled:opacity-40 disabled:cursor-not-allowed"
     >
-      {!options.includes(value) && <option value={value}>{value}</option>}
+      {!options.includes(value) && value && <option value={value}>{value}</option>}
+      <option value="">{disabled ? "— เลือกทรงเสื้อก่อน —" : "— เลือก —"}</option>
       {options.map((o) => (
         <option key={o} value={o}>
           {o}

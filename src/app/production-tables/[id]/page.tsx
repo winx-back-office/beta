@@ -6,6 +6,7 @@ import { ProductionTable } from "@/components/production-table";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import type { Order } from "@/lib/types";
+import { useShirtStyles, useFabricsData, calcProductionPrice } from "@/lib/use-catalog";
 
 export default function ProductionTablePage() {
   const { id } = useParams<{ id: string }>();
@@ -13,6 +14,8 @@ export default function ProductionTablePage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDirty, setIsDirty] = useState(false);
+  const shirtStyles = useShirtStyles();
+  const fabricsData = useFabricsData();
   const isDirtyRef = useRef(false);
 
   // keep ref in sync for beforeunload
@@ -93,12 +96,18 @@ export default function ProductionTablePage() {
           onDirtyChange={setIsDirty}
           onFirstSave={markTableCreated}
           onUpdateOrder={async (patch) => {
+            const mergedShirt = patch.shirtType ?? order.shirtType ?? "";
+            const mergedFabric = patch.fabricType ?? order.fabricType ?? "";
+            const mergedCollar = patch.collarType ?? order.collarType ?? "";
+            const qty = order.quantity ?? 1;
+            const result = calcProductionPrice(shirtStyles, fabricsData, mergedShirt, mergedFabric, mergedCollar, qty);
+            const fullPatch = result ? { ...patch, productionPrice: result.price } : patch;
             await fetch(`/api/orders/${order.id}`, {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(patch),
+              body: JSON.stringify(fullPatch),
             });
-            setOrder((prev) => prev ? { ...prev, ...patch } : prev);
+            setOrder((prev) => prev ? { ...prev, ...fullPatch } : prev);
           }}
         />
       </div>
