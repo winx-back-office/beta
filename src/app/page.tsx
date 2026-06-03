@@ -1,18 +1,31 @@
 import { Card, PageHeader, Badge } from "@/components/ui";
-import { orders, designCards, productionCards } from "@/lib/mock-data";
 import {
   orderTotal,
   orderBalance,
   CUSTOMER_TYPE_LABEL,
+  type Order,
 } from "@/lib/types";
 import { formatBaht, formatDate } from "@/lib/utils";
 import { TrendingUp, Wallet, Clock, Palette, Factory } from "lucide-react";
 import Link from "next/link";
+import fs from "fs";
+import path from "path";
+
+function readOrders(): Order[] {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(process.cwd(), "src/data/orders.json"), "utf-8"));
+  } catch { return []; }
+}
+
+export const dynamic = "force-dynamic";
 
 export default function DashboardPage() {
+  const orders = readOrders();
   const revenue = orders.reduce((s, o) => s + orderTotal(o), 0);
   const received = orders.reduce((s, o) => s + o.deposit, 0);
   const outstanding = orders.reduce((s, o) => s + orderBalance(o), 0);
+  const designCount = orders.filter(o => o.type === "design" || o.type === "design_produce").length;
+  const produceCount = orders.filter(o => o.type === "produce" || o.type === "design_produce").length;
 
   const stats = [
     {
@@ -64,13 +77,13 @@ export default function DashboardPage() {
             href="/queue/design"
             title="คิวออกแบบ"
             icon={Palette}
-            count={designCards.length}
+            count={designCount}
           />
           <QueueSummary
             href="/queue/production"
             title="คิวผลิต"
             icon={Factory}
-            count={productionCards.length}
+            count={produceCount}
           />
         </div>
 

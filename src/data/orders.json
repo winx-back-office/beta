@@ -1,12 +1,33 @@
 [
   {
     "type": "produce",
+    "teamName": "เลอะเทอะ 30 APR 26 - รายชื่อเสื้อทีม - Google ชีต",
+    "shirtType": "BASIC OVERSIZE",
+    "fabricType": "ผ้าเม็ดข้าวสาร",
+    "productionPrice": 345,
+    "deposit": 10350,
+    "quantity": 60,
+    "cost": {
+      "fabric": 0,
+      "paper": 0,
+      "ink": 0,
+      "cut": 0,
+      "sew": 0,
+      "other": 0
+    },
+    "startDate": "2026-06-03",
+    "id": "WNX-2606-22",
+    "hasProductionTable": true,
+    "collarType": "คอคางหมู"
+  },
+  {
+    "type": "produce",
     "teamName": "MUP JACKET ตกหล่น",
     "startDate": "2026-06-03",
     "deposit": 0,
     "shirtType": "PRO JACKET ผ้าไมโครพีช",
     "fabricType": "ไมโครพีช",
-    "collarType": "PRO JACKET ผ้าไมโครพีช",
+    "collarType": "คอกลม",
     "quantity": 1,
     "productionPrice": 1190,
     "cost": {
@@ -20,11 +41,11 @@
     "shipping": 0,
     "id": "WNX-2606-21",
     "hasProductionTable": true,
-    "productionStatus": "size"
+    "productionStatus": "pattern_in"
   },
   {
     "type": "produce",
-    "teamName": "ผาหวง 3 JUN 26 - รายชื่อเสื้อทีม",
+    "teamName": "ผาหลวง 3 JUN 26 - รายชื่อเสื้อทีม",
     "startDate": "2026-06-03",
     "deposit": 15000,
     "shirtType": "Basic Jersey",
@@ -44,7 +65,8 @@
     "shipping": 150,
     "id": "WNX-2606-20",
     "hasProductionTable": true,
-    "productionStatus": "pattern_in"
+    "productionStatus": "pattern_in",
+    "vat": true
   },
   {
     "type": "produce",
@@ -115,6 +137,7 @@
     "id": "WNX-2606-10",
     "hasProductionTable": true,
     "productionStatus": "done",
-    "collarType": "HOOD สวม"
+    "collarType": "HOOD สวม",
+    "serviceCharge": 300
   }
 ]
