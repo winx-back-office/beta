@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { PageHeader, Badge, Button, Card } from "@/components/ui";
 import { AddOrderModal } from "@/components/add-order-modal";
-import { orderTotal, orderBalance, CUSTOMER_TYPE_LABEL, type Order } from "@/lib/types";
+import { orderTotal, orderBalance, CUSTOMER_TYPE_LABEL, GROUP_COLORS, type Order } from "@/lib/types";
 import { formatBaht, formatDate } from "@/lib/utils";
-import { Plus, Loader2, Trash2, Sheet, X, FileSpreadsheet, Upload, AlertCircle, CheckCircle2 } from "lucide-react";
-import { useRef, useCallback } from "react";
+import { Plus, Loader2, Trash2, Sheet, X, FileSpreadsheet, Upload, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
 export default function OrdersPage() {
@@ -47,6 +46,15 @@ export default function OrdersPage() {
     setOrders((prev) => prev.filter((o) => o.id !== id));
   };
 
+  const onColorOrder = async (id: string, color: string) => {
+    await fetch(`/api/orders/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ color }),
+    });
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, color } : o)));
+  };
+
   const onUpdateDate = async (id: string, startDate: string) => {
     await fetch(`/api/orders/${id}`, {
       method: "PUT",
@@ -75,7 +83,7 @@ export default function OrdersPage() {
         }
       />
 
-      <div className="p-8">
+      <div className="px-8 pb-8 pt-14">
         {loading ? (
           <div className="flex items-center justify-center py-24 text-muted">
             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -103,13 +111,20 @@ export default function OrdersPage() {
                   <tr
                     key={o.id}
                     className={`group transition-colors hover:bg-surface-3 ${idx % 2 === 1 ? "bg-surface-2" : ""}`}
+                    style={o.color ? { borderLeft: `3px solid ${o.color}`, backgroundColor: `${o.color}0d` } : {}}
                     onMouseMove={e => (o.shirtType || o.fabricType || o.collarType) && setTooltip({ order: o, x: e.clientX, y: e.clientY })}
                     onMouseLeave={() => setTooltip(null)}
                   >
-                    <td className="px-5 py-3.5">
-                      <Link href={`/orders/${o.id}`} className="font-mono text-xs text-accent hover:underline">
-                        {o.id}
-                      </Link>
+                    <td className="py-3.5 pl-3 pr-5">
+                      <div className="flex items-center gap-2">
+                        <ColorDot
+                          color={o.color}
+                          onSelect={(color) => onColorOrder(o.id, color)}
+                        />
+                        <Link href={`/orders/${o.id}`} className="font-mono text-xs text-accent hover:underline">
+                          {o.id}
+                        </Link>
+                      </div>
                     </td>
                     <td className="px-5 py-3.5 text-center text-muted">
                       <DateCell date={o.startDate} onSave={d => onUpdateDate(o.id, d)} />
@@ -153,7 +168,7 @@ export default function OrdersPage() {
                 ))}
                 {orders.length === 0 && (
                   <tr>
-                    <td colSpan={12} className="px-5 py-12 text-center text-muted">
+                    <td colSpan={10} className="px-5 py-12 text-center text-muted">
                       ยังไม่มีออเดอร์ — กดปุ่ม &ldquo;เพิ่มออเดอร์&rdquo; เพื่อเริ่มต้น
                     </td>
                   </tr>
@@ -205,6 +220,50 @@ export default function OrdersPage() {
               </div>
             )}
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── ColorDot ──────────────────────────────────────────────────
+function ColorDot({ color, onSelect }: { color?: string; onSelect: (c: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div className="relative flex-shrink-0" ref={ref}>
+      <button
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen((v) => !v); }}
+        className="h-3 w-3 rounded-full border border-border/60 transition-transform hover:scale-125 flex-shrink-0 opacity-30 group-hover:opacity-100"
+        style={{ backgroundColor: color || "transparent", boxShadow: color ? `0 0 0 1px ${color}50` : undefined, opacity: color ? 1 : undefined }}
+        title="เลือกสีรายการ"
+      />
+      {open && (
+        <div className="absolute left-0 top-5 z-50 rounded-[var(--radius-md)] border border-border bg-surface p-2 shadow-xl flex gap-1.5 flex-wrap w-44">
+          {GROUP_COLORS.map((c) => (
+            <button
+              key={c.value}
+              onClick={(e) => { e.stopPropagation(); onSelect(c.value); setOpen(false); }}
+              title={c.label}
+              className="h-5 w-5 rounded-full border-2 transition-transform hover:scale-110 flex-shrink-0"
+              style={{
+                backgroundColor: c.value || "transparent",
+                borderColor: c.value || "var(--color-border)",
+                outline: color === c.value ? `2px solid ${c.value || "var(--color-muted)"}` : "none",
+                outlineOffset: "2px",
+              }}
+            />
+          ))}
         </div>
       )}
     </div>
@@ -267,10 +326,7 @@ function ImportSheetsModal({
   const [error, setError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
 
-  // mode: orders
   const [rows, setRows] = useState<ImportRow[] | null>(null);
-
-  // mode: production
   const [players, setPlayers] = useState<PlayerRow[] | null>(null);
   const [detectedFabric, setDetectedFabric] = useState("");
   const [detectedShirt, setDetectedShirt] = useState("");
@@ -307,7 +363,6 @@ function ImportSheetsModal({
     setFetching(false);
   }
 
-  // นำเข้า orders จาก flat table
   async function handleImportOrders() {
     if (!rows?.length) return;
     setImporting(true);
@@ -325,7 +380,6 @@ function ImportSheetsModal({
     onImported(created);
   }
 
-  // นำเข้าจาก production table — สร้าง 1 order + production entry
   async function handleImportProduction() {
     if (!players) return;
     setImporting(true);
@@ -352,7 +406,6 @@ function ImportSheetsModal({
       return;
     }
     const newOrder: Order = orderData.order;
-    // บันทึก production table
     await fetch(`/api/production/${newOrder.id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -379,7 +432,6 @@ function ImportSheetsModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
       <div className="w-full max-w-3xl rounded-[var(--radius-lg)] border border-border bg-surface shadow-2xl flex flex-col max-h-[90vh]">
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4 shrink-0">
           <div className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5 text-accent" />
@@ -389,7 +441,6 @@ function ImportSheetsModal({
         </div>
 
         <div className="overflow-y-auto p-6 space-y-5">
-          {/* Mode toggle */}
           <div className="flex gap-1 rounded-[var(--radius-md)] border border-border bg-surface-2 p-1">
             {(["production", "orders"] as const).map((m) => (
               <button key={m} type="button"
@@ -400,7 +451,6 @@ function ImportSheetsModal({
             ))}
           </div>
 
-          {/* URL input */}
           <div>
             <p className="text-xs text-muted mb-2">
               {mode === "production"
@@ -419,21 +469,17 @@ function ImportSheetsModal({
             </form>
           </div>
 
-          {/* Error */}
           {error && (
             <div className="flex items-center gap-2 rounded-[var(--radius-md)] border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
               <AlertCircle className="h-4 w-4 shrink-0" />{error}
             </div>
           )}
 
-          {/* === Production table preview === */}
           {mode === "production" && players !== null && (
             <div className="space-y-4">
               <p className="text-sm font-medium">
                 พบผู้เล่น <span className="text-accent">{players.length} คน</span> — กรอกข้อมูลออเดอร์แล้วนำเข้า
               </p>
-
-              {/* Order fields */}
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="col-span-2">
                   <label className="text-xs text-muted-2 mb-1 block">ชื่อทีม *</label>
@@ -448,8 +494,6 @@ function ImportSheetsModal({
                   <input className={fieldCls} value={fabricType} onChange={e => setFabricType(e.target.value)} placeholder="เช่น เม็ดข้าวสาร 150 แกรม" />
                 </div>
               </div>
-
-              {/* Player preview */}
               {players.length > 0 && (
                 <div className="overflow-x-auto rounded-[var(--radius-md)] border border-border max-h-52">
                   <table className="w-full text-sm border-collapse">
@@ -472,7 +516,6 @@ function ImportSheetsModal({
                   </table>
                 </div>
               )}
-
               <div className="flex justify-end">
                 <Button onClick={handleImportProduction} disabled={importing || !teamName.trim() || players.length === 0}>
                   {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
@@ -482,7 +525,6 @@ function ImportSheetsModal({
             </div>
           )}
 
-          {/* === Orders list preview === */}
           {mode === "orders" && rows !== null && (
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -522,7 +564,6 @@ function ImportSheetsModal({
           )}
         </div>
 
-        {/* Footer */}
         <div className="border-t border-border px-6 py-3 shrink-0 flex justify-end">
           <button onClick={onClose} className="rounded-md border border-border px-4 py-2 text-sm text-muted hover:bg-surface-2">
             ปิด

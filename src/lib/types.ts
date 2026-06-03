@@ -47,6 +47,9 @@ export interface Order {
   vat?: boolean; // บวก VAT 7%
   productionStatus?: string; // kanban column id
 
+  // UI
+  color?: string;   // hex color สำหรับ left border accent
+
   // การเงินรวม
   deposit: number; // ยอดมัดจำ
   // ยอดรวม / คงเหลือ คำนวณจาก helper
@@ -91,6 +94,27 @@ export function orderProfit(o: Order): number | null {
   if (o.type === "design") return null;
   return orderSubtotal(o) - costTotal(o);
 }
+
+// ===== Order Groups =====
+export interface OrderGroup {
+  id: string;        // GRP-001
+  name: string;      // ชื่อกลุ่ม เช่น "ผาหลวง มิ.ย. 69"
+  orderIds: string[]; // รหัสออเดอร์ที่อยู่ในกลุ่ม
+  createdAt: string; // ISO
+  color?: string;    // hex color สำหรับ left border accent
+}
+
+export const GROUP_COLORS = [
+  { label: "ไม่มีสี",  value: "" },
+  { label: "แดง",     value: "#ef4444" },
+  { label: "ส้ม",     value: "#f97316" },
+  { label: "เหลือง",  value: "#eab308" },
+  { label: "เขียว",   value: "#22c55e" },
+  { label: "เขียวน้ำ", value: "#14b8a6" },
+  { label: "ฟ้า",     value: "#3b82f6" },
+  { label: "ม่วง",    value: "#a855f7" },
+  { label: "ชมพู",    value: "#ec4899" },
+];
 
 // ===== Kanban =====
 export interface QueueCard {
