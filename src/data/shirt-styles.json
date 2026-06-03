@@ -269,5 +269,64 @@
         "price": 0
       }
     ]
+  },
+  {
+    "id": "basic-oversize-1780483117887",
+    "name": "BASIC OVERSIZE",
+    "pricing": [
+      {
+        "minQty": 10,
+        "maxQty": 20,
+        "basePrice": 379
+      },
+      {
+        "minQty": 21,
+        "maxQty": 40,
+        "basePrice": 359
+      },
+      {
+        "minQty": 41,
+        "maxQty": 50,
+        "basePrice": 329
+      },
+      {
+        "minQty": 51,
+        "maxQty": 80,
+        "basePrice": 309
+      }
+    ],
+    "collars": [
+      {
+        "name": "คอคางหมู",
+        "price": 0,
+        "patternPieces": 6
+      }
+    ],
+    "fabrics": [
+      {
+        "name": "ผ้าเรียบ",
+        "price": 0
+      },
+      {
+        "name": "ผ้าเม็ดข้าวสาร",
+        "price": 20
+      },
+      {
+        "name": "ผ้ารังผึ้ง",
+        "price": 20
+      },
+      {
+        "name": "ผ้า Air flow",
+        "price": 30
+      },
+      {
+        "name": "ผ้าตาข่าย",
+        "price": 30
+      },
+      {
+        "name": "ผ้าวอร์ม",
+        "price": 30
+      }
+    ]
   }
 ]

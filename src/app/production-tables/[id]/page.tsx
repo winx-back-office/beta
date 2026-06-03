@@ -39,6 +39,9 @@ export default function ProductionTablePage() {
   }, [router]);
 
   useEffect(() => {
+    // บันทึกเวลาที่เปิดดูตาราง เพื่อล้าง badge "อัพเดทตาราง" ในหน้า orders
+    localStorage.setItem(`table-viewed-${id}`, new Date().toISOString());
+
     fetch(`/api/orders/${id}`)
       .then((r) => r.json())
       .then((data) => { setOrder(data); setLoading(false); });

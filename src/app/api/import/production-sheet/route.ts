@@ -1,27 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-// GET /api/import/production-sheet?url=<sheets-url>
-// ดึงข้อมูลผู้เล่นจาก Google Sheets ที่มีฟอร์แมต WINX production table
-// Auto-detect แถวหัวคอลัมน์ที่มี "ชื่อผู้เล่น"
+const SIZES = ["SS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL", "6XL", "7XL", "พิเศษ"];
 
 function extractSheetId(url: string): string | null {
   const m = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
   return m ? m[1] : null;
-}
-
-// ดึงชื่อ spreadsheet จาก HTML title (ส่วนแรกก่อน " - Google")
-async function fetchSheetTitle(sheetId: string): Promise<string> {
-  try {
-    const res = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/edit`, { cache: "no-store" });
-    const html = await res.text();
-    const m = html.match(/<title>([^<]+)<\/title>/);
-    if (!m) return "";
-    // ตัด " - Google ชีต" หรือ " - Google Sheets" ออก แล้วเอาส่วนแรก
-    const full = m[1].replace(/ - Google.*$/, "").trim();
-    return full; // เช่น "FRG - 11 MAY 26 - รายชื่อเสื้อทีม"
-  } catch {
-    return "";
-  }
 }
 
 function parseCsvLine(line: string): string[] {
@@ -44,113 +27,114 @@ function parseCsvLine(line: string): string[] {
   return result;
 }
 
-const SIZE_VALID = new Set([
-  "SS","S","M","L","XL","2XL","3XL","4XL","5XL","6XL","7XL","พิเศษ",
-]);
-
 export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get("url") ?? "";
   const sheetId = extractSheetId(url);
   if (!sheetId) return NextResponse.json({ error: "URL ไม่ถูกต้อง" }, { status: 400 });
 
+  let sheetTitle = "";
+
+  // วิธีที่ 1: Worksheets feed — ได้ชื่อ tab ทั้งหมด
+  try {
+    const feedRes = await fetch(
+      `https://spreadsheets.google.com/feeds/worksheets/${sheetId}/public/full?alt=json`,
+      { cache: "no-store" }
+    );
+    if (feedRes.ok) {
+      const feedData = await feedRes.json() as { feed: { entry?: { title: { $t: string } }[] } };
+      const entries = feedData?.feed?.entry ?? [];
+      if (entries.length > 0) sheetTitle = entries[0].title.$t;
+    }
+  } catch { /* ลอง fallback */ }
+
+  // วิธีที่ 2: fallback — ดึงชื่อจาก HTML title
+  if (!sheetTitle) {
+    try {
+      const htmlRes = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/`, { cache: "no-store" });
+      const html = await htmlRes.text();
+      const m = html.match(/<title>([^<]+)<\/title>/i);
+      if (m) {
+        sheetTitle = m[1].replace(/\s*-\s*Google\s*(Sheets|Spreadsheets)\s*$/i, "").trim();
+      }
+    } catch { /* ไม่สำคัญ */ }
+  }
+
   const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv`;
   let csv: string;
-  let sheetTitle = "";
   try {
-    const [csvRes, title] = await Promise.all([
-      fetch(csvUrl, { cache: "no-store" }),
-      fetchSheetTitle(sheetId),
-    ]);
-    if (!csvRes.ok) throw new Error(`HTTP ${csvRes.status}`);
-    csv = await csvRes.text();
-    sheetTitle = title;
+    const res = await fetch(csvUrl, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    csv = await res.text();
   } catch (e) {
     return NextResponse.json({ error: `ดึงข้อมูลไม่ได้: ${e}` }, { status: 502 });
   }
 
-  const lines = csv.split("\n").map((l) => l.trimEnd());
+  const lines = csv.split("\n").filter((l) => l.trim());
 
-  // ── หา fabric / collar จาก dropdown rows (ก่อนแถวผู้เล่น) ──────────
-  let fabric = "";
-  let collar = "";
-  for (let i = 0; i < Math.min(lines.length, 10); i++) {
-    const cols = parseCsvLine(lines[i]);
-    for (const c of cols) {
-      const v = c.trim();
+  // ตรวจหา fabric และ shirt style จาก 10 rows แรก
+  let detectedFabric = "";
+  let detectedShirt = "";
+  for (let i = 0; i < Math.min(10, lines.length); i++) {
+    const cells = parseCsvLine(lines[i]);
+    for (const cell of cells) {
+      const v = cell.trim();
       if (!v) continue;
-      if (v.startsWith("ผ้า") || v.includes("แกรม") || v.includes("ไมโคร") || v.includes("จูติ") || v.includes("เบริด์") || v.includes("เกล็ด")) {
-        fabric = v;
+      if (!detectedFabric && (v.includes("แกรม") || (v.includes("ผ้า") && v.length < 30))) {
+        detectedFabric = v;
       }
-      if (v.startsWith("คอ")) {
-        collar = v;
+      if (!detectedShirt && /^[A-Z][A-Z\s]+$/.test(v) && v.length > 3 &&
+        (v.includes("JERSEY") || v.includes("JACKET") || v.includes("BASIC") ||
+         v.includes("HOOD") || v.includes("PRO") || v.includes("OVSIZE"))) {
+        detectedShirt = v;
       }
     }
   }
 
-  // ── หาแถวหัวคอลัมน์ (ที่มี "ชื่อผู้เล่น") ────────────────────────
+  // หา header row ที่มี ชื่อผู้เล่น/ชื่อ + ไซส์
   let headerRowIdx = -1;
-  let nameCol = -1;
-  let sizeCol = -1;
-  let numCol  = -1;
+  let nameColIdx = -1;
+  let sizeColIdx = -1;
+  let numColIdx = -1;
 
   for (let i = 0; i < lines.length; i++) {
-    const cols = parseCsvLine(lines[i]);
-    const nameIdx = cols.findIndex((c) => c.trim() === "ชื่อผู้เล่น");
-    if (nameIdx !== -1) {
+    const cells = parseCsvLine(lines[i]);
+    const trimmed = cells.map((c) => c.trim());
+    const nameIdx = trimmed.findIndex((c) => c === "ชื่อผู้เล่น" || c === "ชื่อ");
+    const sizeIdx = trimmed.findIndex((c) => c === "ไซส์" || c === "ไซ");
+    if (nameIdx !== -1 && sizeIdx !== -1) {
       headerRowIdx = i;
-      nameCol = nameIdx;
-      sizeCol = cols.findIndex((c) => c.trim() === "ไซส์");
-      // หา column เลข/เบอร์ — ใช้ partial match แล้ว fallback ไปคอลัมน์ถัดจาก ไซส์
-      numCol = cols.findIndex((c) => {
-        const v = c.trim();
-        return v === "เลข" || v === "เบอร์" || v === "หมายเลข"
-          || v.startsWith("เลข") || v.startsWith("เบอร์");
-      });
-      if (numCol === -1 && sizeCol !== -1) numCol = sizeCol + 1; // fallback
+      nameColIdx = nameIdx;
+      sizeColIdx = sizeIdx;
+      numColIdx = trimmed.findIndex((c) => c.includes("ลำดับ") || c.includes("เลข") || c === "no");
       break;
     }
   }
 
-  if (headerRowIdx === -1) {
-    return NextResponse.json(
-      { error: 'ไม่พบแถวหัวคอลัมน์ "ชื่อผู้เล่น" ใน Sheet' },
-      { status: 400 }
-    );
+  const players: { name: string; size: string; number: string }[] = [];
+
+  if (headerRowIdx !== -1) {
+    for (let i = headerRowIdx + 1; i < lines.length; i++) {
+      const cells = parseCsvLine(lines[i]);
+      const name = (cells[nameColIdx] ?? "").trim();
+      const size = (cells[sizeColIdx] ?? "").trim().toUpperCase();
+      const num = numColIdx >= 0 ? (cells[numColIdx] ?? "").trim() : "";
+      if (!name || !SIZES.includes(size)) continue;
+      players.push({ name, size, number: num });
+    }
+  } else {
+    // fallback: scan หา name + size คู่กัน
+    for (let i = 0; i < lines.length; i++) {
+      const cells = parseCsvLine(lines[i]);
+      for (let j = 0; j < cells.length - 1; j++) {
+        const name = cells[j]?.trim();
+        const size = cells[j + 1]?.trim().toUpperCase();
+        if (name && size && SIZES.includes(size) && name.length > 1 && !/^\d+$/.test(name)) {
+          players.push({ name, size, number: "" });
+          break;
+        }
+      }
+    }
   }
 
-  // ── เก็บหัว column จริงๆ ของฝั่งผู้เล่น (ตัดคอลัมน์ว่างและลำดับ) ──
-  const rawHeaders = parseCsvLine(lines[headerRowIdx]);
-  // ถ้า column เลข ไม่มีหัว ให้ใส่ "เลข" แทน
-  if (numCol !== -1 && !rawHeaders[numCol]?.trim()) {
-    rawHeaders[numCol] = "เลข";
-  }
-  const playerHeaders = rawHeaders
-    .slice(nameCol) // เริ่มจาก ชื่อผู้เล่น
-    .map((h) => h.trim())
-    .filter((h) => h && !["ลำดับ", "#"].includes(h));
-
-  // ── หา column เช็คสินค้า/สถานะ (ถัดจาก เลข) ──────────────────────
-  const statusCol = numCol !== -1 ? numCol + 1 : -1;
-
-  // ── parse แถวผู้เล่น ─────────────────────────────────────────────
-  const players: { name: string; size: string; number: string; status: string }[] = [];
-
-  for (let i = headerRowIdx + 1; i < lines.length; i++) {
-    const cols = parseCsvLine(lines[i]);
-    const name   = nameCol   !== -1 ? (cols[nameCol]   ?? "").trim() : "";
-    const size   = sizeCol   !== -1 ? (cols[sizeCol]   ?? "").trim().toUpperCase() : "";
-    const num    = numCol    !== -1 ? (cols[numCol]    ?? "").trim() : "";
-    const status = statusCol !== -1 ? (cols[statusCol] ?? "").trim() : "";
-
-    if (!name) continue; // ข้ามแถวว่าง
-
-    players.push({
-      name,
-      size: SIZE_VALID.has(size) ? size : "",
-      number: num,
-      status,
-    });
-  }
-
-  return NextResponse.json({ players, playerHeaders, fabric, collar, total: players.length, sheetTitle });
+  return NextResponse.json({ players, detectedFabric, detectedShirt, total: players.length, sheetTitle });
 }

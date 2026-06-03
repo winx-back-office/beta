@@ -35,7 +35,7 @@ export async function POST(
   const { id } = await params;
   const body = await req.json();
   const db = readDB();
-  db[id] = { meta: body.meta, players: body.players };
+  db[id] = { meta: body.meta, players: body.players, updatedAt: new Date().toISOString() };
   writeDB(db);
   return NextResponse.json({ ok: true });
 }

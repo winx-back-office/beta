@@ -112,3 +112,17 @@ body {
 .field-input:focus {
   border-color: var(--accent);
 }
+
+/* Print — แคปส่งลูกค้า */
+@media print {
+  body > *:not(#finance-print-area) { display: none !important; }
+  #finance-print-area {
+    position: fixed;
+    inset: 0;
+    display: block !important;
+    background: white;
+    color: black;
+    padding: 2rem;
+    font-size: 14px;
+  }
+}

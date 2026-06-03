@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { PageHeader, Badge, Button, Card } from "@/components/ui";
 import {
   orderTotal,
+  orderSubtotal,
+  orderVat,
   orderBalance,
   orderProfit,
   costTotal,
@@ -12,7 +14,7 @@ import {
   type ProductionCost,
 } from "@/lib/types";
 import { formatBaht, formatDate } from "@/lib/utils";
-import { ArrowLeft, FileSpreadsheet, Table2, Loader2, Pencil, X, Check } from "lucide-react";
+import { ArrowLeft, FileSpreadsheet, Table2, Loader2, Pencil, X, Check, Camera } from "lucide-react";
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -68,17 +70,18 @@ export default function OrderDetailPage() {
         }
       />
 
-      <div className="grid grid-cols-1 gap-6 p-8 lg:grid-cols-3">
+      <div className="grid w-full max-w-6xl grid-cols-1 gap-4 px-8 py-4 lg:grid-cols-3">
         {/* Left */}
-        <div className="space-y-6 lg:col-span-2">
+        <div className="space-y-4 lg:col-span-2">
           <OrderInfoCard order={order} onSave={save} />
           {isProduce && <FinanceCard order={order} onSave={save} />}
           {isProduce && order.hasProductionTable && <ProductionSummaryCard orderId={order.id} />}
         </div>
 
         {/* Right */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {!isProduce && <FinanceCard order={order} onSave={save} />}
+          {isProduce && <ProfitCard order={order} />}
           {isProduce && order.cost && <CostCard order={order} onSave={save} />}
 
           {isProduce && (
@@ -114,7 +117,6 @@ function OrderInfoCard({ order, onSave }: { order: Order; onSave: (p: Partial<Or
       shirtType: order.shirtType,
       fabricType: order.fabricType,
       collarType: order.collarType,
-      quantity: order.quantity,
       productionPrice: order.productionPrice,
       designPackage: order.designPackage,
     });
@@ -195,9 +197,6 @@ function OrderInfoCard({ order, onSave }: { order: Order; onSave: (p: Partial<Or
                     ))}
                   </select>
                 </EditField>
-                <EditField label="จำนวนตัว">
-                  <input type="number" min={1} className="field-input" value={draft.quantity ?? ""} onChange={e => setDraft(d => ({ ...d, quantity: Number(e.target.value) }))} />
-                </EditField>
               </>
             )}
           </>
@@ -212,7 +211,6 @@ function OrderInfoCard({ order, onSave }: { order: Order; onSave: (p: Partial<Or
                 <Field label="ประเภทเสื้อ" value={order.shirtType ?? "-"} />
                 <Field label="เนื้อผ้า" value={order.fabricType ?? "-"} />
                 <Field label="ประเภทคอ" value={order.collarType ?? "-"} />
-                <Field label="จำนวนตัว" value={`${order.quantity ?? 1} ตัว`} />
               </>
             )}
           </>
@@ -345,11 +343,12 @@ function CostCard({ order, onSave }: { order: Order; onSave: (p: Partial<Order>)
   );
 }
 
-// ── สรุปการเงิน ──────────────────────────────────────────────
+// ── สรุปยอด ──────────────────────────────────────────────
 function FinanceCard({ order, onSave }: { order: Order; onSave: (p: Partial<Order>) => Promise<void> }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Partial<Order>>({});
   const [saving, setSaving] = useState(false);
+  const [printOpen, setPrintOpen] = useState(false);
   const shirtStylesForFinance = useShirtStyles();
   const fabricExtra = shirtStylesForFinance
     .find(s => s.name === order.shirtType)
@@ -360,7 +359,10 @@ function FinanceCard({ order, onSave }: { order: Order; onSave: (p: Partial<Orde
     setDraft({
       designPackagePrice: order.designPackagePrice,
       productionPrice: order.productionPrice,
+      quantity: order.quantity,
       shipping: order.shipping,
+      serviceCharge: order.serviceCharge,
+      vat: order.vat,
       deposit: order.deposit,
     });
     setEditing(true);
@@ -375,82 +377,258 @@ function FinanceCard({ order, onSave }: { order: Order; onSave: (p: Partial<Orde
 
   const previewOrder = editing ? { ...order, ...draft } : order;
   const balance = orderBalance(previewOrder);
-  const profit = orderProfit(previewOrder);
+  const vatAmount = orderVat(previewOrder);
+  const subtotal = orderSubtotal(previewOrder);
+  const total = orderTotal(previewOrder);
 
   return (
-    <Card className="p-6">
-      <CardHeader title="สรุปการเงิน" editing={editing} saving={saving} onEdit={start} onCancel={cancel} onSave={submit} />
-      <div className="space-y-3 text-sm">
-        {order.type === "design" ? (
-          editing ? (
-            <EditNumRow label="ราคาแพคเกจ" value={draft.designPackagePrice ?? 0} onChange={v => setDraft(d => ({ ...d, designPackagePrice: v }))} />
-          ) : (
-            <SummaryRow label="ราคาแพคเกจ" value={order.designPackagePrice ?? 0} />
-          )
-        ) : (
-          <>
-            {order.type === "design_produce" && (
-              editing ? (
-                <EditNumRow label="ค่าออกแบบ" value={draft.designPackagePrice ?? 0} onChange={v => setDraft(d => ({ ...d, designPackagePrice: v }))} />
-              ) : (
-                <SummaryRow label="ค่าออกแบบ" value={order.designPackagePrice ?? 0} />
-              )
+    <>
+      <Card className="p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-2">สรุปยอด</h2>
+          <div className="flex gap-1.5">
+            {!editing && (
+              <button onClick={() => setPrintOpen(true)} className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs text-muted hover:bg-surface-2 hover:text-foreground">
+                <Camera className="h-3.5 w-3.5" /> ส่งลูกค้า
+              </button>
             )}
             {editing ? (
-              <EditNumRow
-                label={`ราคาผลิต/ตัว × ${order.quantity ?? 1}`}
-                value={draft.productionPrice ?? 0}
-                onChange={v => setDraft(d => ({ ...d, productionPrice: v }))}
-              />
+              <>
+                <button onClick={cancel} className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs text-muted hover:bg-surface-2">
+                  <X className="h-3.5 w-3.5" /> ยกเลิก
+                </button>
+                <button onClick={submit} disabled={saving} className="inline-flex items-center gap-1 rounded-md bg-accent px-2.5 py-1 text-xs text-accent-foreground disabled:opacity-60">
+                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} บันทึก
+                </button>
+              </>
             ) : (
-              <div className="flex items-start justify-between gap-4 text-sm">
-                <div>
-                  <div>ราคาผลิต</div>
-                  <div className="text-xs text-muted mt-0.5">{formatBaht(order.productionPrice ?? 0)}/ตัว × {order.quantity ?? 1} ตัว</div>
-                </div>
-                <span className="font-medium">{formatBaht((order.productionPrice ?? 0) * (order.quantity ?? 1))}</span>
-              </div>
+              <button onClick={start} className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs text-muted hover:bg-surface-2 hover:text-foreground">
+                <Pencil className="h-3.5 w-3.5" /> แก้ไข
+              </button>
             )}
-            {!editing && fabricExtra > 0 && (
-              <div className="flex items-start justify-between gap-4 text-sm">
-                <div>
-                  <div>ค่าผ้าพิเศษ</div>
-                  <div className="text-xs text-muted mt-0.5">{order.fabricType} · +{fabricExtra} บาท/ตัว × {order.quantity ?? 1} ตัว</div>
-                </div>
-                <span className="font-medium">{formatBaht(fabricExtra * (order.quantity ?? 1))}</span>
-              </div>
-            )}
-            {editing ? (
-              <EditNumRow label="ค่าจัดส่ง" value={draft.shipping ?? 0} onChange={v => setDraft(d => ({ ...d, shipping: v }))} />
-            ) : (
-              <SummaryRow label="ค่าจัดส่ง" value={order.shipping ?? 0} />
-            )}
-          </>
-        )}
-
-        <div className="flex justify-between border-t border-border pt-3 text-base font-bold">
-          <span>ยอดรวมทั้งหมด</span>
-          <span>{formatBaht(orderTotal(previewOrder))}</span>
-        </div>
-
-        {editing ? (
-          <EditNumRow label="ยอดมัดจำ" value={draft.deposit ?? 0} onChange={v => setDraft(d => ({ ...d, deposit: v }))} muted />
-        ) : (
-          <SummaryRow label="ยอดมัดจำ" value={order.deposit} muted />
-        )}
-
-        <div className="flex justify-between rounded-[var(--radius-md)] bg-warn/10 px-3 py-2.5 font-semibold text-warn">
-          <span>ยอดคงเหลือ</span>
-          <span>{formatBaht(balance)}</span>
-        </div>
-        {profit !== null && (
-          <div className="flex justify-between rounded-[var(--radius-md)] bg-accent-soft px-3 py-2.5 font-semibold text-accent">
-            <span>กำไรโดยประมาณ</span>
-            <span>{formatBaht(profit)}</span>
           </div>
-        )}
+        </div>
+        <div className="space-y-3 text-sm">
+          {order.type === "design" ? (
+            editing ? (
+              <EditNumRow label="ราคาแพคเกจ" value={draft.designPackagePrice ?? 0} onChange={v => setDraft(d => ({ ...d, designPackagePrice: v }))} />
+            ) : (
+              <SummaryRow label="ราคาแพคเกจ" value={order.designPackagePrice ?? 0} />
+            )
+          ) : (
+            <>
+              {order.type === "design_produce" && (
+                editing ? (
+                  <EditNumRow label="ค่าออกแบบ" value={draft.designPackagePrice ?? 0} onChange={v => setDraft(d => ({ ...d, designPackagePrice: v }))} />
+                ) : (
+                  <SummaryRow label="ค่าออกแบบ" value={order.designPackagePrice ?? 0} />
+                )
+              )}
+              {editing ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="whitespace-nowrap">ราคาผลิต/ตัว</span>
+                    <input type="number" min={0} className="field-input w-36 text-right" value={draft.productionPrice ?? 0} onChange={e => setDraft(d => ({ ...d, productionPrice: Number(e.target.value) }))} />
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="whitespace-nowrap">จำนวนตัว</span>
+                    <input type="number" min={1} className="field-input w-36 text-right" value={draft.quantity ?? 1} onChange={e => setDraft(d => ({ ...d, quantity: Number(e.target.value) }))} />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start justify-between gap-4 text-sm">
+                  <div>
+                    <div>ราคาผลิต</div>
+                    <div className="text-xs text-muted mt-0.5">{formatBaht(order.productionPrice ?? 0)}/ตัว × {order.quantity ?? 1} ตัว</div>
+                  </div>
+                  <span className="font-medium">{formatBaht((order.productionPrice ?? 0) * (order.quantity ?? 1))}</span>
+                </div>
+              )}
+              {!editing && fabricExtra > 0 && (
+                <div className="flex items-start justify-between gap-4 text-sm">
+                  <div>
+                    <div>ค่าผ้าพิเศษ</div>
+                    <div className="text-xs text-muted mt-0.5">{order.fabricType} · +{fabricExtra} บาท/ตัว × {order.quantity ?? 1} ตัว</div>
+                  </div>
+                  <span className="font-medium">{formatBaht(fabricExtra * (order.quantity ?? 1))}</span>
+                </div>
+              )}
+              {editing ? (
+                <EditNumRow label="ค่าจัดส่ง" value={draft.shipping ?? 0} onChange={v => setDraft(d => ({ ...d, shipping: v }))} />
+              ) : (
+                <SummaryRow label="ค่าจัดส่ง" value={order.shipping ?? 0} />
+              )}
+              {editing ? (
+                <EditNumRow label="ค่าบริการอื่นๆ" value={draft.serviceCharge ?? 0} onChange={v => setDraft(d => ({ ...d, serviceCharge: v }))} />
+              ) : (
+                (order.serviceCharge ?? 0) > 0 && <SummaryRow label="ค่าบริการอื่นๆ" value={order.serviceCharge ?? 0} />
+              )}
+              {editing && (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="whitespace-nowrap">VAT 7%</span>
+                    {draft.vat && (
+                      <span className="text-xs text-accent font-medium">
+                        +{formatBaht(orderVat({ ...order, ...draft }))}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setDraft(d => ({ ...d, vat: !d.vat }))}
+                    className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${draft.vat ? "bg-accent" : "bg-surface-2"}`}
+                  >
+                    <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ${draft.vat ? "translate-x-4" : "translate-x-0"}`} />
+                  </button>
+                </div>
+              )}
+              {!editing && order.vat && (
+                <SummaryRow label="VAT 7%" value={vatAmount} />
+              )}
+            </>
+          )}
+
+          <div className="flex justify-between rounded-[var(--radius-md)] bg-accent-soft px-3 py-2.5 text-base font-bold text-accent mt-1">
+            <span>ยอดรวมทั้งหมด</span>
+            <span>{formatBaht(editing ? total : orderTotal(order))}</span>
+          </div>
+
+          {editing ? (
+            <EditNumRow label="ยอดมัดจำ" value={draft.deposit ?? 0} onChange={v => setDraft(d => ({ ...d, deposit: v }))} muted />
+          ) : (
+            <div className="flex justify-between rounded-[var(--radius-md)] bg-surface-2 px-3 py-2.5 font-semibold text-muted">
+              <span>ยอดมัดจำ</span>
+              <span className="text-foreground">{formatBaht(order.deposit)}</span>
+            </div>
+          )}
+
+          <div className="flex justify-between rounded-[var(--radius-md)] bg-warn/10 px-3 py-2.5 font-semibold text-warn">
+            <span>ยอดคงเหลือ</span>
+            <span>{formatBaht(balance)}</span>
+          </div>
+        </div>
+      </Card>
+
+      {printOpen && (
+        <FinancePrintModal order={order} onClose={() => setPrintOpen(false)} />
+      )}
+    </>
+  );
+}
+
+// ── กำไรโดยประมาณ (แยกออกจากสรุปยอด) ──────────────────
+function ProfitCard({ order }: { order: Order }) {
+  const profit = orderProfit(order);
+  if (profit === null) return null;
+  return (
+    <div className="flex items-center justify-between rounded-[var(--radius-lg)] bg-accent-soft px-4 py-8">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-accent mb-0.5">กำไรโดยประมาณ</p>
+        <p className="text-xs text-accent/60">รายรับ − ต้นทุนผลิต</p>
       </div>
-    </Card>
+      <span className="text-2xl font-bold text-accent">{formatBaht(profit)}</span>
+    </div>
+  );
+}
+
+// ── Modal แคปส่งลูกค้า ──────────────────────────────────────
+function FinancePrintModal({ order, onClose }: { order: Order; onClose: () => void }) {
+  const vatAmount = orderVat(order);
+  const subtotal = orderSubtotal(order);
+  const total = orderTotal(order);
+  const balance = orderBalance(order);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    const lines: string[] = [];
+    lines.push(`สรุปยอด — ${order.teamName}`);
+    lines.push(`รหัส: ${order.id}`);
+    lines.push(`──────────────────`);
+    if (order.type !== "design") {
+      lines.push(`ราคาผลิต: ${formatBaht(order.productionPrice ?? 0)}/ตัว x ${order.quantity ?? 1} ตัว = ${formatBaht((order.productionPrice ?? 0) * (order.quantity ?? 1))}`);
+    }
+    if (order.type === "design") {
+      lines.push(`ราคาแพคเกจ: ${formatBaht(order.designPackagePrice ?? 0)}`);
+    }
+    if (order.type === "design_produce") {
+      lines.push(`ค่าออกแบบ: ${formatBaht(order.designPackagePrice ?? 0)}`);
+    }
+    if ((order.shipping ?? 0) > 0) lines.push(`ค่าจัดส่ง: ${formatBaht(order.shipping ?? 0)}`);
+    if ((order.serviceCharge ?? 0) > 0) lines.push(`ค่าบริการอื่นๆ: ${formatBaht(order.serviceCharge ?? 0)}`);
+    if (order.vat) lines.push(`VAT 7%: ${formatBaht(vatAmount)}`);
+    lines.push(`──────────────────`);
+    lines.push(`ยอดรวมทั้งหมด: ${formatBaht(total)}`);
+    lines.push(`ยอดมัดจำ: ${formatBaht(order.deposit)}`);
+    lines.push(`ยอดคงเหลือ: ${formatBaht(balance)}`);
+    const text = lines.join("\n");
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-[var(--radius-lg)] border border-border bg-surface shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border px-5 py-3">
+          <span className="text-sm font-semibold">สรุปยอด — ส่งลูกค้า</span>
+          <button onClick={onClose} className="text-muted hover:text-foreground"><X className="h-4 w-4" /></button>
+        </div>
+
+        <div className="px-5 py-4 space-y-2.5 text-sm">
+          <div className="text-center mb-3">
+            <p className="font-bold text-base">{order.teamName}</p>
+            <p className="text-xs text-muted">{order.id} · {CUSTOMER_TYPE_LABEL[order.type]}</p>
+          </div>
+
+          {order.type !== "design" && (
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div>ราคาผลิต</div>
+                <div className="text-xs text-muted mt-0.5">{formatBaht(order.productionPrice ?? 0)}/ตัว × {order.quantity ?? 1} ตัว</div>
+              </div>
+              <span className="font-medium">{formatBaht((order.productionPrice ?? 0) * (order.quantity ?? 1))}</span>
+            </div>
+          )}
+          {order.type === "design" && <SummaryRow label="ราคาแพคเกจ" value={order.designPackagePrice ?? 0} />}
+          {order.type === "design_produce" && <SummaryRow label="ค่าออกแบบ" value={order.designPackagePrice ?? 0} />}
+          {(order.shipping ?? 0) > 0 && <SummaryRow label="ค่าจัดส่ง" value={order.shipping ?? 0} />}
+          {(order.serviceCharge ?? 0) > 0 && <SummaryRow label="ค่าบริการอื่นๆ" value={order.serviceCharge ?? 0} />}
+          {order.vat && <SummaryRow label="VAT 7%" value={vatAmount} muted />}
+
+          <div className="flex justify-between rounded-[var(--radius-md)] bg-accent-soft px-3 py-2.5 text-base font-bold text-accent">
+            <span>ยอดรวมทั้งหมด</span>
+            <span>{formatBaht(total)}</span>
+          </div>
+          <div className="flex justify-between rounded-[var(--radius-md)] bg-surface-2 px-3 py-2.5 font-semibold text-muted">
+            <span>ยอดมัดจำ</span>
+            <span className="text-foreground">{formatBaht(order.deposit)}</span>
+          </div>
+          <div className="flex justify-between rounded-[var(--radius-md)] bg-warn/10 px-3 py-2.5 font-semibold text-warn">
+            <span>ยอดคงเหลือ</span>
+            <span>{formatBaht(balance)}</span>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-2 border-t border-border px-5 py-3">
+          <button onClick={onClose} className="flex-1 rounded-md border border-border py-2 text-sm text-muted hover:bg-surface-2">
+            ปิด
+          </button>
+          <button onClick={handleCopy} className="flex-1 rounded-md bg-accent py-2 text-sm font-semibold text-accent-foreground">
+            {copied ? "✓ คัดลอกแล้ว" : "คัดลอก"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -502,12 +680,12 @@ function EditField({ label, children, full }: { label: string; children: React.R
 
 function EditNumRow({ label, value, onChange, muted }: { label: string; value: number; onChange: (v: number) => void; muted?: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <span className={muted ? "text-muted" : ""}>{label}</span>
+    <div className="flex items-center justify-between gap-3">
+      <span className={`whitespace-nowrap ${muted ? "text-muted" : ""}`}>{label}</span>
       <input
         type="number"
         min={0}
-        className="field-input w-32 text-right"
+        className="field-input w-36 text-right"
         value={value}
         onChange={e => onChange(Number(e.target.value))}
       />
@@ -523,6 +701,7 @@ function CostRow({ label, value }: { label: string; value: number }) {
     </div>
   );
 }
+
 
 function SummaryRow({ label, value, muted }: { label: string; value: number; muted?: boolean }) {
   return (

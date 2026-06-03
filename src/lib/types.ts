@@ -43,6 +43,8 @@ export interface Order {
   cost?: ProductionCost; // ต้นทุนแยกรายการ
   costOverride?: number; // ต้นทุนผลิตรวมที่พิมพ์เองแทนการรวมอัตโนมัติ
   shipping?: number; // ค่าจัดส่ง
+  serviceCharge?: number; // ค่าบริการอื่นๆ
+  vat?: boolean; // บวก VAT 7%
   productionStatus?: string; // kanban column id
 
   // การเงินรวม
@@ -63,23 +65,31 @@ export function costTotal(o: Order): number {
   return perUnit * qty;
 }
 
-// ยอดรวมทั้งหมด (ราคาขาย) = ค่าออกแบบ + (ราคาผลิต/ตัว × จำนวน) + ค่าจัดส่ง
-export function orderTotal(o: Order): number {
+// ยอดรวมทั้งหมด (ราคาขาย) = ค่าออกแบบ + (ราคาผลิต/ตัว × จำนวน) + ค่าจัดส่ง + ค่าบริการอื่นๆ [+ VAT 7%]
+export function orderSubtotal(o: Order): number {
   if (o.type === "design") return o.designPackagePrice ?? 0;
   const designFee = o.type === "design_produce" ? (o.designPackagePrice ?? 0) : 0;
   const prodTotal = (o.productionPrice ?? 0) * (o.quantity || 1);
-  return designFee + prodTotal + (o.shipping ?? 0);
+  return designFee + prodTotal + (o.shipping ?? 0) + (o.serviceCharge ?? 0);
+}
+
+export function orderVat(o: Order): number {
+  if (!o.vat) return 0;
+  return Math.round(orderSubtotal(o) * 0.07);
+}
+
+export function orderTotal(o: Order): number {
+  return orderSubtotal(o) + orderVat(o);
 }
 
 export function orderBalance(o: Order): number {
   return orderTotal(o) - o.deposit;
 }
 
-// กำไร (สำหรับกลุ่มผลิต)
+// กำไร (สำหรับกลุ่มผลิต) — คำนวณจาก subtotal ไม่รวม VAT
 export function orderProfit(o: Order): number | null {
   if (o.type === "design") return null;
-  const prodTotal = (o.productionPrice ?? 0) * (o.quantity || 1);
-  return prodTotal - costTotal(o);
+  return orderSubtotal(o) - costTotal(o);
 }
 
 // ===== Kanban =====
