@@ -40,7 +40,16 @@
       "Bash(mkdir -p \"src/app/api/shirt-styles/[id]\")",
       "Bash(npx tsc *)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); s=[x for x in d if x['name']=='PRO OVS'][0]; print\\(json.dumps\\(s['fabrics'], ensure_ascii=False, indent=2\\)\\)\")",
-      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(f['name'], '->', [v['name'] for v in f.get\\('variants',[]\\)]\\) for f in d]\")"
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(f['name'], '->', [v['name'] for v in f.get\\('variants',[]\\)]\\) for f in d]\")",
+      "Bash(sed -i '' 's/สรุปการเงิน/สรุปยอด/g' \"/Users/thearmmacbookpro/Documents/WINX CLUADE/Back office WINXSTUDIO/src/app/orders/[id]/page.tsx\")",
+      "Bash(grep -n \"teamName\\\\|o\\\\.id\\\\}\\\\`\\\\|href.*orders\" \"/Users/thearmmacbookpro/Documents/WINX CLUADE/Back office WINXSTUDIO/src/app/orders/page.tsx\")",
+      "Bash(grep -n \"return NextResponse.json\\({ rows, headers }\\);\\\\|return NextResponse.json\\({ players\" \"/Users/thearmmacbookpro/Documents/WINX CLUADE/Back office WINXSTUDIO/src/app/api/import/production-sheet/route.ts\")",
+      "Bash(mkdir -p \"src/app/api/groups/[id]\")",
+      "Bash(curl -s -X POST http://localhost:3000/api/groups -H 'Content-Type: application/json' -d '{\"name\":\"ทดสอบ API\",\"orderIds\":[\"WNX-2606-22\",\"WNX-2606-20\"]}')",
+      "Bash(mv /tmp/groups_clean.json src/data/groups.json)",
+      "Bash(mkdir -p \"/Users/thearmmacbookpro/Documents/WINX CLUADE/Back office WINXSTUDIO/src/app/api/payment-requests/[token]\")",
+      "Bash(mkdir -p \"/Users/thearmmacbookpro/Documents/WINX CLUADE/Back office WINXSTUDIO/src/app/api/payment-requests/[token]/slip\")",
+      "Bash(mkdir -p \"/Users/thearmmacbookpro/Documents/WINX CLUADE/Back office WINXSTUDIO/src/app/pay/[token]\")"
     ]
   }
 }
