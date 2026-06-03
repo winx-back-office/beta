@@ -1,10 +1,10 @@
 [
   {
     "type": "produce",
-    "teamName": "เลอะเทอะ 30 APR 26 - รายชื่อเสื้อทีม - Google ชีต",
+    "teamName": "เลอะเทอะ 30 APR 26",
     "shirtType": "BASIC OVERSIZE",
-    "fabricType": "ผ้าเม็ดข้าวสาร",
-    "productionPrice": 345,
+    "fabricType": "เม็ดข้าวสาร 150 แกรม",
+    "productionPrice": 309,
     "deposit": 10350,
     "quantity": 60,
     "cost": {
@@ -18,7 +18,8 @@
     "startDate": "2026-06-03",
     "id": "WNX-2606-22",
     "hasProductionTable": true,
-    "collarType": "คอคางหมู"
+    "collarType": "คอกลม",
+    "color": ""
   },
   {
     "type": "produce",
@@ -41,7 +42,8 @@
     "shipping": 0,
     "id": "WNX-2606-21",
     "hasProductionTable": true,
-    "productionStatus": "pattern_in"
+    "productionStatus": "pattern_in",
+    "color": "#3b82f6"
   },
   {
     "type": "produce",
@@ -66,7 +68,8 @@
     "id": "WNX-2606-20",
     "hasProductionTable": true,
     "productionStatus": "pattern_in",
-    "vat": true
+    "vat": true,
+    "color": "#ef4444"
   },
   {
     "type": "produce",
