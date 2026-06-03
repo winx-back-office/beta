@@ -6,6 +6,7 @@ import { AddOrderModal } from "@/components/add-order-modal";
 import { orderTotal, orderBalance, CUSTOMER_TYPE_LABEL, GROUP_COLORS, type Order } from "@/lib/types";
 import { formatBaht, formatDate } from "@/lib/utils";
 import { Plus, Loader2, Trash2, Sheet, X, FileSpreadsheet, Upload, AlertCircle } from "lucide-react";
+import type { PaymentRequest } from "@/lib/payment-config";
 import Link from "next/link";
 
 export default function OrdersPage() {
@@ -15,16 +16,22 @@ export default function OrdersPage() {
   const [sheetsModalOpen, setSheetsModalOpen] = useState(false);
   const [tooltip, setTooltip] = useState<{ order: Order; x: number; y: number } | null>(null);
   const [tableUpdates, setTableUpdates] = useState<Record<string, string>>({});
+  const [paymentRequests, setPaymentRequests] = useState<PaymentRequest[]>([]);
 
   const fetchOrders = async () => {
-    const [ordersRes, summaryRes] = await Promise.all([
+    const [ordersRes, summaryRes, payReqRes] = await Promise.all([
       fetch("/api/orders", { cache: "no-store" }),
       fetch("/api/production/summary", { cache: "no-store" }),
+      fetch("/api/payment-requests", { cache: "no-store" }),
     ]);
     setOrders(await ordersRes.json());
     setTableUpdates(await summaryRes.json());
+    setPaymentRequests(await payReqRes.json());
     setLoading(false);
   };
+
+  const hasSlipPending = (orderId: string) =>
+    paymentRequests.some((pr) => pr.orderId === orderId && pr.status === "slip_uploaded");
 
   const hasTableUpdate = (orderId: string) => {
     const updatedAt = tableUpdates[orderId];
@@ -69,21 +76,20 @@ export default function OrdersPage() {
       <PageHeader
         title="รายการออเดอร์"
         subtitle="จัดการออเดอร์และการเงินของลูกค้าทุกกลุ่ม"
-        action={
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setSheetsModalOpen(true)}>
-              <Sheet className="h-4 w-4" />
-              สร้างออเดอร์จาก Sheets
-            </Button>
-            <Button onClick={() => setModalOpen(true)}>
-              <Plus className="h-4 w-4" />
-              เพิ่มออเดอร์
-            </Button>
-          </div>
-        }
       />
 
       <div className="px-8 pb-8 pt-14">
+        {/* Toolbar */}
+        <div className="flex items-center justify-start gap-2 mb-4">
+          <Button variant="outline" onClick={() => setSheetsModalOpen(true)}>
+            <Sheet className="h-4 w-4" />
+            สร้างออเดอร์จาก Sheets
+          </Button>
+          <Button onClick={() => setModalOpen(true)}>
+            <Plus className="h-4 w-4" />
+            เพิ่มออเดอร์
+          </Button>
+        </div>
         {loading ? (
           <div className="flex items-center justify-center py-24 text-muted">
             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -137,6 +143,9 @@ export default function OrdersPage() {
                         {hasTableUpdate(o.id) && (
                           <span className="h-2.5 w-2.5 rounded-full bg-warn flex-shrink-0" title="มีข้อมูลอัพเดทในตารางสั่งผลิต" />
                         )}
+                        {hasSlipPending(o.id) && (
+                          <span className="h-2.5 w-2.5 rounded-full bg-yellow-400 flex-shrink-0" title="มีสลิปรอตรวจสอบ" />
+                        )}
                       </div>
                     </td>
                     <td className="px-5 py-3.5 text-center">
@@ -184,6 +193,7 @@ export default function OrdersPage() {
         onClose={() => setModalOpen(false)}
         onCreated={onCreated}
       />
+
 
       {sheetsModalOpen && (
         <ImportSheetsModal

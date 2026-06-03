@@ -55,6 +55,7 @@ export interface Order {
   // ยอดรวม / คงเหลือ คำนวณจาก helper
 
   hasProductionTable?: boolean; // สร้างตารางสั่งผลิตแล้วหรือยัง
+  paymentLink?: string;         // ลิงก์เรียกเก็บเงินล่าสุด
 }
 
 // ===== Financial helpers =====

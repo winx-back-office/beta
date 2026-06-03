@@ -14,21 +14,44 @@ import {
   type ProductionCost,
 } from "@/lib/types";
 import { formatBaht, formatDate } from "@/lib/utils";
-import { ArrowLeft, FileSpreadsheet, Table2, Loader2, Pencil, X, Check, Camera } from "lucide-react";
-
+import { ArrowLeft, FileSpreadsheet, Table2, Loader2, Pencil, X, Check, Camera, Link2, Copy, CheckCheck, CreditCard } from "lucide-react";
+import { PaymentRequestModal } from "@/components/payment-request-modal";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useShirtStyleOptions, useShirtStyles, useFabricsData, calcProductionPrice } from "@/lib/use-catalog";
+
+interface PaymentRequestLocal {
+  token: string;
+  orderId: string;
+  teamName: string;
+  amount: number;
+  accountIndex: number;
+  note: string;
+  status: "pending" | "slip_uploaded" | "approved" | "rejected";
+  createdAt: string;
+  slipUrl: string | null;
+  slipUploadedAt: string | null;
+  approvedAt?: string | null;
+  approvedAmount?: number | null;
+}
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [paymentRequests, setPaymentRequests] = useState<PaymentRequestLocal[]>([]);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   useEffect(() => {
     fetch(`/api/orders/${id}`)
       .then((r) => r.json())
       .then((data) => { setOrder(data); setLoading(false); });
+    fetch("/api/payment-requests", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((all: PaymentRequestLocal[]) => {
+        setPaymentRequests(all.filter((pr) => pr.orderId === id));
+      })
+      .catch(() => {});
   }, [id]);
 
   const save = async (patch: Partial<Order>) => {
@@ -61,12 +84,20 @@ export default function OrderDetailPage() {
         title={order.teamName}
         subtitle={`${order.id} · ${CUSTOMER_TYPE_LABEL[order.type]}`}
         action={
-          <Link href="/orders">
-            <Button variant="outline">
-              <ArrowLeft className="h-4 w-4" />
-              กลับ
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            {orderBalance(order) > 0 && (
+              <Button variant="outline" onClick={() => setPaymentModalOpen(true)}>
+                <CreditCard className="h-4 w-4" />
+                เรียกเก็บเงิน
+              </Button>
+            )}
+            <Link href="/orders">
+              <Button variant="outline">
+                <ArrowLeft className="h-4 w-4" />
+                กลับ
+              </Button>
+            </Link>
+          </div>
         }
       />
 
@@ -76,6 +107,31 @@ export default function OrderDetailPage() {
           <OrderInfoCard order={order} onSave={save} />
           {isProduce && <FinanceCard order={order} onSave={save} />}
           {isProduce && order.hasProductionTable && <ProductionSummaryCard orderId={order.id} />}
+          {paymentRequests.filter(pr => pr.status === "slip_uploaded").map(pr => (
+            <SlipApprovalCard
+              key={pr.token}
+              pr={pr}
+              onApprove={async (approvedAmount) => {
+                await fetch(`/api/payment-requests/${pr.token}`, {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ status: "approved", approvedAmount, approvedAt: new Date().toISOString() }),
+                });
+                // Add to deposit
+                const newDeposit = (order?.deposit ?? 0) + approvedAmount;
+                await save({ deposit: newDeposit });
+                setPaymentRequests(prev => prev.map(p => p.token === pr.token ? { ...p, status: "approved", approvedAmount, approvedAt: new Date().toISOString() } : p));
+              }}
+              onReject={async () => {
+                await fetch(`/api/payment-requests/${pr.token}`, {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ status: "rejected" }),
+                });
+                setPaymentRequests(prev => prev.map(p => p.token === pr.token ? { ...p, status: "rejected" } : p));
+              }}
+            />
+          ))}
         </div>
 
         {/* Right */}
@@ -84,11 +140,20 @@ export default function OrderDetailPage() {
           {isProduce && <ProfitCard order={order} />}
           {isProduce && order.cost && <CostCard order={order} onSave={save} />}
 
+          {order.paymentLink && <PaymentLinkCard link={order.paymentLink} />}
+
           {isProduce && (
             <ProductionTableCard order={order} onSave={save} />
           )}
         </div>
       </div>
+
+      {paymentModalOpen && order && (
+        <PaymentRequestModal
+          orders={[order]}
+          onClose={() => setPaymentModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -801,6 +866,70 @@ function ProductionTableCard({ order, onSave }: { order: Order; onSave: (p: Part
   );
 }
 
+// ── สลิปรอตรวจสอบ ────────────────────────────────────────────
+function SlipApprovalCard({
+  pr,
+  onApprove,
+  onReject,
+}: {
+  pr: PaymentRequestLocal;
+  onApprove: (amount: number) => Promise<void>;
+  onReject: () => Promise<void>;
+}) {
+  const [approvedAmount, setApprovedAmount] = useState(pr.amount);
+  const [approving, setApproving] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
+
+  return (
+    <Card className="p-6 border-yellow-500/30 bg-yellow-500/5">
+      <div className="mb-4 flex items-center gap-2">
+        <span className="text-yellow-400 text-lg">⏳</span>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-yellow-400">สลิปรอตรวจสอบ</h2>
+      </div>
+      {pr.slipUrl && (
+        <a href={pr.slipUrl} target="_blank" rel="noopener noreferrer" className="block mb-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={pr.slipUrl}
+            alt="slip"
+            className="max-h-64 w-auto rounded-[var(--radius-md)] border border-border object-contain"
+          />
+        </a>
+      )}
+      <div className="mb-4 text-sm text-muted">
+        <span>ยอดที่ขอ: </span>
+        <span className="font-semibold text-foreground">฿{pr.amount.toLocaleString("th-TH")}</span>
+      </div>
+      <div className="mb-4">
+        <label className="text-xs text-muted-2 mb-1 block">ยืนยันยอดที่รับ (บาท)</label>
+        <input
+          type="number"
+          min={0}
+          className="field-input w-40"
+          value={approvedAmount}
+          onChange={(e) => setApprovedAmount(Number(e.target.value))}
+        />
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={async () => { setApproving(true); await onApprove(approvedAmount); setApproving(false); }}
+          disabled={approving || rejecting}
+          className="flex-1 rounded-[var(--radius-md)] bg-success px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+        >
+          {approving ? "กำลังอนุมัติ…" : "อนุมัติ"}
+        </button>
+        <button
+          onClick={async () => { setRejecting(true); await onReject(); setRejecting(false); }}
+          disabled={approving || rejecting}
+          className="flex-1 rounded-[var(--radius-md)] border border-danger/40 bg-danger/10 px-4 py-2 text-sm font-semibold text-danger disabled:opacity-60"
+        >
+          {rejecting ? "กำลังปฏิเสธ…" : "ปฏิเสธ"}
+        </button>
+      </div>
+    </Card>
+  );
+}
+
 // ── สรุปตารางสั่งผลิต ────────────────────────────────────────
 const SIZES = ["SS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL", "6XL", "7XL", "พิเศษ"];
 
@@ -868,6 +997,45 @@ function ProductionSummaryCard({ orderId }: { orderId: string }) {
       <div className="mt-3 flex items-center justify-between text-xs text-muted border-t border-border pt-3">
         <span>รวม {total} ตัว</span>
         <span>เช็คสินค้าแล้ว {checkedCount}/{total}</span>
+      </div>
+    </Card>
+  );
+}
+// ── Payment Link Card ──────────────────────────────────────────
+function PaymentLinkCard({ link }: { link: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const onCopy = () => {
+    navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <Card className="p-5">
+      <div className="flex items-center gap-2 mb-3">
+        <Link2 className="h-4 w-4 text-accent" />
+        <span className="text-sm font-semibold">ลิงก์ชำระเงิน</span>
+      </div>
+      <div className="flex items-center gap-2 rounded-[var(--radius-md)] border border-border bg-surface-2 px-3 py-2">
+        <span className="flex-1 truncate font-mono text-xs text-muted">{link}</span>
+        <button
+          onClick={onCopy}
+          title="คัดลอกลิงก์"
+          className="shrink-0 rounded p-1 text-muted hover:bg-surface-3 hover:text-foreground transition-colors"
+        >
+          {copied ? <CheckCheck className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+        </button>
+      </div>
+      <div className="mt-2">
+        <a
+          href={link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full rounded-[var(--radius-md)] border border-border px-3 py-1.5 text-center text-xs text-muted hover:bg-surface-2 hover:text-foreground transition-colors"
+        >
+          เปิดหน้าชำระเงิน ↗
+        </a>
       </div>
     </Card>
   );
