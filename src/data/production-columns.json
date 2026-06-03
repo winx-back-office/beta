@@ -36,7 +36,7 @@
   },
   {
     "id": "done",
-    "title": "ผลิตเสร็จแล้ว",
+    "title": "แพ็คสินค้า",
     "accent": "var(--success)"
   },
   {

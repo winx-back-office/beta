@@ -1,7 +1,7 @@
 [
   {
     "id": "basic-jersey",
-    "name": "Basic Jersey",
+    "name": "BASIC JERSEY",
     "pricing": [
       {
         "minQty": 10,
@@ -68,7 +68,7 @@
       },
       {
         "name": "ผ้าเม็ดข้าวสาร",
-        "price": 20
+        "price": 30
       },
       {
         "name": "ผ้ารังผึ้ง",
@@ -166,6 +166,107 @@
       {
         "name": "ผ้าวอร์ม",
         "price": 30
+      }
+    ]
+  },
+  {
+    "id": "pro-jacket-ผ้าไมโครพีช-1780477431888",
+    "name": "PRO JACKET ผ้าไมโครพีช",
+    "pricing": [
+      {
+        "minQty": 10,
+        "maxQty": 20,
+        "basePrice": 1190
+      }
+    ],
+    "collars": [
+      {
+        "name": "PRO JACKET ผ้าไมโครพีช",
+        "price": 0,
+        "patternPieces": 17
+      }
+    ],
+    "fabrics": [
+      {
+        "name": "ไมโครพีช",
+        "price": 0
+      }
+    ]
+  },
+  {
+    "id": "pro-jacket-ผ้าวอร์ม-1780477462106",
+    "name": "PRO JACKET ผ้าวอร์ม",
+    "pricing": [
+      {
+        "minQty": 10,
+        "maxQty": 20,
+        "basePrice": 1190
+      }
+    ],
+    "collars": [
+      {
+        "name": "PRO JACKET ผ้าวอร์ม",
+        "price": 0,
+        "patternPieces": 20
+      }
+    ],
+    "fabrics": [
+      {
+        "name": "ผ้าวอร์ม",
+        "price": 0
+      }
+    ]
+  },
+  {
+    "id": "bomber-jacket-1780477500028",
+    "name": "BOMBER JACKET",
+    "pricing": [
+      {
+        "minQty": 10,
+        "maxQty": 20,
+        "basePrice": 0
+      }
+    ],
+    "collars": [
+      {
+        "name": "BOMBER",
+        "price": 0,
+        "patternPieces": 19
+      }
+    ],
+    "fabrics": [
+      {
+        "name": "ผ้าวอร์ม",
+        "price": 0
+      }
+    ]
+  },
+  {
+    "id": "hood-1780477558925",
+    "name": "HOOD",
+    "pricing": [
+      {
+        "minQty": 10,
+        "maxQty": 20,
+        "basePrice": 950
+      }
+    ],
+    "collars": [
+      {
+        "name": "HOOD สวม",
+        "price": 0,
+        "patternPieces": 12
+      },
+      {
+        "name": "HOOD ZIP",
+        "price": 250,
+        "patternPieces": 19
+      }
+    ],
+    "fabrics": [
+      {
+        "name": "ผ้าวอร์ม",
+        "price": 0
       }
     ]
   }
