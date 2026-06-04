@@ -61,11 +61,19 @@ export async function GET() {
     return NextResponse.json({ error: "missing env", url: supabaseUrl, hasKey: !!supabaseKey }, { status: 500 });
   }
   try {
+    // test raw fetch first
+    const testRes = await fetch(`${supabaseUrl}/rest/v1/cutting_jobs?select=id&limit=1`, {
+      headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
+    });
+    if (!testRes.ok) {
+      const text = await testRes.text();
+      return NextResponse.json({ error: "supabase REST error", status: testRes.status, body: text }, { status: 500 });
+    }
     const { data, error } = await supabase
       .from("cutting_jobs")
       .select("*")
       .order("created_at", { ascending: false });
-    if (error) return NextResponse.json({ error: error.message, code: error.code, details: error.details, url: supabaseUrl }, { status: 500 });
+    if (error) return NextResponse.json({ error: error.message, code: error.code, details: error.details }, { status: 500 });
     return NextResponse.json((data ?? []).map(toJob));
   } catch (e: unknown) {
     const err = e as Error & { cause?: unknown };
