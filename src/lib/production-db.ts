@@ -96,6 +96,7 @@ export async function loadProduction(
     size: p.size ?? "",
     number: p.number ?? "",
     checked: p.checked ?? false,
+    status: p.status ?? "",
     note: p.note ?? "",
   }));
 
