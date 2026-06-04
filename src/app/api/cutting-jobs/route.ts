@@ -55,12 +55,21 @@ function getPatternPieces(shirtType: string, collarType: string): number {
 }
 
 export async function GET() {
-  const { data, error } = await supabase
-    .from("cutting_jobs")
-    .select("*")
-    .order("created_at", { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json((data ?? []).map(toJob));
+  try {
+    const { data, error } = await supabase
+      .from("cutting_jobs")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) return NextResponse.json({ error: error.message, code: error.code, details: error.details }, { status: 500 });
+    return NextResponse.json((data ?? []).map(toJob));
+  } catch (e: unknown) {
+    const err = e as Error & { cause?: unknown };
+    return NextResponse.json({
+      error: err.message,
+      cause: String(err.cause),
+      url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
