@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { PageHeader, Button } from "@/components/ui";
 import { KanbanBoard } from "@/components/kanban";
-import type { QueueColumn } from "@/lib/types";
 import { Plus, Loader2, X } from "lucide-react";
 import type { QueueCard, Order, QueueColumn } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
