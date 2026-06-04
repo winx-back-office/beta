@@ -49,7 +49,16 @@
       "Bash(mv /tmp/groups_clean.json src/data/groups.json)",
       "Bash(mkdir -p \"/Users/thearmmacbookpro/Documents/WINX CLUADE/Back office WINXSTUDIO/src/app/api/payment-requests/[token]\")",
       "Bash(mkdir -p \"/Users/thearmmacbookpro/Documents/WINX CLUADE/Back office WINXSTUDIO/src/app/api/payment-requests/[token]/slip\")",
-      "Bash(mkdir -p \"/Users/thearmmacbookpro/Documents/WINX CLUADE/Back office WINXSTUDIO/src/app/pay/[token]\")"
+      "Bash(mkdir -p \"/Users/thearmmacbookpro/Documents/WINX CLUADE/Back office WINXSTUDIO/src/app/pay/[token]\")",
+      "Bash(node -e ' *)",
+      "Bash(curl -s -X PUT http://localhost:3000/api/orders/WNX-2606-24 -H 'Content-Type: application/json' -d '{\"productionPrice\": 399}')",
+      "Bash(node -e \"const d=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\); const j=JSON.parse\\(d\\); console.log\\('productionPrice:', j.order?.productionPrice\\)\")",
+      "Bash(mkdir -p \"/Users/thearmmacbookpro/Documents/WINX CLUADE/Back office WINXSTUDIO/src/app/api/cutting-jobs/[id]/claim\")",
+      "Bash(mkdir -p \"/Users/thearmmacbookpro/Documents/WINX CLUADE/Back office WINXSTUDIO/src/app/cut/[token]\")",
+      "Bash(curl -s -X DELETE http://localhost:3000/api/cutting-jobs/CUT-001)",
+      "Bash(curl -s -X PUT http://localhost:3000/api/orders/WNX-2606-20 -H 'Content-Type: application/json' -d '{\"productionStatus\":\"pattern_cut\"}')",
+      "Bash(node -e \"const d=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\); const j=JSON.parse\\(d\\); console.log\\('productionStatus:', j.order?.productionStatus\\)\")",
+      "Bash(git tag *)"
     ]
   }
 }
