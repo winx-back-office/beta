@@ -86,7 +86,7 @@
   },
   {
     "id": "pro-ovs-1780390008077",
-    "name": "PRO OVS",
+    "name": "PRO OVERSIZE",
     "pricing": [
       {
         "minQty": 10,
@@ -97,6 +97,11 @@
         "minQty": 21,
         "maxQty": 40,
         "basePrice": 379
+      },
+      {
+        "minQty": 41,
+        "maxQty": 50,
+        "basePrice": 339
       }
     ],
     "collars": [

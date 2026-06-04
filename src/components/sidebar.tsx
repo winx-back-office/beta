@@ -12,6 +12,7 @@ import {
   TableProperties,
   Shirt,
   Layers,
+  Scissors,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ const nav = [
   { href: "/queue/design", label: "คิวออกแบบ", icon: Palette, badge: null },
   { href: "/queue/production", label: "คิวผลิต", icon: Factory, badge: null },
   { href: "/production-tables", label: "ตารางสั่งผลิต", icon: TableProperties, badge: null },
+  { href: "/cutting-jobs", label: "ใบงานตัด", icon: Scissors, badge: null },
   { href: "/shirt-styles", label: "ข้อมูลทรงเสื้อ", icon: Shirt, badge: null },
   { href: "/fabrics", label: "ข้อมูลเนื้อผ้า", icon: Layers, badge: null },
   { href: "/track", label: "ติดตามสถานะ (ลูกค้า)", icon: Search, badge: null },
