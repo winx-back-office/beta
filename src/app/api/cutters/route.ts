@@ -1,30 +1,23 @@
 import { NextResponse, type NextRequest } from "next/server";
-import fs from "fs";
-import path from "path";
+import { createClient } from "@supabase/supabase-js";
 
-const CUTTERS_PATH = path.join(process.cwd(), "src/data/cutters.json");
-
-interface Cutter {
-  id: string;
-  name: string;
-  pin: string;
-  active: boolean;
-}
-
-function readCutters(): Cutter[] {
-  try { return JSON.parse(fs.readFileSync(CUTTERS_PATH, "utf-8")); } catch { return []; }
-}
-
-function writeCutters(cutters: Cutter[]) {
-  fs.writeFileSync(CUTTERS_PATH, JSON.stringify(cutters, null, 2), "utf-8");
-}
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export async function GET() {
-  return NextResponse.json(readCutters());
+  const { data, error } = await supabase
+    .from("cutters")
+    .select("*")
+    .order("id");
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json(data ?? []);
 }
 
 export async function PUT(req: NextRequest) {
   const body = await req.json();
-  writeCutters(body);
+  const { error } = await supabase.from("cutters").upsert(body);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

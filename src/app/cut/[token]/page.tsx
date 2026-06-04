@@ -1,17 +1,36 @@
 import { notFound } from "next/navigation";
+import { createClient } from "@supabase/supabase-js";
 import type { CuttingJob } from "@/app/api/cutting-jobs/route";
 import { ClaimForm } from "./claim-form";
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ??
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-
 async function getJobByToken(token: string): Promise<CuttingJob | null> {
-  try {
-    const res = await fetch(`${BASE}/api/cutting-jobs`, { cache: "no-store" });
-    if (!res.ok) return null;
-    const jobs: CuttingJob[] = await res.json();
-    return jobs.find((j) => j.token === token) ?? null;
-  } catch { return null; }
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+  const { data } = await supabase
+    .from("cutting_jobs")
+    .select("*")
+    .eq("token", token)
+    .single();
+  if (!data) return null;
+  return {
+    id: data.id,
+    orderId: data.order_id,
+    teamName: data.team_name,
+    shirtType: data.shirt_type,
+    collarType: data.collar_type,
+    quantity: data.quantity,
+    patternPieces: data.pattern_pieces,
+    token: data.token,
+    status: data.status,
+    cutterId: data.cutter_id,
+    cutterName: data.cutter_name,
+    startedAt: data.started_at,
+    completedAt: data.completed_at,
+    createdAt: data.created_at,
+    note: data.note,
+  };
 }
 
 function formatDateTime(iso: string | null) {

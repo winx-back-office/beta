@@ -1,16 +1,30 @@
 import { NextResponse, type NextRequest } from "next/server";
-import fs from "fs";
-import path from "path";
+import { createClient } from "@supabase/supabase-js";
 import type { CuttingJob } from "../route";
 
-const JOBS_PATH = path.join(process.cwd(), "src/data/cutting-jobs.json");
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
-function readJobs(): CuttingJob[] {
-  try { return JSON.parse(fs.readFileSync(JOBS_PATH, "utf-8")); } catch { return []; }
-}
-
-function writeJobs(jobs: CuttingJob[]) {
-  fs.writeFileSync(JOBS_PATH, JSON.stringify(jobs, null, 2), "utf-8");
+function toJob(row: Record<string, unknown>): CuttingJob {
+  return {
+    id: row.id as string,
+    orderId: row.order_id as string,
+    teamName: row.team_name as string,
+    shirtType: row.shirt_type as string,
+    collarType: row.collar_type as string,
+    quantity: row.quantity as number,
+    patternPieces: row.pattern_pieces as number,
+    token: row.token as string,
+    status: row.status as CuttingJob["status"],
+    cutterId: row.cutter_id as string | null,
+    cutterName: row.cutter_name as string | null,
+    startedAt: row.started_at as string | null,
+    completedAt: row.completed_at as string | null,
+    createdAt: row.created_at as string,
+    note: row.note as string,
+  };
 }
 
 export async function GET(
@@ -18,10 +32,13 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const jobs = readJobs();
-  const job = jobs.find((j) => j.id === id);
-  if (!job) return NextResponse.json({ error: "not found" }, { status: 404 });
-  return NextResponse.json(job);
+  const { data, error } = await supabase
+    .from("cutting_jobs")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error) return NextResponse.json({ error: "not found" }, { status: 404 });
+  return NextResponse.json(toJob(data));
 }
 
 export async function PUT(
@@ -30,12 +47,27 @@ export async function PUT(
 ) {
   const { id } = await params;
   const body = await req.json();
-  const jobs = readJobs();
-  const idx = jobs.findIndex((j) => j.id === id);
-  if (idx === -1) return NextResponse.json({ error: "not found" }, { status: 404 });
-  jobs[idx] = { ...jobs[idx], ...body };
-  writeJobs(jobs);
-  return NextResponse.json({ ok: true, job: jobs[idx] });
+
+  const updateData: Record<string, unknown> = {};
+  if (body.status !== undefined) updateData.status = body.status;
+  if (body.cutterId !== undefined) updateData.cutter_id = body.cutterId;
+  if (body.cutterName !== undefined) updateData.cutter_name = body.cutterName;
+  if (body.startedAt !== undefined) updateData.started_at = body.startedAt;
+  if (body.completedAt !== undefined) updateData.completed_at = body.completedAt;
+  if (body.note !== undefined) updateData.note = body.note;
+  if (body.teamName !== undefined) updateData.team_name = body.teamName;
+  if (body.quantity !== undefined) updateData.quantity = body.quantity;
+  if (body.patternPieces !== undefined) updateData.pattern_pieces = body.patternPieces;
+
+  const { data, error } = await supabase
+    .from("cutting_jobs")
+    .update(updateData)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true, job: toJob(data) });
 }
 
 export async function DELETE(
@@ -43,9 +75,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const jobs = readJobs();
-  const filtered = jobs.filter((j) => j.id !== id);
-  if (filtered.length === jobs.length) return NextResponse.json({ error: "not found" }, { status: 404 });
-  writeJobs(filtered);
+  const { error } = await supabase.from("cutting_jobs").delete().eq("id", id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
