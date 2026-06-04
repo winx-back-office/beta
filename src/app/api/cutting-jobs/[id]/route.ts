@@ -2,10 +2,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import type { CuttingJob } from "../route";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
 
 function toJob(row: Record<string, unknown>): CuttingJob {
   return {
@@ -32,7 +34,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("cutting_jobs")
     .select("*")
     .eq("id", id)
@@ -59,7 +61,7 @@ export async function PUT(
   if (body.quantity !== undefined) updateData.quantity = body.quantity;
   if (body.patternPieces !== undefined) updateData.pattern_pieces = body.patternPieces;
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("cutting_jobs")
     .update(updateData)
     .eq("id", id)
@@ -75,7 +77,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const { error } = await supabase.from("cutting_jobs").delete().eq("id", id);
+  const { error } = await getSupabase().from("cutting_jobs").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

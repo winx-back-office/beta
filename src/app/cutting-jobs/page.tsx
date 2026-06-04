@@ -124,21 +124,26 @@ function CreateJobModal({
   const submit = async () => {
     if (!selectedOrder) return;
     setSaving(true);
-    const res = await fetch("/api/cutting-jobs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        orderId: selectedOrder.id,
-        teamName: selectedOrder.teamName,
-        shirtType: selectedOrder.shirtType,
-        collarType: selectedOrder.collarType,
-        quantity,
-        note,
-      }),
-    });
-    const data = await res.json();
-    setSaving(false);
-    if (data.job) onCreate(data.job);
+    try {
+      const res = await fetch("/api/cutting-jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: selectedOrder.id,
+          teamName: selectedOrder.teamName,
+          shirtType: selectedOrder.shirtType,
+          collarType: selectedOrder.collarType,
+          quantity,
+          note,
+        }),
+      });
+      const data = await res.json();
+      if (data.job) onCreate(data.job);
+    } catch {
+      // ไม่ทำอะไรถ้า offline
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -372,13 +377,16 @@ export default function CuttingJobsPage() {
       .catch(() => {});
 
   useEffect(() => {
-    Promise.all([
+    Promise.allSettled([
       fetch("/api/cutting-jobs").then((r) => r.json()),
       fetch("/api/orders").then((r) => r.json()),
       fetch("/api/shirt-styles").then((r) => r.json()),
     ])
-      .then(([j, o, s]) => { setJobs(j); setOrders(o); setShirtStyles(s); })
-      .catch(() => {})
+      .then(([j, o, s]) => {
+        if (j.status === "fulfilled" && Array.isArray(j.value)) setJobs(j.value);
+        if (o.status === "fulfilled" && Array.isArray(o.value)) setOrders(o.value);
+        if (s.status === "fulfilled" && Array.isArray(s.value)) setShirtStyles(s.value);
+      })
       .finally(() => setLoading(false));
   }, []);
 

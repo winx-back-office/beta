@@ -141,7 +141,7 @@
     "id": "WNX-2606-19",
     "hasProductionTable": true,
     "costOverride": 500,
-    "productionStatus": "pattern_in"
+    "productionStatus": "pattern_cut"
   },
   {
     "type": "produce",
