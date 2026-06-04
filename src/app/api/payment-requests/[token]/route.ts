@@ -29,6 +29,21 @@ export async function GET(
   return NextResponse.json(found);
 }
 
+// DELETE /api/payment-requests/[token] — ยกเลิกได้เฉพาะ pending
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ token: string }> }
+) {
+  const { token } = await params;
+  const all = readAll();
+  const idx = all.findIndex((r) => r.token === token);
+  if (idx === -1) return NextResponse.json({ error: "not found" }, { status: 404 });
+  if (all[idx].status !== "pending") return NextResponse.json({ error: "ยกเลิกได้เฉพาะรายการที่ยังรอชำระ" }, { status: 400 });
+  all.splice(idx, 1);
+  writeAll(all);
+  return NextResponse.json({ ok: true });
+}
+
 // PUT /api/payment-requests/[token]
 export async function PUT(
   req: NextRequest,

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import type { CuttingJob } from "@/app/api/cutting-jobs/route";
 import { ClaimForm } from "./claim-form";
+import { DoneButton } from "./done-button";
 
 async function getJobByToken(token: string): Promise<CuttingJob | null> {
   const supabase = createClient(
@@ -30,6 +31,7 @@ async function getJobByToken(token: string): Promise<CuttingJob | null> {
     completedAt: data.completed_at,
     createdAt: data.created_at,
     note: data.note,
+    cutterNote: data.cutter_note ?? "",
   };
 }
 
@@ -103,11 +105,14 @@ export default async function CutPage({ params }: { params: Promise<{ token: str
 
         {/* Status section */}
         {job.status === "cutting" && (
-          <div className="rounded-2xl border border-yellow-500/30 bg-yellow-500/10 px-6 py-5 text-center">
-            <div className="text-3xl mb-2">✂️</div>
-            <div className="text-lg font-bold text-yellow-300">กำลังดำเนินการ</div>
-            <div className="text-sm text-yellow-200/70 mt-1">โดย {job.cutterName}</div>
-            <div className="text-xs text-white/40 mt-2">รับงานเมื่อ {formatDateTime(job.startedAt)}</div>
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-yellow-500/30 bg-yellow-500/10 px-6 py-5 text-center">
+              <div className="text-3xl mb-2">✂️</div>
+              <div className="text-lg font-bold text-yellow-300">กำลังดำเนินการ</div>
+              <div className="text-sm text-yellow-200/70 mt-1">โดย {job.cutterName}</div>
+              <div className="text-xs text-white/40 mt-2">รับงานเมื่อ {formatDateTime(job.startedAt)}</div>
+            </div>
+            <DoneButton jobId={job.id} defaultQuantity={job.quantity} defaultPatternPieces={job.patternPieces} />
           </div>
         )}
 

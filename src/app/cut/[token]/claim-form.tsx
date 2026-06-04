@@ -28,6 +28,7 @@ export function ClaimForm({ jobId }: { jobId: string }) {
       const data = await res.json();
       if (data.success) {
         setSuccess(data.cutterName);
+        setTimeout(() => window.location.reload(), 1000);
       } else {
         setError(data.error ?? "เกิดข้อผิดพลาด");
         setPin("");

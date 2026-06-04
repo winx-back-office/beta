@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PageHeader, Badge, Button, Card } from "@/components/ui";
 import {
   orderTotal,
@@ -42,6 +42,7 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [paymentRequests, setPaymentRequests] = useState<PaymentRequestLocal[]>([]);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentDefaultAmount, setPaymentDefaultAmount] = useState<number | undefined>();
 
   useEffect(() => {
     fetch(`/api/orders/${id}`)
@@ -65,6 +66,10 @@ export default function OrderDetailPage() {
     if (data.order) setOrder(data.order);
   };
 
+  const optimisticUpdate = (patch: Partial<Order>) => {
+    setOrder(prev => prev ? { ...prev, ...patch } : prev);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32 text-muted">
@@ -86,12 +91,6 @@ export default function OrderDetailPage() {
         subtitle={`${order.id} · ${CUSTOMER_TYPE_LABEL[order.type]}`}
         action={
           <div className="flex gap-2">
-            {orderBalance(order) > 0 && (
-              <Button variant="outline" onClick={() => setPaymentModalOpen(true)}>
-                <CreditCard className="h-4 w-4" />
-                เรียกเก็บเงิน
-              </Button>
-            )}
             <Link href="/orders">
               <Button variant="outline">
                 <ArrowLeft className="h-4 w-4" />
@@ -105,7 +104,7 @@ export default function OrderDetailPage() {
       <div className="grid w-full max-w-6xl grid-cols-1 gap-4 px-8 py-4 lg:grid-cols-3">
         {/* Left */}
         <div className="space-y-4 lg:col-span-2">
-          <OrderInfoCard order={order} onSave={save} />
+          <OrderInfoCard order={order} onSave={save} onOptimisticUpdate={optimisticUpdate} />
           {isProduce && <FinanceCard order={order} onSave={save} />}
           {isProduce && order.hasProductionTable && <ProductionSummaryCard orderId={order.id} />}
           {paymentRequests.filter(pr => pr.status === "slip_uploaded").map(pr => (
@@ -141,7 +140,115 @@ export default function OrderDetailPage() {
           {isProduce && <ProfitCard order={order} />}
           {isProduce && order.cost && <CostCard order={order} onSave={save} />}
 
-          {order.paymentLink && <PaymentLinkCard link={order.paymentLink} />}
+          {isProduce && (orderBalance(order) > 0 || paymentRequests.length > 0) && (
+            <Card className="p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4 text-accent" />
+                <span className="text-sm font-semibold">เรียกเก็บเงิน</span>
+              </div>
+
+              {/* ปุ่มสร้างใหม่ หรือ badge ชำระครบ */}
+              {orderBalance(order) > 0 ? (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setPaymentDefaultAmount(order.deposit); setPaymentModalOpen(true); }}
+                    className="flex-1 rounded-[var(--radius-md)] border border-border bg-surface-2 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-surface-3 transition-colors"
+                  >
+                    <div className="flex items-center justify-center gap-1.5 mb-0.5">
+                      <CreditCard className="h-3.5 w-3.5" />
+                      เก็บมัดจำ
+                    </div>
+                    <div className="text-xs text-muted">{formatBaht(order.deposit)}</div>
+                  </button>
+                  <button
+                    onClick={() => { setPaymentDefaultAmount(orderBalance(order)); setPaymentModalOpen(true); }}
+                    className="flex-1 rounded-[var(--radius-md)] border border-accent/40 bg-accent/10 px-3 py-2.5 text-sm font-medium text-accent hover:bg-accent/20 transition-colors"
+                  >
+                    <div className="flex items-center justify-center gap-1.5 mb-0.5">
+                      <Check className="h-3.5 w-3.5" />
+                      ยอดสุดท้าย
+                    </div>
+                    <div className="text-xs text-accent/70">{formatBaht(orderBalance(order))}</div>
+                  </button>
+                </div>
+              ) : (
+                <div className="rounded-[var(--radius-md)] border border-success/30 bg-success/10 px-3 py-2 text-xs text-success text-center">
+                  ✅ ชำระครบแล้ว
+                </div>
+              )}
+
+              {/* ประวัติรายการ payment requests */}
+              {paymentRequests.length > 0 && (
+                <div className="border-t border-border pt-3 space-y-2">
+                  <div className="text-[10px] text-muted uppercase tracking-widest mb-1">ประวัติการเรียกเก็บ</div>
+                  {paymentRequests.map((pr) => {
+                    const statusLabel: Record<string, { label: string; cls: string }> = {
+                      pending:       { label: "รอชำระ",    cls: "text-muted border-border" },
+                      slip_uploaded: { label: "รอตรวจสอบ", cls: "text-yellow-400 border-yellow-500/30 bg-yellow-500/10" },
+                      approved:      { label: "อนุมัติแล้ว", cls: "text-success border-success/30 bg-success/10" },
+                      rejected:      { label: "ปฏิเสธ",    cls: "text-red-400 border-red-500/30 bg-red-500/10" },
+                    };
+                    const s = statusLabel[pr.status] ?? statusLabel.pending;
+                    return (
+                      <div key={pr.token} className="rounded-[var(--radius-md)] border border-border bg-surface-2 overflow-hidden">
+                        {/* Row: ยอด + status */}
+                        <div className="flex items-center justify-between px-3 py-2.5">
+                          <div>
+                            <div className="text-sm font-semibold">{formatBaht(pr.amount)}</div>
+                            <div className="text-[10px] text-muted mt-0.5">
+                              {new Date(pr.createdAt).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" })}
+                              {pr.approvedAmount != null && pr.approvedAmount !== pr.amount && (
+                                <span className="ml-1 text-yellow-400">(ยืนยัน {formatBaht(pr.approvedAmount)})</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${s.cls}`}>{s.label}</span>
+                            <a
+                              href={`/pay/${pr.token}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[10px] text-muted hover:text-foreground underline"
+                            >
+                              ลิงก์ ↗
+                            </a>
+                            {pr.status === "pending" && (
+                              <button
+                                onClick={async () => {
+                                  if (!confirm("ยกเลิกรายการนี้ใช่ไหม?")) return;
+                                  await fetch(`/api/payment-requests/${pr.token}`, { method: "DELETE" });
+                                  setPaymentRequests((prev) => prev.filter((r) => r.token !== pr.token));
+                                }}
+                                className="text-[10px] text-red-400 hover:text-red-300 underline"
+                              >
+                                ยกเลิก
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        {/* สลิป */}
+                        {pr.slipUrl && (
+                          <div className="border-t border-border px-3 py-2 flex items-center gap-3">
+                            <a href={pr.slipUrl} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={pr.slipUrl} alt="slip" className="h-14 w-14 rounded-md object-cover border border-border hover:opacity-80 transition-opacity" />
+                            </a>
+                            <div className="text-[10px] text-muted">
+                              <div>อัปโหลดสลิป</div>
+                              {pr.slipUploadedAt && (
+                                <div className="text-muted/60">{new Date(pr.slipUploadedAt).toLocaleString("th-TH", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
+          )}
+          {!isProduce && order.paymentLink && <PaymentLinkCard link={order.paymentLink} />}
 
           {isProduce && (
             <ProductionTableCard order={order} onSave={save} />
@@ -156,7 +263,8 @@ export default function OrderDetailPage() {
       {paymentModalOpen && order && (
         <PaymentRequestModal
           orders={[order]}
-          onClose={() => setPaymentModalOpen(false)}
+          defaultAmount={paymentDefaultAmount}
+          onClose={() => { setPaymentModalOpen(false); setPaymentDefaultAmount(undefined); }}
         />
       )}
     </div>
@@ -164,15 +272,24 @@ export default function OrderDetailPage() {
 }
 
 // ── ข้อมูลออเดอร์ ──────────────────────────────────────────
-function OrderInfoCard({ order, onSave }: { order: Order; onSave: (p: Partial<Order>) => Promise<void> }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState<Partial<Order>>({});
+function OrderInfoCard({ order, onSave, onOptimisticUpdate }: { order: Order; onSave: (p: Partial<Order>) => Promise<void>; onOptimisticUpdate: (p: Partial<Order>) => void }) {
+  const [draft, setDraft] = useState<Partial<Order>>({
+    teamName: order.teamName,
+    startDate: order.startDate,
+    shirtType: order.shirtType,
+    fabricType: order.fabricType,
+    collarType: order.collarType,
+    productionPrice: order.productionPrice,
+    designPackage: order.designPackage,
+  });
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const isMounted = useRef(false);
   const shirtOptions  = useShirtStyleOptions();
   const shirtStyles   = useShirtStyles();
   const fabricsData   = useFabricsData();
 
-  const selectedStyle = shirtStyles.find(s => s.name === (draft.shirtType ?? order?.shirtType ?? ""));
+  const selectedStyle = shirtStyles.find(s => s.name === (draft.shirtType ?? ""));
   const filteredFabricOptions = selectedStyle
     ? selectedStyle.fabrics.map(sf => ({ name: sf.name, price: sf.price }))
     : fabricsData.flatMap(f => f.variants.length > 0 ? f.variants.map(v => ({ name: v.name, price: 0 })) : [{ name: f.name, price: 0 }]);
@@ -180,109 +297,91 @@ function OrderInfoCard({ order, onSave }: { order: Order; onSave: (p: Partial<Or
     ? selectedStyle.collars.map(c => ({ name: c.name, price: c.price }))
     : shirtStyles.flatMap(s => s.collars.map(c => ({ name: c.name, price: c.price }))).filter((v, i, a) => a.findIndex(x => x.name === v.name) === i);
 
-  const start = () => {
-    setDraft({
-      teamName: order.teamName,
-      startDate: order.startDate,
-      shirtType: order.shirtType,
-      fabricType: order.fabricType,
-      collarType: order.collarType,
-      productionPrice: order.productionPrice,
-      designPackage: order.designPackage,
-    });
-    setEditing(true);
-  };
-
-  const cancel = () => setEditing(false);
-
-  // auto-recalculate productionPrice เมื่อ shirtType/fabricType/collarType/quantity เปลี่ยน
-  useEffect(() => {
-    if (!editing) return;
-    const { shirtType, fabricType, collarType, quantity } = draft;
-    if (!shirtType || !fabricType || !collarType) return;
-    const result = calcProductionPrice(shirtStyles, fabricsData, shirtType, fabricType, collarType, quantity ?? 1);
-    if (result !== null) {
-      setDraft(d => ({ ...d, productionPrice: result.price }));
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft.shirtType, draft.fabricType, draft.collarType, draft.quantity]);
-
-  const submit = async () => {
+  const autoSave = async (patch: Partial<Order>) => {
     setSaving(true);
-    await onSave(draft);
+    await onSave(patch);
     setSaving(false);
-    setEditing(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
   };
+
+  // auto-recalculate productionPrice เฉพาะเมื่อ user เปลี่ยน ไม่ fire ตอน mount
+  useEffect(() => {
+    if (!isMounted.current) { isMounted.current = true; return; }
+    const { shirtType, fabricType, collarType } = draft;
+    if (!shirtType || !fabricType || !collarType) return;
+    const result = calcProductionPrice(shirtStyles, fabricsData, shirtType, fabricType, collarType, order.quantity ?? 1);
+    const newDraft = result !== null ? { ...draft, productionPrice: result.price } : draft;
+    setDraft(newDraft);
+    onOptimisticUpdate(newDraft); // update FinanceCard ทันทีก่อน API
+    autoSave(newDraft);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft.shirtType, draft.fabricType, draft.collarType]);
 
   return (
     <Card className="p-6">
-      <CardHeader title="ข้อมูลออเดอร์" editing={editing} saving={saving} onEdit={start} onCancel={cancel} onSave={submit} />
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-2">ข้อมูลออเดอร์</h2>
+        <div className="flex items-center gap-1.5 text-xs text-muted">
+          {saving && <Loader2 className="h-3 w-3 animate-spin" />}
+          {saved && !saving && <><Check className="h-3 w-3 text-success" /><span className="text-success">บันทึกแล้ว</span></>}
+        </div>
+      </div>
       <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
-        {editing ? (
-          <>
-            <EditField label="ชื่อทีม">
-              <input className="field-input" value={draft.teamName ?? ""} onChange={e => setDraft(d => ({ ...d, teamName: e.target.value }))} />
-            </EditField>
-            <EditField label="วันที่เริ่ม">
-              <input type="date" className="field-input" value={draft.startDate?.slice(0, 10) ?? ""} onChange={e => setDraft(d => ({ ...d, startDate: e.target.value }))} />
-            </EditField>
-            {order.type === "design" ? (
-              <EditField label="แพคเกจออกแบบ" full>
-                <input className="field-input" value={draft.designPackage ?? ""} onChange={e => setDraft(d => ({ ...d, designPackage: e.target.value }))} />
-              </EditField>
-            ) : (
-              <>
-                <EditField label="ประเภทเสื้อ">
-                  <select className="field-input" value={draft.shirtType ?? ""} onChange={e => setDraft(d => ({ ...d, shirtType: e.target.value, fabricType: "", collarType: "" }))}>
-                    <option value="">— เลือกทรงเสื้อ —</option>
-                    {!shirtOptions.includes(draft.shirtType ?? "") && draft.shirtType && (
-                      <option value={draft.shirtType}>{draft.shirtType}</option>
-                    )}
-                    {shirtOptions.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </EditField>
-                <EditField label="เนื้อผ้า">
-                  <select className="field-input" value={draft.fabricType ?? ""} onChange={e => setDraft(d => ({ ...d, fabricType: e.target.value }))} disabled={!draft.shirtType}>
-                    <option value="">{draft.shirtType ? "— เลือกเนื้อผ้า —" : "— เลือกทรงเสื้อก่อน —"}</option>
-                    {!filteredFabricOptions.some(f => f.name === (draft.fabricType ?? "")) && draft.fabricType && (
-                      <option value={draft.fabricType}>{draft.fabricType}</option>
-                    )}
-                    {filteredFabricOptions.map(f => (
-                      <option key={f.name} value={f.name}>
-                        {f.name}{f.price > 0 ? ` (+${f.price} บาท)` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </EditField>
-                <EditField label="ประเภทคอ">
-                  <select className="field-input" value={draft.collarType ?? ""} onChange={e => setDraft(d => ({ ...d, collarType: e.target.value }))} disabled={!draft.shirtType}>
-                    <option value="">{draft.shirtType ? "— เลือกประเภทคอ —" : "— เลือกทรงเสื้อก่อน —"}</option>
-                    {!filteredCollarOptions.some(c => c.name === (draft.collarType ?? "")) && draft.collarType && (
-                      <option value={draft.collarType}>{draft.collarType}</option>
-                    )}
-                    {filteredCollarOptions.map(c => (
-                      <option key={c.name} value={c.name}>
-                        {c.name}{c.price > 0 ? ` (+${c.price} บาท)` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </EditField>
-              </>
-            )}
-          </>
+        <EditField label="ชื่อทีม">
+          <input className="field-input" value={draft.teamName ?? ""}
+            onChange={e => setDraft(d => ({ ...d, teamName: e.target.value }))}
+            onBlur={() => autoSave(draft)} />
+        </EditField>
+        <EditField label="วันที่เริ่ม">
+          <input type="date" className="field-input" value={draft.startDate?.slice(0, 10) ?? ""}
+            onChange={e => setDraft(d => ({ ...d, startDate: e.target.value }))}
+            onBlur={() => autoSave(draft)} />
+        </EditField>
+        {order.type === "design" ? (
+          <EditField label="แพคเกจออกแบบ" full>
+            <input className="field-input" value={draft.designPackage ?? ""}
+              onChange={e => setDraft(d => ({ ...d, designPackage: e.target.value }))}
+              onBlur={() => autoSave(draft)} />
+          </EditField>
         ) : (
           <>
-            <Field label="ชื่อทีม" value={order.teamName} />
-            <Field label="วันที่เริ่ม" value={formatDate(order.startDate)} />
-            {order.type === "design" ? (
-              <Field label="แพคเกจออกแบบ" value={order.designPackage ?? "-"} full />
-            ) : (
-              <>
-                <Field label="ประเภทเสื้อ" value={order.shirtType ?? "-"} />
-                <Field label="เนื้อผ้า" value={order.fabricType ?? "-"} />
-                <Field label="ประเภทคอ" value={order.collarType ?? "-"} />
-              </>
-            )}
+            <EditField label="ประเภทเสื้อ">
+              <select className="field-input" value={draft.shirtType ?? ""}
+                onChange={e => setDraft(d => ({ ...d, shirtType: e.target.value, fabricType: "", collarType: "" }))}>
+                <option value="">— เลือกทรงเสื้อ —</option>
+                {!shirtOptions.includes(draft.shirtType ?? "") && draft.shirtType && (
+                  <option value={draft.shirtType}>{draft.shirtType}</option>
+                )}
+                {shirtOptions.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </EditField>
+            <EditField label="เนื้อผ้า">
+              <select className="field-input" value={draft.fabricType ?? ""}
+                onChange={e => setDraft(d => ({ ...d, fabricType: e.target.value }))}
+                disabled={!draft.shirtType}>
+                <option value="">{draft.shirtType ? "— เลือกเนื้อผ้า —" : "— เลือกทรงเสื้อก่อน —"}</option>
+                {!filteredFabricOptions.some(f => f.name === (draft.fabricType ?? "")) && draft.fabricType && (
+                  <option value={draft.fabricType}>{draft.fabricType}</option>
+                )}
+                {filteredFabricOptions.map(f => (
+                  <option key={f.name} value={f.name}>{f.name}{f.price > 0 ? ` (+${f.price} บาท)` : ""}</option>
+                ))}
+              </select>
+            </EditField>
+            <EditField label="ประเภทคอ">
+              <select className="field-input" value={draft.collarType ?? ""}
+                onChange={e => setDraft(d => ({ ...d, collarType: e.target.value }))}
+                disabled={!draft.shirtType}>
+                <option value="">{draft.shirtType ? "— เลือกประเภทคอ —" : "— เลือกทรงเสื้อก่อน —"}</option>
+                {!filteredCollarOptions.some(c => c.name === (draft.collarType ?? "")) && draft.collarType && (
+                  <option value={draft.collarType}>{draft.collarType}</option>
+                )}
+                {filteredCollarOptions.map(c => (
+                  <option key={c.name} value={c.name}>{c.name}{c.price > 0 ? ` (+${c.price} บาท)` : ""}</option>
+                ))}
+              </select>
+            </EditField>
           </>
         )}
       </dl>
@@ -301,53 +400,55 @@ const COST_FIELDS: { key: keyof ProductionCost; label: string }[] = [
 ];
 
 function CostCard({ order, onSave }: { order: Order; onSave: (p: Partial<Order>) => Promise<void> }) {
-  const [editing, setEditing] = useState(false);
+  const [valuesHidden, setValuesHidden] = useState(false);
   const [draft, setDraft] = useState<ProductionCost>({ ...(order.cost!) });
   const [useOverride, setUseOverride] = useState(!!(order.costOverride && order.costOverride > 0));
   const [overrideDraft, setOverrideDraft] = useState<number>(order.costOverride ?? 0);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const qty = order.quantity || 1;
 
-  const start = () => {
-    setDraft({ ...(order.cost!) });
-    setUseOverride(!!(order.costOverride && order.costOverride > 0));
-    setOverrideDraft(order.costOverride ?? 0);
-    setEditing(true);
-  };
-  const cancel = () => setEditing(false);
-  const submit = async () => {
-    setSaving(true);
-    if (useOverride) {
-      await onSave({ costOverride: overrideDraft, cost: draft });
-    } else {
-      await onSave({ cost: draft, costOverride: 0 });
-    }
-    setSaving(false);
-    setEditing(false);
-  };
-
-  const previewTotal = useOverride
+  const liveTotal = useOverride
     ? overrideDraft * qty
     : Object.values(draft).reduce((a, b) => a + b, 0) * qty;
 
+  const autoSave = async (patch: Partial<Order>) => {
+    setSaving(true);
+    await onSave(patch);
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+  };
+
+  const inputCls = "w-20 rounded-[var(--radius-md)] border border-border bg-surface-2 px-2 py-1 text-right text-sm text-foreground outline-none focus:border-accent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
+
   return (
     <Card className="p-6">
-      <CardHeader title="ต้นทุนการผลิต" editing={editing} saving={saving} onEdit={start} onCancel={cancel} onSave={submit} />
-      <div className="space-y-2.5 text-sm">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-2">ต้นทุนการผลิต</h2>
+        <button
+          onClick={() => setValuesHidden((v) => !v)}
+          className="text-xs text-muted hover:text-foreground transition-colors"
+        >
+          {valuesHidden ? "แสดง" : "ซ่อน"}
+        </button>
+      </div>
 
+      <div className="space-y-2 text-sm">
         {/* Toggle แยกรายการ / กำหนดรวม */}
-        {editing && (
+        {(
           <div className="flex gap-1 rounded-[var(--radius-md)] border border-border bg-surface-2 p-1 mb-3">
             {([false, true] as const).map((v) => (
               <button
                 key={String(v)}
                 type="button"
-                onClick={() => setUseOverride(v)}
+                onClick={() => {
+                  setUseOverride(v);
+                  autoSave(v ? { costOverride: overrideDraft, cost: draft } : { cost: draft, costOverride: 0 });
+                }}
                 className={`flex-1 rounded-[var(--radius-sm)] px-3 py-1.5 text-xs font-medium transition-colors ${
-                  useOverride === v
-                    ? "bg-surface text-foreground shadow-sm"
-                    : "text-muted hover:text-foreground"
+                  useOverride === v ? "bg-surface text-foreground shadow-sm" : "text-muted hover:text-foreground"
                 }`}
               >
                 {v ? "กำหนดรวมเอง" : "แยกรายการ"}
@@ -356,57 +457,46 @@ function CostCard({ order, onSave }: { order: Order; onSave: (p: Partial<Order>)
           </div>
         )}
 
-        {/* Override mode */}
         {useOverride ? (
-          editing ? (
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-muted">ต้นทุนรวม/ตัว</span>
-              <input
-                type="number"
-                min={0}
-                className="field-input w-32 text-right"
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-muted">ต้นทุนรวม/ตัว</span>
+            {valuesHidden ? <span className="text-muted">...</span> : (
+              <input type="number" min={0} className={inputCls}
                 value={overrideDraft}
                 onChange={e => setOverrideDraft(Number(e.target.value))}
+                onBlur={e => autoSave({ costOverride: Number(e.target.value), cost: draft })}
               />
-            </div>
-          ) : (
-            <CostRow label="ต้นทุนรวม/ตัว" value={order.costOverride ?? 0} />
-          )
+            )}
+          </div>
         ) : (
-          /* แยกรายการ */
-          COST_FIELDS.map(({ key, label }) =>
-            editing ? (
-              <div key={key} className="flex items-center justify-between gap-4">
-                <span className="text-muted">{label}</span>
-                <input
-                  type="number"
-                  min={0}
-                  className="field-input w-32 text-right"
+          COST_FIELDS.map(({ key, label }) => (
+            <div key={key} className="flex items-center justify-between gap-4">
+              <span className="text-muted">{label}</span>
+              {valuesHidden ? <span className="text-muted">...</span> : (
+                <input type="number" min={0} className={inputCls}
                   value={draft[key]}
                   onChange={e => setDraft(d => ({ ...d, [key]: Number(e.target.value) }))}
+                  onBlur={() => autoSave({ cost: draft, costOverride: 0 })}
                 />
-              </div>
-            ) : (
-              <CostRow key={key} label={label} value={order.cost![key]} />
-            )
-          )
+              )}
+            </div>
+          ))
         )}
 
-        {/* ต้นทุนรวมต่อตัว — แสดงเฉพาะโหมดแยกรายการ */}
         {!useOverride && (
-          <div className="flex justify-between border-t border-border pt-2.5 text-sm text-muted">
+          <div className="flex justify-between border-t border-border pt-2.5 text-muted">
             <span>ต้นทุนรวมต่อตัว</span>
-            <span>{formatBaht(
-              editing
-                ? Object.values(draft).reduce((a, b) => a + b, 0)
-                : Object.values(order.cost ?? {}).reduce((a: number, b: number) => a + b, 0)
-            )}</span>
+            <span>{valuesHidden ? "..." : formatBaht(Object.values(draft).reduce((a, b) => a + b, 0))}</span>
           </div>
         )}
 
-        <div className="mt-1 flex justify-between border-t border-border pt-2.5 font-semibold">
+        <div className="flex justify-between border-t border-border pt-2.5 font-semibold">
           <span>รวมต้นทุนผลิต</span>
-          <span>{formatBaht(editing ? previewTotal : costTotal(order))}</span>
+          <span className="flex items-center gap-1.5">
+            {saving && <Loader2 className="h-3 w-3 animate-spin text-muted" />}
+            {saved && !saving && <Check className="h-3 w-3 text-success" />}
+            {valuesHidden ? "..." : formatBaht(liveTotal)}
+          </span>
         </div>
       </div>
     </Card>
@@ -415,33 +505,23 @@ function CostCard({ order, onSave }: { order: Order; onSave: (p: Partial<Order>)
 
 // ── สรุปยอด ──────────────────────────────────────────────
 function FinanceCard({ order, onSave }: { order: Order; onSave: (p: Partial<Order>) => Promise<void> }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState<Partial<Order>>({});
+  const [draft, setDraft] = useState<Partial<Order>>({
+    designPackagePrice: order.designPackagePrice,
+    productionPrice: order.productionPrice,
+    quantity: order.quantity,
+    shipping: order.shipping,
+    serviceCharge: order.serviceCharge,
+    vat: order.vat,
+    deposit: order.deposit,
+  });
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
   const shirtStylesForFinance = useShirtStyles();
-  const fabricsDataForFinance = useFabricsData();
-  const fabricExtra = shirtStylesForFinance
-    .find(s => s.name === order.shirtType)
-    ?.fabrics.find(f => f.name === order.fabricType)
-    ?.price ?? 0;
 
-  // คำนวณราคาจากข้อมูลทรงเสื้อปัจจุบัน
-  const calcResult = order.shirtType && order.fabricType && order.collarType
-    ? calcProductionPrice(shirtStylesForFinance, fabricsDataForFinance, order.shirtType, order.fabricType, order.collarType, order.quantity ?? 1)
-    : null;
-  const calculatedPrice = calcResult?.price ?? null;
-  const isPriceOutOfSync = calculatedPrice !== null && calculatedPrice !== (order.productionPrice ?? 0);
-
-  const syncPrice = async () => {
-    if (calculatedPrice === null) return;
-    setSyncing(true);
-    await onSave({ productionPrice: calculatedPrice });
-    setSyncing(false);
-  };
-
-  const start = () => {
+  // sync draft เมื่อ order เปลี่ยนจากภายนอก (เช่น OrderInfoCard auto-save)
+  useEffect(() => {
     setDraft({
       designPackagePrice: order.designPackagePrice,
       productionPrice: order.productionPrice,
@@ -451,163 +531,164 @@ function FinanceCard({ order, onSave }: { order: Order; onSave: (p: Partial<Orde
       vat: order.vat,
       deposit: order.deposit,
     });
-    setEditing(true);
-  };
-  const cancel = () => setEditing(false);
-  const submit = async () => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order.productionPrice, order.quantity, order.designPackagePrice, order.shipping, order.serviceCharge, order.vat, order.deposit]);
+  const fabricsDataForFinance = useFabricsData();
+  const fabricExtra = shirtStylesForFinance
+    .find(s => s.name === order.shirtType)
+    ?.fabrics.find(f => f.name === order.fabricType)
+    ?.price ?? 0;
+
+  const collarExtra = shirtStylesForFinance
+    .find(s => s.name === order.shirtType)
+    ?.collars.find(c => c.name === order.collarType)
+    ?.price ?? 0;
+
+  const calcResult = order.shirtType && order.fabricType && order.collarType
+    ? calcProductionPrice(shirtStylesForFinance, fabricsDataForFinance, order.shirtType, order.fabricType, order.collarType, order.quantity ?? 1)
+    : null;
+  const calculatedPrice = calcResult?.price ?? null;
+  const isPriceOutOfSync = calculatedPrice !== null && calculatedPrice !== (order.productionPrice ?? 0);
+
+  const autoSave = async (patch: Partial<Order>) => {
     setSaving(true);
-    await onSave(draft);
+    await onSave(patch);
     setSaving(false);
-    setEditing(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
   };
 
-  const previewOrder = editing ? { ...order, ...draft } : order;
-  const balance = orderBalance(previewOrder);
-  const vatAmount = orderVat(previewOrder);
-  const subtotal = orderSubtotal(previewOrder);
-  const total = orderTotal(previewOrder);
+  const syncPrice = async () => {
+    if (calculatedPrice === null) return;
+    setSyncing(true);
+    await onSave({ productionPrice: calculatedPrice });
+    setDraft(d => ({ ...d, productionPrice: calculatedPrice }));
+    setSyncing(false);
+  };
+
+  const liveOrder = { ...order, ...draft };
+  const balance = orderBalance(liveOrder);
+  const vatAmount = orderVat(liveOrder);
+  const total = orderTotal(liveOrder);
+
+  const numInputCls = "w-24 rounded-[var(--radius-md)] border border-border bg-surface-2 px-2 py-1.5 text-right text-sm text-foreground outline-none focus:border-accent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
 
   return (
     <>
       <Card className="p-6">
-        {/* Banner แจ้งเตือนราคาไม่ sync */}
-        {isPriceOutOfSync && !editing && (
+        {isPriceOutOfSync && (
           <div className="mb-4 flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-warn/40 bg-warn/10 px-4 py-2.5 text-sm">
             <div className="flex items-center gap-2 text-warn">
               <span className="text-base">⚠️</span>
               <span>ราคาผลิตไม่ตรงกับข้อมูลทรงเสื้อปัจจุบัน</span>
               <span className="text-xs text-muted">({formatBaht(order.productionPrice ?? 0)} → {formatBaht(calculatedPrice!)})</span>
             </div>
-            <button
-              onClick={syncPrice}
-              disabled={syncing}
-              className="shrink-0 rounded-md bg-warn/20 px-3 py-1 text-xs font-semibold text-warn hover:bg-warn/30 transition-colors disabled:opacity-50"
-            >
+            <button onClick={syncPrice} disabled={syncing}
+              className="shrink-0 rounded-md bg-warn/20 px-3 py-1 text-xs font-semibold text-warn hover:bg-warn/30 transition-colors disabled:opacity-50">
               {syncing ? "กำลังอัปเดต…" : "อัปเดตราคา"}
             </button>
           </div>
         )}
+
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-2">สรุปยอด</h2>
-          <div className="flex gap-1.5">
-            {!editing && (
-              <button onClick={() => setPrintOpen(true)} className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs text-muted hover:bg-surface-2 hover:text-foreground">
-                <Camera className="h-3.5 w-3.5" /> ส่งลูกค้า
-              </button>
-            )}
-            {editing ? (
-              <>
-                <button onClick={cancel} className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs text-muted hover:bg-surface-2">
-                  <X className="h-3.5 w-3.5" /> ยกเลิก
-                </button>
-                <button onClick={submit} disabled={saving} className="inline-flex items-center gap-1 rounded-md bg-accent px-2.5 py-1 text-xs text-accent-foreground disabled:opacity-60">
-                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} บันทึก
-                </button>
-              </>
-            ) : (
-              <button onClick={start} className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs text-muted hover:bg-surface-2 hover:text-foreground">
-                <Pencil className="h-3.5 w-3.5" /> แก้ไข
-              </button>
-            )}
+          <div className="flex items-center gap-2">
+            {saving && <Loader2 className="h-3 w-3 animate-spin text-muted" />}
+            {saved && !saving && <Check className="h-3 w-3 text-success" />}
+            <button onClick={() => setPrintOpen(true)} className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs text-muted hover:bg-surface-2 hover:text-foreground">
+              <Camera className="h-3.5 w-3.5" /> ส่งลูกค้า
+            </button>
           </div>
         </div>
+
         <div className="space-y-3 text-sm">
           {order.type === "design" ? (
-            editing ? (
-              <EditNumRow label="ราคาแพคเกจ" value={draft.designPackagePrice ?? 0} onChange={v => setDraft(d => ({ ...d, designPackagePrice: v }))} />
-            ) : (
-              <SummaryRow label="ราคาแพคเกจ" value={order.designPackagePrice ?? 0} />
-            )
+            <div className="flex items-center justify-between gap-3">
+              <span>ราคาแพคเกจ</span>
+              <input type="number" min={0} className={numInputCls}
+                value={draft.designPackagePrice ?? 0}
+                onChange={e => setDraft(d => ({ ...d, designPackagePrice: Number(e.target.value) }))}
+                onBlur={() => autoSave(draft)} />
+            </div>
           ) : (
             <>
               {order.type === "design_produce" && (
-                editing ? (
-                  <EditNumRow label="ค่าออกแบบ" value={draft.designPackagePrice ?? 0} onChange={v => setDraft(d => ({ ...d, designPackagePrice: v }))} />
-                ) : (
-                  <SummaryRow label="ค่าออกแบบ" value={order.designPackagePrice ?? 0} />
-                )
-              )}
-              {editing ? (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="whitespace-nowrap">ราคาผลิต/ตัว</span>
-                    <input type="number" min={0} className="field-input w-36 text-right" value={draft.productionPrice ?? 0} onChange={e => setDraft(d => ({ ...d, productionPrice: Number(e.target.value) }))} />
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="whitespace-nowrap">จำนวนตัว</span>
-                    <input type="number" min={1} className="field-input w-36 text-right" value={draft.quantity ?? 1} onChange={e => setDraft(d => ({ ...d, quantity: Number(e.target.value) }))} />
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between text-sm text-muted">
-                    <span>จำนวน</span>
-                    <span className="font-medium text-foreground">{order.quantity ?? 1} ตัว</span>
-                  </div>
-                  <div className="flex items-start justify-between gap-4 text-sm">
-                    <div>
-                      <div>ราคาผลิต</div>
-                      <div className="text-xs text-muted mt-1 inline-flex items-center rounded-md bg-surface-2 border border-border px-2 py-1 font-mono">
-                        {fabricExtra > 0
-                          ? `(${formatBaht((order.productionPrice ?? 0) - fabricExtra)} + ${formatBaht(fabricExtra)} ${order.fabricType}) × ${order.quantity ?? 1} ตัว`
-                          : `${formatBaht(order.productionPrice ?? 0)}/ตัว × ${order.quantity ?? 1} ตัว`}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-medium">{formatBaht((order.productionPrice ?? 0) * (order.quantity ?? 1))}</div>
-                      <div className="text-xs text-muted font-mono mt-1 inline-flex items-center rounded-md bg-surface-2 border border-border px-2 py-1">{formatBaht(order.productionPrice ?? 0)}/ตัว</div>
-                    </div>
-                  </div>
-                </>
-              )}
-              {editing ? (
-                <EditNumRow label="ค่าจัดส่ง" value={draft.shipping ?? 0} onChange={v => setDraft(d => ({ ...d, shipping: v }))} />
-              ) : (
-                <SummaryRow label="ค่าจัดส่ง" value={order.shipping ?? 0} />
-              )}
-              {editing ? (
-                <EditNumRow label="ค่าบริการอื่นๆ" value={draft.serviceCharge ?? 0} onChange={v => setDraft(d => ({ ...d, serviceCharge: v }))} />
-              ) : (
-                (order.serviceCharge ?? 0) > 0 && <SummaryRow label="ค่าบริการอื่นๆ" value={order.serviceCharge ?? 0} />
-              )}
-              {editing && (
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="whitespace-nowrap">VAT 7%</span>
-                    {draft.vat && (
-                      <span className="text-xs text-accent font-medium">
-                        +{formatBaht(orderVat({ ...order, ...draft }))}
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setDraft(d => ({ ...d, vat: !d.vat }))}
-                    className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${draft.vat ? "bg-accent" : "bg-surface-2"}`}
-                  >
-                    <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ${draft.vat ? "translate-x-4" : "translate-x-0"}`} />
-                  </button>
+                  <span>ค่าออกแบบ</span>
+                  <input type="number" min={0} className={numInputCls}
+                    value={draft.designPackagePrice ?? 0}
+                    onChange={e => setDraft(d => ({ ...d, designPackagePrice: Number(e.target.value) }))}
+                    onBlur={() => autoSave(draft)} />
                 </div>
               )}
-              {!editing && order.vat && (
-                <SummaryRow label="VAT 7%" value={vatAmount} />
-              )}
+              <div className="flex items-center justify-between gap-3">
+                <span className="whitespace-nowrap">ราคาผลิต/ตัว</span>
+                <input type="number" min={0} className={numInputCls}
+                  value={draft.productionPrice ?? 0}
+                  onChange={e => setDraft(d => ({ ...d, productionPrice: Number(e.target.value) }))}
+                  onBlur={() => autoSave(draft)} />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <span className="whitespace-nowrap">จำนวนตัว</span>
+                  {(fabricExtra > 0 || collarExtra > 0) && (
+                    <div className="text-xs text-muted mt-0.5 font-mono">
+                      {(() => {
+                        const base = (draft.productionPrice ?? 0) - fabricExtra - collarExtra;
+                        const parts = [formatBaht(base)];
+                        if (fabricExtra > 0) parts.push(`+${formatBaht(fabricExtra)} ${order.fabricType}`);
+                        if (collarExtra > 0) parts.push(`+${formatBaht(collarExtra)} ${order.collarType}`);
+                        return `(${parts.join(" ")}) × ${draft.quantity ?? 1} ตัว`;
+                      })()}
+                    </div>
+                  )}
+                </div>
+                <input type="number" min={1} className={numInputCls}
+                  value={draft.quantity ?? 1}
+                  onChange={e => setDraft(d => ({ ...d, quantity: Number(e.target.value) }))}
+                  onBlur={() => autoSave(draft)} />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span>ค่าจัดส่ง</span>
+                <input type="number" min={0} className={numInputCls}
+                  value={draft.shipping ?? 0}
+                  onChange={e => setDraft(d => ({ ...d, shipping: Number(e.target.value) }))}
+                  onBlur={() => autoSave(draft)} />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span>ค่าบริการอื่นๆ</span>
+                <input type="number" min={0} className={numInputCls}
+                  value={draft.serviceCharge ?? 0}
+                  onChange={e => setDraft(d => ({ ...d, serviceCharge: Number(e.target.value) }))}
+                  onBlur={() => autoSave(draft)} />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span>VAT 7%</span>
+                  {draft.vat && <span className="text-xs text-accent font-medium">+{formatBaht(vatAmount)}</span>}
+                </div>
+                <button type="button"
+                  onClick={() => { const next = { ...draft, vat: !draft.vat }; setDraft(next); autoSave(next); }}
+                  className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${draft.vat ? "bg-accent" : "bg-surface-2"}`}>
+                  <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ${draft.vat ? "translate-x-4" : "translate-x-0"}`} />
+                </button>
+              </div>
             </>
           )}
 
           <div className="flex justify-between rounded-[var(--radius-md)] bg-accent-soft px-3 py-2.5 text-base font-bold text-accent mt-1">
             <span>ยอดรวมทั้งหมด</span>
-            <span>{formatBaht(editing ? total : orderTotal(order))}</span>
+            <span>{formatBaht(total)}</span>
           </div>
 
-          {editing ? (
-            <EditNumRow label="ยอดมัดจำ" value={draft.deposit ?? 0} onChange={v => setDraft(d => ({ ...d, deposit: v }))} muted />
-          ) : (
-            <div className="flex justify-between rounded-[var(--radius-md)] bg-surface-2 px-3 py-2.5 font-semibold text-muted">
-              <span>ยอดมัดจำ</span>
-              <span className="text-foreground">{formatBaht(order.deposit)}</span>
-            </div>
-          )}
+          <div className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] bg-surface-2 px-3 py-2.5">
+            <span className="font-semibold text-muted">ยอดมัดจำ</span>
+            <input type="number" min={0}
+              className="w-32 text-right font-semibold bg-transparent outline-none border-b border-transparent hover:border-border focus:border-accent transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              value={draft.deposit ?? 0}
+              onChange={e => setDraft(d => ({ ...d, deposit: Number(e.target.value) }))}
+              onBlur={() => autoSave(draft)} />
+          </div>
 
           <div className="flex justify-between rounded-[var(--radius-md)] bg-warn/10 px-3 py-2.5 font-semibold text-warn">
             <span>ยอดคงเหลือ</span>
@@ -616,9 +697,7 @@ function FinanceCard({ order, onSave }: { order: Order; onSave: (p: Partial<Orde
         </div>
       </Card>
 
-      {printOpen && (
-        <FinancePrintModal order={order} onClose={() => setPrintOpen(false)} />
-      )}
+      {printOpen && <FinancePrintModal order={order} onClose={() => setPrintOpen(false)} />}
     </>
   );
 }
@@ -626,6 +705,7 @@ function FinanceCard({ order, onSave }: { order: Order; onSave: (p: Partial<Orde
 // ── กำไรโดยประมาณ (แยกออกจากสรุปยอด) ──────────────────
 function ProfitCard({ order }: { order: Order }) {
   const profit = orderProfit(order);
+  const [hidden, setHidden] = useState(false);
   if (profit === null) return null;
   return (
     <div className="flex items-center justify-between rounded-[var(--radius-lg)] bg-accent-soft px-4 py-8">
@@ -633,7 +713,19 @@ function ProfitCard({ order }: { order: Order }) {
         <p className="text-xs font-semibold uppercase tracking-wide text-accent mb-0.5">กำไรโดยประมาณ</p>
         <p className="text-xs text-accent/60">รายรับ − ต้นทุนผลิต</p>
       </div>
-      <span className="text-2xl font-bold text-accent">{formatBaht(profit)}</span>
+      <div className="flex items-center gap-3">
+        {hidden ? (
+          <span className="text-2xl font-bold text-accent tracking-widest">...</span>
+        ) : (
+          <span className="text-2xl font-bold text-accent">{formatBaht(profit)}</span>
+        )}
+        <button
+          onClick={() => setHidden((h) => !h)}
+          className="text-xs text-accent/50 hover:text-accent transition-colors"
+        >
+          {hidden ? "แสดง" : "ซ่อน"}
+        </button>
+      </div>
     </div>
   );
 }

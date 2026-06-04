@@ -115,14 +115,32 @@ body {
 
 /* Print — แคปส่งลูกค้า */
 @media print {
-  body > *:not(#finance-print-area) { display: none !important; }
+  body * { visibility: hidden; }
+
+  #finance-print-area, #finance-print-area * {
+    visibility: visible;
+  }
   #finance-print-area {
     position: fixed;
     inset: 0;
-    display: block !important;
     background: white;
     color: black;
     padding: 2rem;
     font-size: 14px;
+  }
+
+  #qr-print-area, #qr-print-area * {
+    visibility: visible;
+  }
+  #qr-print-area {
+    position: fixed;
+    inset: 0;
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    color: black;
+    gap: 1rem;
   }
 }

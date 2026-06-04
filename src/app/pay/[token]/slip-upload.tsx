@@ -62,9 +62,13 @@ export function SlipUpload({ token }: { token: string }) {
           // eslint-disable-next-line @next/next/no-img-element
           <img src={preview} alt="slip preview" className="mx-auto max-h-64 rounded-lg object-contain" />
         ) : (
-          <div className="text-white/50">
-            <div className="text-3xl mb-2">📎</div>
-            <div className="text-sm">แตะเพื่อเลือกรูปสลิป</div>
+          <div className="flex flex-col items-center gap-3 text-white/50">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/50">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <div className="text-sm">แตะเพื่ออัปโหลดสลิป</div>
           </div>
         )}
         <input

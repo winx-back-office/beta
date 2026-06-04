@@ -59,7 +59,10 @@
       "Bash(curl -s -X PUT http://localhost:3000/api/orders/WNX-2606-20 -H 'Content-Type: application/json' -d '{\"productionStatus\":\"pattern_cut\"}')",
       "Bash(node -e \"const d=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\); const j=JSON.parse\\(d\\); console.log\\('productionStatus:', j.order?.productionStatus\\)\")",
       "Bash(git tag *)",
-      "Bash(sed -i '' 's/await supabase$/await getSupabase\\(\\)/g' \\\\ *)"
+      "Bash(sed -i '' 's/await supabase$/await getSupabase\\(\\)/g' \\\\ *)",
+      "Bash(git diff *)",
+      "Bash(node -e \"const QRCode = require\\('qrcode'\\); console.log\\(Object.keys\\(QRCode\\)\\);\")",
+      "Bash(xargs ls)"
     ]
   }
 }
