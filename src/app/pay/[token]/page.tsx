@@ -5,7 +5,8 @@ import { SlipUpload } from "./slip-upload";
 import generatePayload from "promptpay-qr";
 import QRCode from "qrcode";
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const BASE = process.env.NEXT_PUBLIC_APP_URL ??
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
 async function getPaymentRequest(token: string): Promise<PaymentRequest | null> {
   try {
