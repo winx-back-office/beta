@@ -527,9 +527,9 @@ function ImportSheetsModal({
                 </div>
               )}
               <div className="flex justify-end">
-                <Button onClick={handleImportProduction} disabled={importing || !teamName.trim() || players.length === 0}>
+                <Button onClick={handleImportProduction} disabled={importing || !teamName.trim()}>
                   {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                  {importing ? "กำลังสร้าง…" : `สร้างออเดอร์ + นำเข้า ${players.length} คน`}
+                  {importing ? "กำลังสร้าง…" : players.length > 0 ? `สร้างออเดอร์ + นำเข้า ${players.length} คน` : "สร้างออเดอร์เปล่า"}
                 </Button>
               </div>
             </div>

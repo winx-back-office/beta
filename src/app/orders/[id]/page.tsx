@@ -15,6 +15,7 @@ import {
 } from "@/lib/types";
 import { formatBaht, formatDate } from "@/lib/utils";
 import { ArrowLeft, FileSpreadsheet, Table2, Loader2, Pencil, X, Check, Camera, Link2, Copy, CheckCheck, CreditCard } from "lucide-react";
+import { CuttingJobCard } from "@/components/cutting-job-card";
 import { PaymentRequestModal } from "@/components/payment-request-modal";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -144,6 +145,10 @@ export default function OrderDetailPage() {
 
           {isProduce && (
             <ProductionTableCard order={order} onSave={save} />
+          )}
+
+          {isProduce && (
+            <CuttingJobCard orderId={order.id} />
           )}
         </div>
       </div>
@@ -413,12 +418,28 @@ function FinanceCard({ order, onSave }: { order: Order; onSave: (p: Partial<Orde
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Partial<Order>>({});
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
   const shirtStylesForFinance = useShirtStyles();
+  const fabricsDataForFinance = useFabricsData();
   const fabricExtra = shirtStylesForFinance
     .find(s => s.name === order.shirtType)
     ?.fabrics.find(f => f.name === order.fabricType)
     ?.price ?? 0;
+
+  // คำนวณราคาจากข้อมูลทรงเสื้อปัจจุบัน
+  const calcResult = order.shirtType && order.fabricType && order.collarType
+    ? calcProductionPrice(shirtStylesForFinance, fabricsDataForFinance, order.shirtType, order.fabricType, order.collarType, order.quantity ?? 1)
+    : null;
+  const calculatedPrice = calcResult?.price ?? null;
+  const isPriceOutOfSync = calculatedPrice !== null && calculatedPrice !== (order.productionPrice ?? 0);
+
+  const syncPrice = async () => {
+    if (calculatedPrice === null) return;
+    setSyncing(true);
+    await onSave({ productionPrice: calculatedPrice });
+    setSyncing(false);
+  };
 
   const start = () => {
     setDraft({
@@ -449,6 +470,23 @@ function FinanceCard({ order, onSave }: { order: Order; onSave: (p: Partial<Orde
   return (
     <>
       <Card className="p-6">
+        {/* Banner แจ้งเตือนราคาไม่ sync */}
+        {isPriceOutOfSync && !editing && (
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-warn/40 bg-warn/10 px-4 py-2.5 text-sm">
+            <div className="flex items-center gap-2 text-warn">
+              <span className="text-base">⚠️</span>
+              <span>ราคาผลิตไม่ตรงกับข้อมูลทรงเสื้อปัจจุบัน</span>
+              <span className="text-xs text-muted">({formatBaht(order.productionPrice ?? 0)} → {formatBaht(calculatedPrice!)})</span>
+            </div>
+            <button
+              onClick={syncPrice}
+              disabled={syncing}
+              className="shrink-0 rounded-md bg-warn/20 px-3 py-1 text-xs font-semibold text-warn hover:bg-warn/30 transition-colors disabled:opacity-50"
+            >
+              {syncing ? "กำลังอัปเดต…" : "อัปเดตราคา"}
+            </button>
+          </div>
+        )}
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-2">สรุปยอด</h2>
           <div className="flex gap-1.5">
@@ -501,22 +539,26 @@ function FinanceCard({ order, onSave }: { order: Order; onSave: (p: Partial<Orde
                   </div>
                 </div>
               ) : (
-                <div className="flex items-start justify-between gap-4 text-sm">
-                  <div>
-                    <div>ราคาผลิต</div>
-                    <div className="text-xs text-muted mt-0.5">{formatBaht(order.productionPrice ?? 0)}/ตัว × {order.quantity ?? 1} ตัว</div>
+                <>
+                  <div className="flex items-center justify-between text-sm text-muted">
+                    <span>จำนวน</span>
+                    <span className="font-medium text-foreground">{order.quantity ?? 1} ตัว</span>
                   </div>
-                  <span className="font-medium">{formatBaht((order.productionPrice ?? 0) * (order.quantity ?? 1))}</span>
-                </div>
-              )}
-              {!editing && fabricExtra > 0 && (
-                <div className="flex items-start justify-between gap-4 text-sm">
-                  <div>
-                    <div>ค่าผ้าพิเศษ</div>
-                    <div className="text-xs text-muted mt-0.5">{order.fabricType} · +{fabricExtra} บาท/ตัว × {order.quantity ?? 1} ตัว</div>
+                  <div className="flex items-start justify-between gap-4 text-sm">
+                    <div>
+                      <div>ราคาผลิต</div>
+                      <div className="text-xs text-muted mt-1 inline-flex items-center rounded-md bg-surface-2 border border-border px-2 py-1 font-mono">
+                        {fabricExtra > 0
+                          ? `(${formatBaht((order.productionPrice ?? 0) - fabricExtra)} + ${formatBaht(fabricExtra)} ${order.fabricType}) × ${order.quantity ?? 1} ตัว`
+                          : `${formatBaht(order.productionPrice ?? 0)}/ตัว × ${order.quantity ?? 1} ตัว`}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-medium">{formatBaht((order.productionPrice ?? 0) * (order.quantity ?? 1))}</div>
+                      <div className="text-xs text-muted font-mono mt-1 inline-flex items-center rounded-md bg-surface-2 border border-border px-2 py-1">{formatBaht(order.productionPrice ?? 0)}/ตัว</div>
+                    </div>
                   </div>
-                  <span className="font-medium">{formatBaht(fabricExtra * (order.quantity ?? 1))}</span>
-                </div>
+                </>
               )}
               {editing ? (
                 <EditNumRow label="ค่าจัดส่ง" value={draft.shipping ?? 0} onChange={v => setDraft(d => ({ ...d, shipping: v }))} />

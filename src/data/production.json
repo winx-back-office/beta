@@ -3524,5 +3524,14 @@
       "imageUrl": null
     },
     "players": []
+  },
+  "WNX-2606-24": {
+    "meta": {
+      "fabric": "เม็ดข้าวสาร 150 แกรม",
+      "collar": "",
+      "imageUrl": null
+    },
+    "players": [],
+    "updatedAt": "2026-06-04T03:54:04.984Z"
   }
 }

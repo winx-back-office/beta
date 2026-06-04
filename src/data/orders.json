@@ -1,6 +1,28 @@
 [
   {
     "type": "produce",
+    "teamName": "Smile together - 27 MAY 26 ",
+    "shirtType": "PRO OVERSIZE",
+    "fabricType": "ผ้าเม็ดข้าวสาร",
+    "productionPrice": 399,
+    "deposit": 6060,
+    "quantity": 31,
+    "cost": {
+      "fabric": 0,
+      "paper": 0,
+      "ink": 0,
+      "cut": 0,
+      "sew": 0,
+      "other": 0
+    },
+    "startDate": "2026-06-04",
+    "id": "WNX-2606-24",
+    "hasProductionTable": false,
+    "collarType": "คอปกคางหมู",
+    "paymentLink": "http://localhost:3000/pay/c6ecb8a0-4739-4afa-9ff8-3d7e65c77d14"
+  },
+  {
+    "type": "produce",
     "teamName": "ทดสอบเรียกเก็บเงิน",
     "startDate": "2026-06-03",
     "deposit": 0,
@@ -53,7 +75,7 @@
     "deposit": 0,
     "shirtType": "PRO JACKET ผ้าไมโครพีช",
     "fabricType": "ไมโครพีช",
-    "collarType": "คอกลม",
+    "collarType": "PRO JACKET ผ้าไมโครพีช",
     "quantity": 1,
     "productionPrice": 1190,
     "cost": {
@@ -67,17 +89,18 @@
     "shipping": 0,
     "id": "WNX-2606-21",
     "hasProductionTable": true,
-    "productionStatus": "pattern_in",
-    "color": "#ef4444"
+    "productionStatus": "pattern_cut",
+    "color": "#ef4444",
+    "paymentLink": "http://localhost:3000/pay/e6ef573f-cdbc-4b10-aae6-7f6a43da58cc"
   },
   {
     "type": "produce",
-    "teamName": "ผาหลวง 3 JUN 26 - รายชื่อเสื้อทีม",
+    "teamName": "ผาหลวง 3 JUN 26",
     "startDate": "2026-06-03",
     "deposit": 15000,
-    "shirtType": "Basic Jersey",
-    "fabricType": "เม็ดข้าวสาร 150 แกรม",
-    "collarType": "คอปกกระดุม",
+    "shirtType": "BASIC JERSEY",
+    "fabricType": "ผ้าเม็ดข้าวสาร",
+    "collarType": "ปกกระดุม",
     "quantity": 100,
     "productionPrice": 295,
     "cost": {
@@ -92,7 +115,7 @@
     "shipping": 150,
     "id": "WNX-2606-20",
     "hasProductionTable": true,
-    "productionStatus": "pattern_in",
+    "productionStatus": "pattern_cut",
     "vat": true,
     "color": ""
   },
@@ -124,7 +147,7 @@
     "type": "produce",
     "teamName": "FRG - 11 MAY 26 - รายชื่อเสื้อทีม",
     "startDate": "2026-06-03",
-    "deposit": 0,
+    "deposit": 7933,
     "shirtType": "Basic Jersey",
     "fabricType": "ผ้าเม็ดข้าวสาร",
     "collarType": "คอปกวี",
