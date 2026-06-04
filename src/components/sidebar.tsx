@@ -31,7 +31,7 @@ const nav = [
 export function Sidebar() {
   const pathname = usePathname();
 
-  if (pathname.startsWith("/cut/") || pathname.startsWith("/pay/")) return null;
+  if (pathname.startsWith("/cut/") || pathname.startsWith("/pay/") || pathname === "/track") return null;
   const [slipCount, setSlipCount] = useState(0);
 
   useEffect(() => {
@@ -74,6 +74,8 @@ export function Sidebar() {
               key={href}
               href={href}
               title={label}
+              target={href === "/track" ? "_blank" : undefined}
+              rel={href === "/track" ? "noopener noreferrer" : undefined}
               className={cn(
                 "flex items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2.5 text-sm transition-colors min-[480px]:px-3",
                 active

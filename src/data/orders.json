@@ -1,6 +1,53 @@
 [
   {
     "type": "produce",
+    "teamName": "555",
+    "startDate": "2026-06-02",
+    "deposit": 100,
+    "shirtType": "BASIC JERSEY",
+    "fabricType": "ผ้าเม็ดข้าวสาร",
+    "collarType": "คอปกวี",
+    "quantity": 1,
+    "productionPrice": 389,
+    "cost": {
+      "fabric": 10,
+      "paper": 15,
+      "ink": 10,
+      "cut": 10,
+      "sew": 10,
+      "other": 10
+    },
+    "shipping": 0,
+    "id": "WNX-2606-26",
+    "hasProductionTable": false,
+    "paymentLink": "http://localhost:3000/pay/8fb6ac12-fd11-47e2-80db-81b3eeb8a057",
+    "costOverride": 0
+  },
+  {
+    "type": "produce",
+    "teamName": "OH YEAH 4 - JUN - 26",
+    "startDate": "2026-06-04",
+    "deposit": 0,
+    "shirtType": "BASIC JERSEY",
+    "fabricType": "ผ้าเม็ดข้าวสาร",
+    "collarType": "คอปกวี",
+    "quantity": 14,
+    "productionPrice": 389,
+    "cost": {
+      "fabric": 0,
+      "paper": 0,
+      "ink": 0,
+      "cut": 0,
+      "sew": 0,
+      "other": 0
+    },
+    "shipping": 0,
+    "id": "WNX-2606-25",
+    "hasProductionTable": false,
+    "paymentLink": "http://localhost:3000/pay/c78bcb38-4120-4911-a09a-4303b6a2b14d"
+  },
+  {
+    "type": "produce",
     "teamName": "Smile together - 27 MAY 26 ",
     "shirtType": "PRO OVERSIZE",
     "fabricType": "ผ้าเม็ดข้าวสาร",
@@ -95,14 +142,14 @@
   },
   {
     "type": "produce",
-    "teamName": "ผาหลวง 3 JUN 26",
+    "teamName": "ผาหลวง 3 JUN 26 - รายชื่อเสื้อทีม - Google ชีต",
     "startDate": "2026-06-03",
     "deposit": 15000,
     "shirtType": "BASIC JERSEY",
     "fabricType": "ผ้าเม็ดข้าวสาร",
-    "collarType": "ปกกระดุม",
+    "collarType": "คอกลม",
     "quantity": 100,
-    "productionPrice": 295,
+    "productionPrice": 309,
     "cost": {
       "fabric": 0,
       "paper": 0,

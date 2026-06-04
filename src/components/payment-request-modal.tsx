@@ -4,19 +4,21 @@ import { useState } from "react";
 import { X, CreditCard, Copy, Check, ExternalLink, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui";
 import { BANK_ACCOUNTS } from "@/lib/payment-config";
-import { orderBalance, type Order } from "@/lib/types";
+import { orderBalance, orderTotal, type Order } from "@/lib/types";
 import { formatBaht } from "@/lib/utils";
 
 interface Props {
   orders: Order[];
   onClose: () => void;
+  defaultAmount?: number;
 }
 
-export function PaymentRequestModal({ orders, onClose }: Props) {
+export function PaymentRequestModal({ orders, onClose, defaultAmount }: Props) {
   const billableOrders = orders.filter((o) => orderBalance(o) > 0);
 
   const [selectedOrderId, setSelectedOrderId] = useState(billableOrders[0]?.id ?? "");
   const [amount, setAmount] = useState(() => {
+    if (defaultAmount !== undefined) return String(defaultAmount);
     const o = billableOrders[0];
     return o ? String(orderBalance(o)) : "";
   });
@@ -172,6 +174,33 @@ export function PaymentRequestModal({ orders, onClose }: Props) {
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0"
                 />
+                {selectedOrder && (() => {
+                  const total = orderTotal(selectedOrder);
+                  const presets = [
+                    { label: "30%", value: Math.round(total * 0.3) },
+                    { label: "50%", value: Math.round(total * 0.5) },
+                    { label: "ยอดคงเหลือ", value: orderBalance(selectedOrder) },
+                  ];
+                  return (
+                    <div className="flex gap-2 mt-2">
+                      {presets.map((p) => (
+                        <button
+                          key={p.label}
+                          type="button"
+                          onClick={() => setAmount(String(p.value))}
+                          className={`flex-1 rounded-[var(--radius-md)] border px-2 py-1.5 text-xs font-medium transition-colors ${
+                            amount === String(p.value)
+                              ? "border-accent bg-accent text-accent-foreground"
+                              : "border-border bg-surface-2 text-muted hover:bg-surface-3 hover:text-foreground"
+                          }`}
+                        >
+                          <div>{p.label}</div>
+                          <div className="font-mono opacity-70">{formatBaht(p.value)}</div>
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Bank account radio */}

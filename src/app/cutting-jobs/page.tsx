@@ -49,7 +49,7 @@ function QRModal({ job, onClose }: { job: CuttingJob; onClose: () => void }) {
           <span className="text-sm font-semibold">QR ใบงานตัด — {job.id}</span>
           <button onClick={onClose} className="text-muted hover:text-foreground text-lg">✕</button>
         </div>
-        <div className="px-5 py-6 flex flex-col items-center gap-4">
+        <div id="qr-print-area" className="px-5 py-6 flex flex-col items-center gap-3">
           {qrUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={qrUrl} alt="QR" className="rounded-xl" width={220} height={220} />
@@ -58,10 +58,22 @@ function QRModal({ job, onClose }: { job: CuttingJob; onClose: () => void }) {
               <Loader2 className="h-8 w-8 animate-spin text-muted" />
             </div>
           )}
-          <div className="w-full rounded-[var(--radius-md)] border border-border bg-surface-2 px-3 py-2 font-mono text-xs text-muted break-all text-center">
+          <div className="w-[220px] rounded-[var(--radius-md)] border border-border bg-surface-2 px-3 py-2 font-mono text-[10px] text-muted break-all text-center">
             {cutUrl}
           </div>
-          <div className="text-xs text-muted text-center">{job.teamName} · {job.shirtType}</div>
+          <div className="text-sm font-medium text-foreground text-center">{job.teamName}</div>
+          <div className="text-xs text-muted text-center -mt-1">{job.shirtType}</div>
+          <div className="flex gap-4 text-center">
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] text-muted">จำนวนตัว</span>
+              <span className="text-lg font-bold text-foreground">{job.quantity}</span>
+            </div>
+            <div className="w-px bg-border" />
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] text-muted">ชิ้นแพทเทิร์น</span>
+              <span className="text-lg font-bold text-accent">{job.patternPieces}</span>
+            </div>
+          </div>
         </div>
         <div className="flex gap-2 border-t border-border px-5 py-3">
           <button onClick={onClose} className="flex-1 rounded-md border border-border py-2 text-sm text-muted hover:bg-surface-2">ปิด</button>
@@ -72,7 +84,50 @@ function QRModal({ job, onClose }: { job: CuttingJob; onClose: () => void }) {
             เปิดลิงก์ ↗
           </button>
           <button
-            onClick={() => window.print()}
+            onClick={() => {
+              if (!qrUrl) return;
+              const win = window.open("", "_blank");
+              if (!win) return;
+              win.document.write(`<!DOCTYPE html><html><head><title>ใบงานตัดแพทเทิร์น — ${job.id}</title>
+                <style>
+                  * { box-sizing: border-box; margin: 0; padding: 0; }
+                  body { font-family: 'Sarabun', sans-serif; background: white; color: #111; display: flex; flex-direction: column; align-items: center; padding: 32px 24px; min-height: 100vh; }
+                  .header { text-align: center; margin-bottom: 20px; }
+                  .label { font-size: 13px; color: #888; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+                  .job-id { font-size: 28px; font-weight: 800; letter-spacing: 0.04em; }
+                  .divider { width: 48px; height: 3px; background: #111; margin: 12px auto; border-radius: 2px; }
+                  img { width: 240px; height: 240px; display: block; margin: 0 auto; }
+                  .url { font-size: 9px; color: #aaa; margin-top: 8px; word-break: break-all; text-align: center; max-width: 260px; }
+                  .team { font-size: 15px; font-weight: 600; margin-top: 14px; text-align: center; }
+                  .shirt { font-size: 12px; color: #666; margin-top: 3px; text-align: center; }
+                  .note-box { font-size: 12px; color: #555; margin-top: 8px; background: #f5f5f5; border-radius: 6px; padding: 5px 12px; text-align: center; max-width: 260px; }
+                  .steps { margin-top: 28px; border-top: 1px dashed #ddd; padding-top: 20px; width: 100%; max-width: 300px; }
+                  .steps-title { font-size: 11px; font-weight: 700; color: #888; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; text-align: center; }
+                  .step { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+                  .step-num { width: 20px; height: 20px; border-radius: 50%; background: #111; color: white; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+                  .step-text { font-size: 12px; color: #444; line-height: 1.5; }
+                </style>
+              </head><body>
+                <div class="header">
+                  <div class="label">ใบงานตัดแพทเทิร์น</div>
+                  <div class="job-id">${job.id}</div>
+                  <div class="divider"></div>
+                </div>
+                <img src="${qrUrl}" alt="QR"/>
+                <div class="url">${cutUrl}</div>
+                <div class="team">${job.teamName}</div>
+                <div class="shirt">${job.shirtType} · ${job.collarType}</div>
+                ${job.note ? `<div class="note-box">📝 ${job.note}</div>` : ""}
+                <div class="steps">
+                  <div class="steps-title">วิธีการใช้งาน</div>
+                  <div class="step"><div class="step-num">1</div><div class="step-text">สแกน QR Code ด้วยกล้องมือถือ</div></div>
+                  <div class="step"><div class="step-num">2</div><div class="step-text">กด "รับงาน" แล้วกรอก PIN ของช่างตัด</div></div>
+                  <div class="step"><div class="step-num">3</div><div class="step-text">เมื่อตัดเสร็จ กด "ตัดเสร็จแล้ว" เพื่ออัปเดตสถานะ</div></div>
+                </div>
+                <script>window.onload = () => { window.print(); window.close(); }<\/script>
+              </body></html>`);
+              win.document.close();
+            }}
             className="flex-1 rounded-md bg-accent py-2 text-sm font-semibold text-accent-foreground"
           >
             พิมพ์
@@ -101,7 +156,7 @@ function CreateJobModal({
 }) {
   const usedOrderIds = new Set(existingJobs.map((j) => j.orderId));
   const eligible = orders.filter(
-    (o) => o.type !== "design" && o.shirtType && o.collarType && !usedOrderIds.has(o.id)
+    (o) => o.type !== "design" && o.shirtType && o.collarType
   );
 
   const [selectedId, setSelectedId] = useState("");
@@ -165,7 +220,7 @@ function CreateJobModal({
               <option value="">— เลือกออเดอร์ —</option>
               {eligible.map((o) => (
                 <option key={o.id} value={o.id}>
-                  {o.id} · {o.teamName}
+                  {o.id} · {o.teamName}{usedOrderIds.has(o.id) ? " [มีใบตัดแล้ว]" : ""}
                 </option>
               ))}
             </select>
@@ -492,16 +547,6 @@ export default function CuttingJobsPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        {job.status === "cutting" && (
-                          <button
-                            onClick={() => markDone(job)}
-                            disabled={marking === job.id}
-                            className="inline-flex items-center gap-1 rounded-md bg-success/20 px-2.5 py-1 text-xs text-success hover:bg-success/30 disabled:opacity-50"
-                          >
-                            {marking === job.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-                            เสร็จแล้ว
-                          </button>
-                        )}
                         <button
                           onClick={() => setEditJob(job)}
                           className="rounded p-1.5 text-muted hover:bg-surface-3 hover:text-foreground transition-colors"
@@ -570,6 +615,7 @@ function EditJobModal({
   onSave: (job: CuttingJob) => void;
 }) {
   const [note, setNote] = useState(job.note ?? "");
+  const [cutterNote, setCutterNote] = useState(job.cutterNote ?? "");
   const [status, setStatus] = useState<CuttingJob["status"]>(job.status);
   const [saving, setSaving] = useState(false);
 
@@ -580,7 +626,7 @@ function EditJobModal({
     const res = await fetch(`/api/cutting-jobs/${job.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ note, status }),
+      body: JSON.stringify({ note, cutterNote, status }),
     });
     const data = await res.json();
     if (data.job) onSave(data.job);
@@ -617,15 +663,27 @@ function EditJobModal({
             </select>
           </div>
 
-          {/* Note */}
+          {/* Note (สำหรับพิมพ์ QR) */}
           <div>
-            <label className="text-xs text-muted-2 mb-1 block">หมายเหตุ</label>
+            <label className="text-xs text-muted-2 mb-1 block">หมายเหตุ (สำหรับพิมพ์ QR)</label>
             <textarea
               className={`${fieldCls} resize-none`}
-              rows={3}
+              rows={2}
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="หมายเหตุเพิ่มเติม..."
+            />
+          </div>
+
+          {/* Cutter Note */}
+          <div>
+            <label className="text-xs text-muted-2 mb-1 block">หมายเหตุจากช่างตัด</label>
+            <textarea
+              className={`${fieldCls} resize-none`}
+              rows={2}
+              value={cutterNote}
+              onChange={(e) => setCutterNote(e.target.value)}
+              placeholder="หมายเหตุที่ช่างส่งมา..."
             />
           </div>
         </div>
