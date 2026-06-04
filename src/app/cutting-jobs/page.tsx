@@ -19,7 +19,6 @@ interface ShirtStyle {
   collars: { name: string; patternPieces: number }[];
 }
 
-const BASE = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
 
 // ──────────────────────────────────────────────────────
 // Status Badge
@@ -35,11 +34,13 @@ function StatusBadge({ status }: { status: CuttingJob["status"] }) {
 // ──────────────────────────────────────────────────────
 function QRModal({ job, onClose }: { job: CuttingJob; onClose: () => void }) {
   const [qrUrl, setQrUrl] = useState<string>("");
-  const url = `${BASE}/cut/${job.token}`;
+  const [cutUrl, setCutUrl] = useState<string>("");
 
   useEffect(() => {
+    const url = `${window.location.origin}/cut/${job.token}`;
+    setCutUrl(url);
     QRCode.toDataURL(url, { width: 280, margin: 2 }).then(setQrUrl).catch(() => {});
-  }, [url]);
+  }, [job.token]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
@@ -58,7 +59,7 @@ function QRModal({ job, onClose }: { job: CuttingJob; onClose: () => void }) {
             </div>
           )}
           <div className="w-full rounded-[var(--radius-md)] border border-border bg-surface-2 px-3 py-2 font-mono text-xs text-muted break-all text-center">
-            {url}
+            {cutUrl}
           </div>
           <div className="text-xs text-muted text-center">{job.teamName} · {job.shirtType}</div>
         </div>
