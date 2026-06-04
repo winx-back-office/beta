@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import type { CuttingJob } from "@/app/api/cutting-jobs/route";
 import { ClaimForm } from "./claim-form";
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const BASE = process.env.NEXT_PUBLIC_APP_URL ??
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
 async function getJobByToken(token: string): Promise<CuttingJob | null> {
   try {
