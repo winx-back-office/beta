@@ -30,6 +30,8 @@ const nav = [
 
 export function Sidebar() {
   const pathname = usePathname();
+
+  if (pathname.startsWith("/cut/") || pathname.startsWith("/pay/")) return null;
   const [slipCount, setSlipCount] = useState(0);
 
   useEffect(() => {
@@ -94,7 +96,7 @@ export function Sidebar() {
       {/* Footer */}
       <div className="hidden border-t border-border px-6 py-4 min-[480px]:block">
         <div className="text-[11px] text-muted-2">WINX 3.0 · Looking good at every stage</div>
-        <div className="mt-1 text-[11px] font-medium text-accent">Beta 1.1</div>
+        <div className="mt-1 text-[11px] font-medium text-accent">Beta 1.2</div>
       </div>
     </aside>
   );
