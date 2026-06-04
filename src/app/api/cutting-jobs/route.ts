@@ -1,10 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
 
 export interface CuttingJob {
   id: string;
@@ -69,7 +71,7 @@ export async function GET() {
       const text = await testRes.text();
       return NextResponse.json({ error: "supabase REST error", status: testRes.status, body: text }, { status: 500 });
     }
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("cutting_jobs")
       .select("*")
       .order("created_at", { ascending: false });
@@ -89,7 +91,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { orderId, teamName, shirtType, collarType, quantity, note } = body;
 
-  const { data: existing } = await supabase
+  const { data: existing } = await getSupabase()
     .from("cutting_jobs")
     .select("id")
     .order("created_at", { ascending: false });
@@ -119,7 +121,7 @@ export async function POST(req: NextRequest) {
     note: note ?? "",
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("cutting_jobs")
     .insert(newRow)
     .select()

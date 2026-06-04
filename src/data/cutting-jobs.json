@@ -1,5 +1,22 @@
 [
   {
+    "id": "CUT-003",
+    "orderId": "WNX-2606-19",
+    "teamName": "TOP CARD JK - 31 MAY 26 - รายชื่อเสื้อทีม",
+    "shirtType": "PRO JACKET ผ้าวอร์ม",
+    "collarType": "PRO JACKET ผ้าวอร์ม",
+    "quantity": 5,
+    "patternPieces": 100,
+    "token": "2bc5f8de-4282-462c-9967-05a5f676cab0",
+    "status": "pending",
+    "cutterId": null,
+    "cutterName": null,
+    "startedAt": null,
+    "completedAt": null,
+    "createdAt": "2026-06-04T07:08:00.503Z",
+    "note": ""
+  },
+  {
     "id": "CUT-002",
     "orderId": "WNX-2606-21",
     "teamName": "MUP JACKET ตกหล่น",
