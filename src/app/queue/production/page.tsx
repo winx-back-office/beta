@@ -142,7 +142,7 @@ export default function ProductionQueuePage() {
               <div>
                 <h2 className="font-semibold">เพิ่มงานเข้าคิว</h2>
                 <p className="text-xs text-muted mt-0.5">
-                  เพิ่มเข้า: <span className="font-medium text-foreground">{productionColumns.find(c => c.id === addTarget)?.title}</span>
+                  เพิ่มเข้า: <span className="font-medium text-foreground">{columns.find(c => c.id === addTarget)?.title}</span>
                 </p>
               </div>
               <button onClick={() => setModalOpen(false)} className="rounded p-1 hover:bg-surface-2">
