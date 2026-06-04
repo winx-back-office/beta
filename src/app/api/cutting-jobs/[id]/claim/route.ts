@@ -1,29 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
-import fs from "fs";
-import path from "path";
-import type { CuttingJob } from "../../route";
+import { createClient } from "@supabase/supabase-js";
 
-const JOBS_PATH = path.join(process.cwd(), "src/data/cutting-jobs.json");
-const CUTTERS_PATH = path.join(process.cwd(), "src/data/cutters.json");
-
-interface Cutter {
-  id: string;
-  name: string;
-  pin: string;
-  active: boolean;
-}
-
-function readJobs(): CuttingJob[] {
-  try { return JSON.parse(fs.readFileSync(JOBS_PATH, "utf-8")); } catch { return []; }
-}
-
-function writeJobs(jobs: CuttingJob[]) {
-  fs.writeFileSync(JOBS_PATH, JSON.stringify(jobs, null, 2), "utf-8");
-}
-
-function readCutters(): Cutter[] {
-  try { return JSON.parse(fs.readFileSync(CUTTERS_PATH, "utf-8")); } catch { return []; }
-}
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export async function POST(
   req: NextRequest,
@@ -32,24 +13,27 @@ export async function POST(
   const { id } = await params;
   const { pin } = await req.json();
 
-  const cutters = readCutters();
-  const cutter = cutters.find((c) => c.pin === pin && c.active);
-  if (!cutter) {
+  const { data: cutter, error: cutterError } = await supabase
+    .from("cutters")
+    .select("*")
+    .eq("pin", pin)
+    .eq("active", true)
+    .single();
+
+  if (cutterError || !cutter) {
     return NextResponse.json({ error: "PIN ไม่ถูกต้อง" }, { status: 400 });
   }
 
-  const jobs = readJobs();
-  const idx = jobs.findIndex((j) => j.id === id);
-  if (idx === -1) return NextResponse.json({ error: "not found" }, { status: 404 });
+  const { error } = await supabase
+    .from("cutting_jobs")
+    .update({
+      status: "cutting",
+      cutter_id: cutter.id,
+      cutter_name: cutter.name,
+      started_at: new Date().toISOString(),
+    })
+    .eq("id", id);
 
-  jobs[idx] = {
-    ...jobs[idx],
-    status: "cutting",
-    cutterId: cutter.id,
-    cutterName: cutter.name,
-    startedAt: new Date().toISOString(),
-  };
-  writeJobs(jobs);
-
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true, cutterName: cutter.name });
 }
