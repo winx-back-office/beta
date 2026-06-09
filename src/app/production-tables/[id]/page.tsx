@@ -39,12 +39,22 @@ export default function ProductionTablePage() {
   }, [router]);
 
   useEffect(() => {
-    // บันทึกเวลาที่เปิดดูตาราง เพื่อล้าง badge "อัพเดทตาราง" ในหน้า orders
     localStorage.setItem(`table-viewed-${id}`, new Date().toISOString());
 
     fetch(`/api/orders/${id}`)
       .then((r) => r.json())
-      .then((data) => { setOrder(data); setLoading(false); });
+      .then((data) => {
+        setOrder(data);
+        setLoading(false);
+        // ล้าง badge แจ้งเตือนเมื่อเปิดดู
+        if (data?.productionTableNew) {
+          fetch(`/api/orders/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ productionTableNew: false }),
+          });
+        }
+      });
   }, [id]);
 
   const markTableCreated = async () => {

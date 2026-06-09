@@ -33,6 +33,8 @@ export interface Order {
   // กลุ่ม A — ออกแบบ
   designPackage?: string; // แพคเกจออกแบบ
   designPackagePrice?: number; // ราคาแพคเกจ
+  designNotes?: string; // รายละเอียดเพิ่มเติม (ออกแบบอย่างเดียว)
+  designStatus?: string; // kanban column id สำหรับคิวออกแบบ
 
   // กลุ่ม B, C — ผลิต
   shirtType?: string; // ประเภทเสื้อ
@@ -54,7 +56,9 @@ export interface Order {
   deposit: number; // ยอดมัดจำ
   // ยอดรวม / คงเหลือ คำนวณจาก helper
 
+  orderStatus?: string; // สถานะออเดอร์ เช่น pending, confirmed, in_progress, done, delivered
   hasProductionTable?: boolean; // สร้างตารางสั่งผลิตแล้วหรือยัง
+  productionTableNew?: boolean; // นำเข้าจาก Sheets ใหม่ ยังไม่ได้เปิดดู
   paymentLink?: string;         // ลิงก์เรียกเก็บเงินล่าสุด
 }
 

@@ -5,6 +5,7 @@ import { X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui";
 import { cn, formatBaht } from "@/lib/utils";
 import type { CustomerType, Order } from "@/lib/types";
+import { notifyOrdersUpdated } from "@/lib/broadcast";
 import {
   useShirtStyleOptions,
   useShirtStyles, useFabricsData, calcProductionPrice,
@@ -177,6 +178,7 @@ export function AddOrderModal({ open, onClose, onCreated, editOrder }: Props) {
       });
       const json = await res.json();
       if (!json.ok) throw new Error("บันทึกไม่สำเร็จ");
+      notifyOrdersUpdated();
       onCreated(json.order);
       handleClose();
     } catch (err) {
