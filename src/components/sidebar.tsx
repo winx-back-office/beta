@@ -60,7 +60,8 @@ export function Sidebar() {
               (!o.productionStatus || o.productionStatus === "summary")
           ).length);
           setProdTableNewCount(orders.filter(
-            (o: { productionTableNew?: boolean }) => o.productionTableNew === true
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (o: any) => o.productionTableNew === true
           ).length);
         })
         .catch(() => {});
