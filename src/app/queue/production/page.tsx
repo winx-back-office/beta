@@ -6,6 +6,7 @@ import { KanbanBoard } from "@/components/kanban";
 import { Plus, Loader2, X } from "lucide-react";
 import type { QueueCard, Order, QueueColumn } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import { notifyOrdersUpdated } from "@/lib/broadcast";
 
 export default function ProductionQueuePage() {
   const [cards, setCards] = useState<QueueCard[]>([]);
@@ -71,6 +72,7 @@ export default function ProductionQueuePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ productionStatus: newColumnId }),
     });
+    notifyOrdersUpdated();
   };
 
   // ออเดอร์ผลิตทั้งหมดที่ยังไม่อยู่ใน column เป้าหมาย
@@ -116,7 +118,7 @@ export default function ProductionQueuePage() {
           <Loader2 className="mr-2 h-5 w-5 animate-spin" /> กำลังโหลด…
         </div>
       ) : (
-        <div className="pt-6">
+        <div style={{ paddingTop: 26 }}>
           <KanbanBoard
             columns={columns}
             cards={cards}
