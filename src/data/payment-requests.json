@@ -6,12 +6,12 @@
     "amount": 2723,
     "accountIndex": 0,
     "note": "",
-    "status": "pending",
+    "status": "approved",
     "createdAt": "2026-06-04T17:07:39.095Z",
-    "slipUrl": null,
-    "slipUploadedAt": null,
-    "approvedAt": null,
-    "approvedAmount": null
+    "slipUrl": "/slips/c78bcb38-4120-4911-a09a-4303b6a2b14d.jpeg",
+    "slipUploadedAt": "2026-06-09T07:16:26.387Z",
+    "approvedAt": "2026-06-09T07:16:35.106Z",
+    "approvedAmount": 2723
   },
   {
     "token": "8fb6ac12-fd11-47e2-80db-81b3eeb8a057",
@@ -50,20 +50,6 @@
     "note": "",
     "status": "pending",
     "createdAt": "2026-06-04T04:42:58.942Z",
-    "slipUrl": null,
-    "slipUploadedAt": null,
-    "approvedAt": null,
-    "approvedAmount": null
-  },
-  {
-    "token": "c6ecb8a0-4739-4afa-9ff8-3d7e65c77d14",
-    "orderId": "WNX-2606-24",
-    "teamName": "Smile together - 27 MAY 26 ",
-    "amount": 6309,
-    "accountIndex": 0,
-    "note": "",
-    "status": "pending",
-    "createdAt": "2026-06-04T04:30:58.720Z",
     "slipUrl": null,
     "slipUploadedAt": null,
     "approvedAt": null,
