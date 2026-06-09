@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist_Mono, Noto_Sans_Thai } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
+import { BottomNav } from "@/components/bottom-nav";
+import { ViewportBadge } from "@/components/viewport-badge";
 
 const notoThai = Noto_Sans_Thai({
   variable: "--font-noto-thai",
@@ -32,8 +34,10 @@ export default function RootLayout({
       <body className="min-h-full">
         <div className="flex min-h-screen">
           <Sidebar />
-          <main className="flex-1 min-w-0">{children}</main>
+          <main className="flex-1 min-w-0 pb-16 min-[720px]:pb-0">{children}</main>
         </div>
+        <BottomNav />
+        <ViewportBadge />
       </body>
     </html>
   );

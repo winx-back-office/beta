@@ -83,10 +83,10 @@ export function PageHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-border px-8 py-6">
+    <div className="flex items-start justify-between gap-4 border-b border-border px-4 py-4 min-[720px]:px-8 min-[720px]:py-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
+        <h1 className="text-xl font-bold tracking-tight min-[720px]:text-2xl">{title}</h1>
+        {subtitle && <p className="mt-1 text-xs text-muted min-[720px]:text-sm">{subtitle}</p>}
       </div>
       {action && <div className="flex items-center gap-2">{action}</div>}
     </div>

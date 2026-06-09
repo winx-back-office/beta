@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ImageIcon, CalendarDays, GripVertical, X, FileSpreadsheet, Plus } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import type { QueueCard, QueueColumn } from "@/lib/types";
@@ -32,10 +32,20 @@ export function KanbanBoard({
   const [addingCol, setAddingCol] = useState(false);
   const [newColTitle, setNewColTitle] = useState("");
 
-  const ACCENT_OPTIONS = [
-    "var(--accent)", "var(--info)", "var(--warn)", "var(--success)", "#a855f7", "#ec4899", "#f97316",
+  // ปิด color picker เมื่อกด Escape
+  useEffect(() => {
+    if (!colorPickerColId) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setColorPickerColId(null); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [colorPickerColId]);
+
+  const PRESET_COLORS = [
+    "#3b82f6","#06b6d4","#22c55e","#84cc16","#eab308",
+    "#f97316","#ef4444","#ec4899","#a855f7","#8b5cf6",
+    "#14b8a6","#f59e0b","#64748b","#ffffff","#000000",
   ];
-  const [newColAccent, setNewColAccent] = useState(ACCENT_OPTIONS[0]);
+  const [newColAccent, setNewColAccent] = useState(PRESET_COLORS[0]);
 
   const updateCols = (next: typeof cols | ((prev: typeof cols) => typeof cols)) => {
     setCols(prev => {
@@ -105,25 +115,19 @@ export function KanbanBoard({
                       className="block h-2.5 w-2.5 cursor-pointer rounded-full hover:ring-2 hover:ring-white/40"
                       style={{ background: col.accent }}
                       onClick={e => { e.stopPropagation(); setColorPickerColId(colorPickerColId === col.id ? null : col.id); }}
+                      onMouseDown={e => e.stopPropagation()}
                       title="คลิกเพื่อเปลี่ยนสี"
                     />
                     {colorPickerColId === col.id && (
-                      <div
-                        className="absolute left-0 top-5 z-20 flex gap-1.5 rounded-[var(--radius-md)] border border-border bg-surface p-2 shadow-xl"
-                        onClick={e => e.stopPropagation()}
-                      >
-                        {ACCENT_OPTIONS.map(a => (
-                          <button
-                            key={a}
-                            onClick={() => {
-                              updateCols(cs => cs.map(c => c.id === col.id ? { ...c, accent: a } : c));
-                              setColorPickerColId(null);
-                            }}
-                            className={`h-4 w-4 rounded-full border-2 transition-transform hover:scale-125 ${col.accent === a ? "border-white scale-125" : "border-transparent"}`}
-                            style={{ background: a }}
-                          />
-                        ))}
-                      </div>
+                      <ColorPickerPopover
+                        value={col.accent}
+                        presets={PRESET_COLORS}
+                        onChange={a => {
+                          updateCols(cs => cs.map(c => c.id === col.id ? { ...c, accent: a } : c));
+                          setColorPickerColId(null);
+                        }}
+                        onClose={() => setColorPickerColId(null)}
+                      />
                     )}
                   </div>
                   {editingColId === col.id ? (
@@ -237,15 +241,13 @@ export function KanbanBoard({
               placeholder="ชื่อสถานะ..."
               className="rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
             />
-            <div className="flex gap-2">
-              {ACCENT_OPTIONS.map(a => (
-                <button
-                  key={a}
-                  onClick={() => setNewColAccent(a)}
-                  className={`h-5 w-5 rounded-full border-2 transition-transform ${newColAccent === a ? "scale-125 border-white" : "border-transparent"}`}
-                  style={{ background: a }}
-                />
-              ))}
+            <div>
+              <p className="text-xs text-muted-2 mb-1.5">สีสถานะ</p>
+              <ColorPickerInline
+                value={newColAccent}
+                presets={PRESET_COLORS}
+                onChange={setNewColAccent}
+              />
             </div>
             <div className="flex gap-2">
               <button
@@ -347,5 +349,65 @@ export function KanbanBoard({
         </div>
       )}
     </>
+  );
+}
+
+// ── ColorPickerPopover — dropdown จาก dot บน column header ───
+function ColorPickerPopover({ value, presets, onChange, onClose }: {
+  value: string;
+  presets: string[];
+  onChange: (color: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="absolute left-0 top-5 z-30 w-44 rounded-[var(--radius-lg)] border border-border bg-surface p-2.5 shadow-2xl"
+      onMouseDown={e => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); }}
+      onDragStart={e => { e.stopPropagation(); e.preventDefault(); }}
+      draggable={false}
+    >
+      <div className="flex flex-wrap gap-1.5">
+        {presets.map(p => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => onChange(p)}
+            title={p}
+            className="h-6 w-6 shrink-0 rounded-full border-2 transition-transform hover:scale-110"
+            style={{
+              background: p,
+              borderColor: value === p ? "white" : "transparent",
+              boxShadow: value === p ? `0 0 0 1.5px ${p}` : undefined,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── ColorPickerInline — ใช้ใน add-column panel ───────────────
+function ColorPickerInline({ value, presets, onChange }: {
+  value: string;
+  presets: string[];
+  onChange: (color: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {presets.map(p => (
+        <button
+          key={p}
+          type="button"
+          onClick={() => onChange(p)}
+          title={p}
+          className="h-5 w-5 rounded-full border-2 transition-transform hover:scale-110"
+          style={{
+            background: p,
+            borderColor: value === p ? "white" : "transparent",
+            boxShadow: value === p ? `0 0 0 1.5px ${p}` : undefined,
+          }}
+        />
+      ))}
+    </div>
   );
 }
