@@ -20,6 +20,7 @@ import { PaymentRequestModal } from "@/components/payment-request-modal";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useShirtStyleOptions, useShirtStyles, useFabricsData, calcProductionPrice } from "@/lib/use-catalog";
+import { notifyOrdersUpdated } from "@/lib/broadcast";
 
 interface PaymentRequestLocal {
   token: string;
@@ -64,6 +65,7 @@ export default function OrderDetailPage() {
     });
     const data = await res.json();
     if (data.order) setOrder(data.order);
+    notifyOrdersUpdated();
   };
 
   const optimisticUpdate = (patch: Partial<Order>) => {
@@ -281,6 +283,7 @@ function OrderInfoCard({ order, onSave, onOptimisticUpdate }: { order: Order; on
     collarType: order.collarType,
     productionPrice: order.productionPrice,
     designPackage: order.designPackage,
+    designNotes: order.designNotes,
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -339,11 +342,19 @@ function OrderInfoCard({ order, onSave, onOptimisticUpdate }: { order: Order; on
             onBlur={() => autoSave(draft)} />
         </EditField>
         {order.type === "design" ? (
-          <EditField label="แพคเกจออกแบบ" full>
-            <input className="field-input" value={draft.designPackage ?? ""}
-              onChange={e => setDraft(d => ({ ...d, designPackage: e.target.value }))}
-              onBlur={() => autoSave(draft)} />
-          </EditField>
+          <>
+            <EditField label="แพคเกจออกแบบ" full>
+              <input className="field-input" value={draft.designPackage ?? ""}
+                onChange={e => setDraft(d => ({ ...d, designPackage: e.target.value }))}
+                onBlur={() => autoSave(draft)} />
+            </EditField>
+            <EditField label="รายละเอียดเพิ่มเติม" full>
+              <textarea rows={4} className="field-input resize-none" value={draft.designNotes ?? ""}
+                onChange={e => setDraft(d => ({ ...d, designNotes: e.target.value }))}
+                onBlur={() => autoSave(draft)}
+                placeholder="เช่น ลายที่ต้องการ, สี, ไฟล์อ้างอิง..." />
+            </EditField>
+          </>
         ) : (
           <>
             <EditField label="ประเภทเสื้อ">
@@ -622,15 +633,8 @@ function FinanceCard({ order, onSave }: { order: Order; onSave: (p: Partial<Orde
                 </div>
               )}
               <div className="flex items-center justify-between gap-3">
-                <span className="whitespace-nowrap">ราคาผลิต/ตัว</span>
-                <input type="number" min={0} className={numInputCls}
-                  value={draft.productionPrice ?? 0}
-                  onChange={e => setDraft(d => ({ ...d, productionPrice: Number(e.target.value) }))}
-                  onBlur={() => autoSave(draft)} />
-              </div>
-              <div className="flex items-center justify-between gap-3">
                 <div>
-                  <span className="whitespace-nowrap">จำนวนตัว</span>
+                  <span className="whitespace-nowrap">ราคาผลิต/ตัว</span>
                   {(fabricExtra > 0 || collarExtra > 0) && (
                     <div className="text-xs text-muted mt-0.5 font-mono">
                       {(() => {
@@ -643,6 +647,13 @@ function FinanceCard({ order, onSave }: { order: Order; onSave: (p: Partial<Orde
                     </div>
                   )}
                 </div>
+                <input type="number" min={0} className={numInputCls}
+                  value={draft.productionPrice ?? 0}
+                  onChange={e => setDraft(d => ({ ...d, productionPrice: Number(e.target.value) }))}
+                  onBlur={() => autoSave(draft)} />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="whitespace-nowrap">จำนวนตัว</span>
                 <input type="number" min={1} className={numInputCls}
                   value={draft.quantity ?? 1}
                   onChange={e => setDraft(d => ({ ...d, quantity: Number(e.target.value) }))}

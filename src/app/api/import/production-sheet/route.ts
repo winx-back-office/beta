@@ -71,9 +71,12 @@ export async function GET(req: NextRequest) {
 
   const lines = csv.split("\n").filter((l) => l.trim());
 
-  // ตรวจหา fabric และ shirt style จาก 10 rows แรก
+  // ตรวจหา fabric, shirt style และ collar จาก 10 rows แรก
+  const COLLAR_KEYWORDS = ["คอกลม", "คอวี", "คอวี่", "คอปกวี", "คอปกกีฬา", "คอปก", "คอจีน", "คอเต่า",
+    "คอสองชั้น", "วีคอ", "รีไขว้", "วีคางหมู", "ปกกระดุม"];
   let detectedFabric = "";
   let detectedShirt = "";
+  let detectedCollar = "";
   for (let i = 0; i < Math.min(10, lines.length); i++) {
     const cells = parseCsvLine(lines[i]);
     for (const cell of cells) {
@@ -86,6 +89,9 @@ export async function GET(req: NextRequest) {
         (v.includes("JERSEY") || v.includes("JACKET") || v.includes("BASIC") ||
          v.includes("HOOD") || v.includes("PRO") || v.includes("OVSIZE"))) {
         detectedShirt = v;
+      }
+      if (!detectedCollar && COLLAR_KEYWORDS.some(k => v.includes(k))) {
+        detectedCollar = v;
       }
     }
   }
@@ -136,5 +142,5 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ players, detectedFabric, detectedShirt, total: players.length, sheetTitle });
+  return NextResponse.json({ players, detectedFabric, detectedShirt, detectedCollar, total: players.length, sheetTitle });
 }

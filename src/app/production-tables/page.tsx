@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { notifyOrdersUpdated } from "@/lib/broadcast";
 import { PageHeader, Card, Badge } from "@/components/ui";
 import { CUSTOMER_TYPE_LABEL, type Order } from "@/lib/types";
 import { useProductionColumns } from "@/lib/use-production-columns";
@@ -25,6 +26,19 @@ export default function ProductionTablesPage() {
     fetch("/api/orders")
       .then((r) => r.json())
       .then(async (data: Order[]) => {
+        // ล้าง badge แจ้งเตือนของทุก order ที่ยังมี productionTableNew
+        const newOnes = data.filter((o) => o.productionTableNew);
+        if (newOnes.length > 0) {
+          await Promise.all(newOnes.map((o) =>
+            fetch(`/api/orders/${o.id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ productionTableNew: false }),
+            })
+          ));
+          notifyOrdersUpdated();
+        }
+
         const withTable = data.filter((o) => o.hasProductionTable);
         const prodData = await Promise.all(
           withTable.map((o) =>
