@@ -7,12 +7,12 @@
   {
     "id": "pattern_in",
     "title": "เข้าแพทเทิร์น",
-    "accent": "var(--success)"
+    "accent": "#06b6d4"
   },
   {
     "id": "size",
     "title": "วางไซส์",
-    "accent": "var(--info)"
+    "accent": "#64748b"
   },
   {
     "id": "print",
@@ -32,7 +32,7 @@
   {
     "id": "col_1780341623530",
     "title": "กำลังเย็บ",
-    "accent": "var(--warn)"
+    "accent": "#ec4899"
   },
   {
     "id": "done",

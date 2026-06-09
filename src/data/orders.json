@@ -1,33 +1,128 @@
 [
   {
     "type": "produce",
-    "teamName": "555",
-    "startDate": "2026-06-02",
-    "deposit": 100,
-    "shirtType": "BASIC JERSEY",
-    "fabricType": "ผ้าเม็ดข้าวสาร",
-    "collarType": "คอปกวี",
-    "quantity": 1,
-    "productionPrice": 389,
+    "teamName": "NX JK - 24 พค 26 ",
+    "shirtType": "JACKET",
+    "fabricType": "วอร์ม 210 แกรม",
+    "collarType": "คอกลม",
+    "productionPrice": 1030,
+    "deposit": 7210,
+    "quantity": 7,
     "cost": {
-      "fabric": 10,
-      "paper": 15,
-      "ink": 10,
-      "cut": 10,
-      "sew": 10,
-      "other": 10
+      "fabric": 0,
+      "paper": 0,
+      "ink": 0,
+      "cut": 0,
+      "sew": 0,
+      "other": 0
     },
-    "shipping": 0,
-    "id": "WNX-2606-26",
+    "startDate": "2026-06-09",
+    "id": "WNX-2606-32",
+    "hasProductionTable": true,
+    "productionTableNew": false,
+    "productionStatus": "done"
+  },
+  {
+    "type": "produce",
+    "teamName": "FS VAC - 4 JUN 26",
+    "shirtType": "BASIC JERSEY",
+    "fabricType": "ผ้ารังผึ้ง",
+    "collarType": "คอปกวี",
+    "productionPrice": 350,
+    "deposit": 0,
+    "quantity": 5,
+    "cost": {
+      "fabric": 0,
+      "paper": 0,
+      "ink": 0,
+      "cut": 0,
+      "sew": 0,
+      "other": 0
+    },
+    "startDate": "2026-06-09",
+    "id": "WNX-2606-31",
+    "hasProductionTable": true,
+    "productionTableNew": false,
+    "productionStatus": "pattern_cut",
+    "orderStatus": "pending"
+  },
+  {
+    "type": "produce",
+    "teamName": "FS PUBG 2026 - 8 JUN 26",
+    "shirtType": "BASIC JERSEY",
+    "fabricType": "รังผึ้ง 145 แกรม",
+    "collarType": "วีคางหมู",
+    "productionPrice": 260,
+    "deposit": 0,
+    "quantity": 4,
+    "cost": {
+      "fabric": 0,
+      "paper": 0,
+      "ink": 0,
+      "cut": 0,
+      "sew": 0,
+      "other": 0
+    },
+    "startDate": "2026-06-09",
+    "id": "WNX-2606-30",
+    "hasProductionTable": true,
+    "productionTableNew": false,
+    "productionStatus": "pattern_cut"
+  },
+  {
+    "type": "design",
+    "teamName": "ICONIC",
+    "startDate": "2026-06-05",
+    "deposit": 1495,
+    "designPackage": "PRO PLAYER - ออกแบบเสื้อ",
+    "designPackagePrice": 2990,
+    "id": "WNX-2606-29",
     "hasProductionTable": false,
-    "paymentLink": "http://localhost:3000/pay/8fb6ac12-fd11-47e2-80db-81b3eeb8a057",
-    "costOverride": 0
+    "designNotes": "ชื่อลูกค้า Gojak Zamak",
+    "designStatus": "wait_design"
+  },
+  {
+    "type": "design",
+    "teamName": "IMAGINEX",
+    "startDate": "2026-06-05",
+    "deposit": 1995,
+    "designPackage": "แพคเกจ Standard (เสื้ออย่างเดียว)",
+    "designPackagePrice": 3990,
+    "id": "WNX-2606-28",
+    "hasProductionTable": false,
+    "designNotes": "ชื่อลูกค้า Tharatip Jittranuwath\n\nชื่อทีม: IMAGINEX\nตัวอักษรย่อทีม (ถ้ามี) : IGX\nสโลแกน(ถ้ามี):  Make it beyond your imagination\nกลุ่มเป้าหมาย (ทีมเกมอะไร) :  เกมขับรถ Wangan Midnight Maximum Tune (หลัก),Dragon Ball Fighter Z,2XKO,Street Fighter 3rd,Beyblade X (ส่วนมากเป็นเกมต่อสู้ (เกมหลักด้วย))\nตัวอย่างงานที่ชอบ 2-3 แบบ (ต้องมี) : ทีม AAA , Fullsense , MiTH\nตัวอย่างงานที่ไม่ชอบ 2-3 แบบ (ต้องมี): ทีม Eternity , ทีม Rogue \nโทนสี : ขาว ฟ้า (ฟ้าแบบสีทีม aaa)\nอธิบายคอนเซ็ปหรือสิ่งที่ต้องการ (brief) : อยากได้เป็นแนวเรียบๆ สำหรับโลโก้ตัวอักษร , โลโก้สัญลักษณ์ อยากให้ออกแบบตัวย่อ 3 ตัว เข้าไปแล้วปรับให้เข้ากันเหมือน mith,fs คอนเซปทิศทาง อยากให้เหมือนโลโก้ทีมแข่งรถ หรือ แนว jdm ครับ",
+    "designStatus": "wait_design"
+  },
+  {
+    "type": "produce",
+    "teamName": "WLK26 - 25 MAY 26",
+    "shirtType": "PRO OVERSIZE",
+    "fabricType": "ผ้าเม็ดข้าวสาร",
+    "productionPrice": 320,
+    "deposit": 8030,
+    "quantity": 25,
+    "cost": {
+      "fabric": 0,
+      "paper": 0,
+      "ink": 0,
+      "cut": 0,
+      "sew": 0,
+      "other": 0
+    },
+    "startDate": "2026-06-05",
+    "id": "WNX-2606-27",
+    "hasProductionTable": true,
+    "collarType": "คอปกคางหมู",
+    "costOverride": 180,
+    "paymentLink": "http://localhost:3000/pay/1ae18534-8f6c-4cea-a788-b5594f896817",
+    "serviceCharge": 30,
+    "productionStatus": "summary"
   },
   {
     "type": "produce",
     "teamName": "OH YEAH 4 - JUN - 26",
     "startDate": "2026-06-04",
-    "deposit": 0,
+    "deposit": 2723,
     "shirtType": "BASIC JERSEY",
     "fabricType": "ผ้าเม็ดข้าวสาร",
     "collarType": "คอปกวี",
@@ -44,7 +139,9 @@
     "shipping": 0,
     "id": "WNX-2606-25",
     "hasProductionTable": false,
-    "paymentLink": "http://localhost:3000/pay/c78bcb38-4120-4911-a09a-4303b6a2b14d"
+    "paymentLink": "http://localhost:3000/pay/c78bcb38-4120-4911-a09a-4303b6a2b14d",
+    "vat": false,
+    "productionStatus": "summary"
   },
   {
     "type": "produce",
@@ -52,7 +149,7 @@
     "shirtType": "PRO OVERSIZE",
     "fabricType": "ผ้าเม็ดข้าวสาร",
     "productionPrice": 399,
-    "deposit": 6060,
+    "deposit": 12369,
     "quantity": 31,
     "cost": {
       "fabric": 0,
@@ -66,30 +163,8 @@
     "id": "WNX-2606-24",
     "hasProductionTable": false,
     "collarType": "คอปกคางหมู",
-    "paymentLink": "http://localhost:3000/pay/c6ecb8a0-4739-4afa-9ff8-3d7e65c77d14"
-  },
-  {
-    "type": "produce",
-    "teamName": "ทดสอบเรียกเก็บเงิน",
-    "startDate": "2026-06-03",
-    "deposit": 0,
-    "shirtType": "BASIC JERSEY",
-    "fabricType": "",
-    "collarType": "",
-    "quantity": 1,
-    "productionPrice": 10,
-    "cost": {
-      "fabric": 0,
-      "paper": 0,
-      "ink": 0,
-      "cut": 0,
-      "sew": 0,
-      "other": 0
-    },
-    "shipping": 0,
-    "id": "WNX-2606-23",
-    "hasProductionTable": false,
-    "paymentLink": "http://localhost:3000/pay/4dfb0f04-a1e6-4c17-a9e9-8a27e23f8400"
+    "paymentLink": "http://localhost:3000/pay/c6ecb8a0-4739-4afa-9ff8-3d7e65c77d14",
+    "productionStatus": "col_1780379059593"
   },
   {
     "type": "produce",
@@ -112,7 +187,7 @@
     "hasProductionTable": true,
     "collarType": "คอกลม",
     "color": "",
-    "productionStatus": "done",
+    "productionStatus": "col_1780379059593",
     "paymentLink": "http://localhost:3000/pay/31294e9a-04b9-4b74-832a-2306f43dcb3c"
   },
   {
@@ -136,13 +211,13 @@
     "shipping": 0,
     "id": "WNX-2606-21",
     "hasProductionTable": true,
-    "productionStatus": "pattern_cut",
-    "color": "#ef4444",
+    "productionStatus": "col_1780341606538",
+    "color": "",
     "paymentLink": "http://localhost:3000/pay/e6ef573f-cdbc-4b10-aae6-7f6a43da58cc"
   },
   {
     "type": "produce",
-    "teamName": "ผาหลวง 3 JUN 26 - รายชื่อเสื้อทีม - Google ชีต",
+    "teamName": "ผาหลวง 3 JUN 26",
     "startDate": "2026-06-03",
     "deposit": 15000,
     "shirtType": "BASIC JERSEY",
@@ -162,13 +237,13 @@
     "shipping": 150,
     "id": "WNX-2606-20",
     "hasProductionTable": true,
-    "productionStatus": "pattern_cut",
+    "productionStatus": "col_1780341623530",
     "vat": true,
     "color": ""
   },
   {
     "type": "produce",
-    "teamName": "TOP CARD JK - 31 MAY 26 - รายชื่อเสื้อทีม",
+    "teamName": "TOP CARD JK - 31 MAY 26",
     "startDate": "2026-06-03",
     "deposit": 7837,
     "shirtType": "PRO JACKET ผ้าวอร์ม",
@@ -188,11 +263,12 @@
     "id": "WNX-2606-19",
     "hasProductionTable": true,
     "costOverride": 500,
-    "productionStatus": "pattern_cut"
+    "productionStatus": "summary",
+    "color": ""
   },
   {
     "type": "produce",
-    "teamName": "FRG - 11 MAY 26 - รายชื่อเสื้อทีม",
+    "teamName": "FRG - 11 MAY 26 ",
     "startDate": "2026-06-03",
     "deposit": 7933,
     "shirtType": "Basic Jersey",
@@ -212,7 +288,7 @@
     "id": "WNX-2606-18",
     "hasProductionTable": true,
     "costOverride": 180,
-    "productionStatus": "summary"
+    "productionStatus": "pattern_in"
   },
   {
     "type": "produce",
@@ -234,7 +310,7 @@
     "shipping": 0,
     "id": "WNX-2606-10",
     "hasProductionTable": true,
-    "productionStatus": "done",
+    "productionStatus": "col_1780379059593",
     "collarType": "HOOD สวม",
     "serviceCharge": 300,
     "paymentLink": "http://localhost:3000/pay/ce94bda0-c079-4f89-912b-f65637def983"
