@@ -43,10 +43,9 @@ export function Sidebar() {
   const [prodTableNewCount, setProdTableNewCount] = useState(0);
 
   const isPublic = pathname.startsWith("/cut/") || pathname.startsWith("/pay/") || pathname === "/track" || pathname === "/login";
-  if (isPublic) return null;
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || isPublic) return;
     const fetchSlips = () =>
       fetch("/api/payment-requests", { cache: "no-store" })
         .then((r) => r.json())
@@ -87,9 +86,11 @@ export function Sidebar() {
   const visibleNav = nav.filter(({ menuKey, adminOnly }) => {
     if (!user) return false;
     if (adminOnly) return user.role === "admin";
-    if (menuKey === null) return true; // overview, track — always visible
+    if (menuKey === null) return true;
     return canAccess(user, menuKey);
   });
+
+  if (isPublic) return null;
 
   return (
     <aside className="sticky top-0 hidden h-screen w-14 shrink-0 flex-col border-r border-border bg-surface min-[720px]:flex min-[720px]:w-64">

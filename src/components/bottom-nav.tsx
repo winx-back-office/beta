@@ -38,10 +38,9 @@ export function BottomNav() {
   const [slipCount, setSlipCount] = useState(0);
 
   const isPublic = pathname.startsWith("/cut/") || pathname.startsWith("/pay/") || pathname === "/track" || pathname === "/login";
-  if (isPublic) return null;
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || isPublic) return;
     fetch("/api/payment-requests", { cache: "no-store" })
       .then((r) => r.json())
       .then((data: { status: string }[]) =>
@@ -56,6 +55,8 @@ export function BottomNav() {
     if (menuKey === null) return true;
     return canAccess(user, menuKey);
   });
+
+  if (isPublic) return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 flex min-[720px]:hidden border-t border-border bg-surface/95 backdrop-blur-sm">
