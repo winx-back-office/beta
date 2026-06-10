@@ -322,6 +322,11 @@ export default function OrdersPage() {
     }
 
     // Sort
+    const getStatusId = (o: Order) =>
+      o.type === "design" ? (o.designStatus ?? "") :
+      o.type === "produce" ? (o.productionStatus ?? "") :
+      (o.productionStatus ?? o.designStatus ?? "");
+
     if (sortKey) {
       list.sort((a, b) => {
         let av: number | string = 0, bv: number | string = 0;
@@ -334,10 +339,6 @@ export default function OrdersPage() {
           case "deposit": av = a.deposit; bv = b.deposit; break;
           case "balance": av = orderBalance(a); bv = orderBalance(b); break;
           case "status": {
-            const getStatusId = (o: Order) =>
-              o.type === "design" ? (o.designStatus ?? "") :
-              o.type === "produce" ? (o.productionStatus ?? "") :
-              (o.productionStatus ?? o.designStatus ?? "");
             av = statusPriority[getStatusId(a)] ?? 999;
             bv = statusPriority[getStatusId(b)] ?? 999;
             break;
@@ -347,6 +348,14 @@ export default function OrdersPage() {
         if (av < bv) return sortDir === "asc" ? -1 : 1;
         if (av > bv) return sortDir === "asc" ? 1 : -1;
         return 0;
+      });
+    } else {
+      // default: เรียงตามลำดับ chip แล้ว secondary sort วันที่ใหม่สุด
+      list.sort((a, b) => {
+        const ap = statusPriority[getStatusId(a)] ?? 999;
+        const bp = statusPriority[getStatusId(b)] ?? 999;
+        if (ap !== bp) return ap - bp;
+        return (b.startDate ?? "").localeCompare(a.startDate ?? "");
       });
     }
     return list;
