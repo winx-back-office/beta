@@ -7,7 +7,8 @@ import { DoneButton } from "./done-button";
 async function getJobByToken(token: string): Promise<CuttingJob | null> {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } }
   );
   const { data } = await supabase
     .from("cutting_jobs")
