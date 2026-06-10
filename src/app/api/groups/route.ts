@@ -1,46 +1,54 @@
 import { NextResponse, type NextRequest } from "next/server";
-import fs from "fs";
-import path from "path";
+import { createClient } from "@supabase/supabase-js";
 import type { OrderGroup } from "@/lib/types";
 
-const DB_PATH = path.join(process.cwd(), "src/data/groups.json");
-
-function readGroups(): OrderGroup[] {
-  try {
-    return JSON.parse(fs.readFileSync(DB_PATH, "utf-8"));
-  } catch {
-    return [];
-  }
+function db() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } }
+  );
 }
 
-function writeGroups(groups: OrderGroup[]) {
-  fs.writeFileSync(DB_PATH, JSON.stringify(groups, null, 2), "utf-8");
+function toGroup(row: Record<string, unknown>): OrderGroup {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    orderIds: (row.order_ids as string[]) ?? [],
+    color: (row.color as string) ?? undefined,
+    createdAt: row.created_at as string,
+  };
 }
 
-function generateId(groups: OrderGroup[]): string {
-  const nums = groups
-    .map((g) => parseInt(g.id.replace("GRP-", "")))
+function generateId(existing: string[]): string {
+  const nums = existing
+    .map((id) => parseInt(id.replace("GRP-", "")))
     .filter((n) => !isNaN(n));
   const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
   return `GRP-${String(next).padStart(3, "0")}`;
 }
 
-// GET /api/groups
 export async function GET() {
-  return NextResponse.json(readGroups());
+  const { data, error } = await db().from("groups").select("*").order("created_at", { ascending: true });
+  if (error) return NextResponse.json([], { status: 200 });
+  return NextResponse.json((data ?? []).map(toGroup));
 }
 
-// POST /api/groups — { name, orderIds }
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const groups = readGroups();
-  const newGroup: OrderGroup = {
-    id: generateId(groups),
-    name: body.name,
-    orderIds: body.orderIds ?? [],
-    createdAt: new Date().toISOString(),
-  };
-  groups.push(newGroup);
-  writeGroups(groups);
-  return NextResponse.json({ ok: true, group: newGroup });
+  const { data: existing } = await db().from("groups").select("id");
+  const id = generateId((existing ?? []).map((r: { id: string }) => r.id));
+  const { data, error } = await db()
+    .from("groups")
+    .insert({
+      id,
+      name: body.name,
+      order_ids: body.orderIds ?? [],
+      color: body.color ?? null,
+      created_at: new Date().toISOString(),
+    })
+    .select()
+    .single();
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true, group: toGroup(data) });
 }

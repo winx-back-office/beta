@@ -1,19 +1,27 @@
 import { NextResponse, type NextRequest } from "next/server";
-import fs from "fs";
-import path from "path";
+import { createClient } from "@supabase/supabase-js";
 
-const DB_PATH = path.join(process.cwd(), "src/data/production-columns.json");
-
-function read() {
-  try { return JSON.parse(fs.readFileSync(DB_PATH, "utf-8")); } catch { return []; }
+function db() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } }
+  );
 }
 
 export async function GET() {
-  return NextResponse.json(read());
+  const { data, error } = await db().from("production_columns").select("data").eq("id", "singleton").single();
+  if (error) return NextResponse.json([], { status: 200 });
+  return NextResponse.json(data?.data ?? []);
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  fs.writeFileSync(DB_PATH, JSON.stringify(body, null, 2), "utf-8");
+  const { error } = await db().from("production_columns").upsert({
+    id: "singleton",
+    data: body,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

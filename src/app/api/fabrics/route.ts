@@ -1,22 +1,27 @@
 import { NextResponse, type NextRequest } from "next/server";
-import fs from "fs";
-import path from "path";
+import { createClient } from "@supabase/supabase-js";
 
-const DB_PATH = path.join(process.cwd(), "src/data/fabrics.json");
-
-function read() {
-  return JSON.parse(fs.readFileSync(DB_PATH, "utf-8"));
-}
-function write(data: unknown) {
-  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), "utf-8");
+function db() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } }
+  );
 }
 
 export async function GET() {
-  return NextResponse.json(read());
+  const { data, error } = await db().from("fabrics").select("data").eq("id", "singleton").single();
+  if (error) return NextResponse.json([], { status: 200 });
+  return NextResponse.json(data?.data ?? []);
 }
 
 export async function PUT(req: NextRequest) {
   const body = await req.json();
-  write(body);
+  const { error } = await db().from("fabrics").upsert({
+    id: "singleton",
+    data: body,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

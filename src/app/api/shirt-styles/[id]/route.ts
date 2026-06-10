@@ -1,11 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
-import fs from "fs";
-import path from "path";
+import { createClient } from "@supabase/supabase-js";
 
-const DB_PATH = path.join(process.cwd(), "src/data/shirt-styles.json");
-
-function readDB() {
-  return JSON.parse(fs.readFileSync(DB_PATH, "utf-8"));
+function db() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } }
+  );
 }
 
 export async function PUT(
@@ -14,10 +15,13 @@ export async function PUT(
 ) {
   const { id } = await params;
   const body = await req.json();
-  const data = readDB();
-  const idx = data.findIndex((s: { id: string }) => s.id === id);
-  if (idx === -1) return NextResponse.json({ error: "not found" }, { status: 404 });
-  data[idx] = { id, ...body };
-  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), "utf-8");
-  return NextResponse.json(data[idx]);
+  const { name, ...rest } = body;
+  const { data, error } = await db()
+    .from("shirt_styles")
+    .update({ name, data: rest })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ id: data.id, name: data.name, ...(data.data as object) });
 }
