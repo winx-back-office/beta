@@ -1,20 +1,64 @@
 import { NextResponse, type NextRequest } from "next/server";
-import fs from "fs";
-import path from "path";
+import { createClient } from "@supabase/supabase-js";
 import type { Order } from "@/lib/types";
 
-const DB_PATH = path.join(process.cwd(), "src/data/orders.json");
-
-function readOrders(): Order[] {
-  try {
-    return JSON.parse(fs.readFileSync(DB_PATH, "utf-8"));
-  } catch {
-    return [];
-  }
+function db() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } }
+  );
 }
 
-function writeOrders(orders: Order[]) {
-  fs.writeFileSync(DB_PATH, JSON.stringify(orders, null, 2), "utf-8");
+function toOrder(row: Record<string, unknown>): Order {
+  return {
+    id: row.id as string,
+    type: row.type as Order["type"],
+    teamName: row.team_name as string,
+    startDate: row.start_date as string,
+    shirtType: row.shirt_type as string,
+    fabricType: row.fabric_type as string,
+    collarType: row.collar_type as string,
+    quantity: row.quantity as number,
+    productionPrice: Number(row.production_price ?? 0),
+    shipping: Number(row.shipping ?? 0),
+    deposit: Number(row.deposit ?? 0),
+    cost: (row.cost as Order["cost"]) ?? { fabric: 0, paper: 0, ink: 0, cut: 0, sew: 0, other: 0 },
+    costOverride: row.cost_override != null ? Number(row.cost_override) : undefined,
+    designPackage: row.design_package as string,
+    designPackagePrice: Number(row.design_package_price ?? 0),
+    designStatus: row.design_status as string,
+    productionStatus: row.production_status as string,
+    hasProductionTable: Boolean(row.has_production_table),
+    productionTableNew: Boolean(row.production_table_new),
+    color: row.color as string,
+    note: row.note as string,
+  };
+}
+
+function toRow(body: Partial<Order>) {
+  const row: Record<string, unknown> = {};
+  if (body.type !== undefined) row.type = body.type;
+  if (body.teamName !== undefined) row.team_name = body.teamName;
+  if (body.startDate !== undefined) row.start_date = body.startDate;
+  if (body.shirtType !== undefined) row.shirt_type = body.shirtType;
+  if (body.fabricType !== undefined) row.fabric_type = body.fabricType;
+  if (body.collarType !== undefined) row.collar_type = body.collarType;
+  if (body.quantity !== undefined) row.quantity = body.quantity;
+  if (body.productionPrice !== undefined) row.production_price = body.productionPrice;
+  if (body.shipping !== undefined) row.shipping = body.shipping;
+  if (body.deposit !== undefined) row.deposit = body.deposit;
+  if (body.cost !== undefined) row.cost = body.cost;
+  if (body.costOverride !== undefined) row.cost_override = body.costOverride;
+  if (body.designPackage !== undefined) row.design_package = body.designPackage;
+  if (body.designPackagePrice !== undefined) row.design_package_price = body.designPackagePrice;
+  if (body.designStatus !== undefined) row.design_status = body.designStatus;
+  if (body.productionStatus !== undefined) row.production_status = body.productionStatus;
+  if (body.hasProductionTable !== undefined) row.has_production_table = body.hasProductionTable;
+  if (body.productionTableNew !== undefined) row.production_table_new = body.productionTableNew;
+  if (body.color !== undefined) row.color = body.color;
+  if (body.note !== undefined) row.note = body.note;
+  return row;
 }
 
 function generateId(orders: Order[]): string {
@@ -32,32 +76,34 @@ function generateId(orders: Order[]): string {
 
 // GET /api/orders
 export async function GET() {
-  return NextResponse.json(readOrders());
+  const { data, error } = await db()
+    .from("orders")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json((data ?? []).map(toOrder));
 }
 
 // POST /api/orders
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const orders = readOrders();
-  const newOrder: Order = {
-    ...body,
-    id: generateId(orders),
-    hasProductionTable: false,
+
+  // หา id ใหม่
+  const { data: existing } = await db().from("orders").select("id");
+  const id = generateId((existing ?? []).map(toOrder));
+
+  const row = {
+    id,
+    has_production_table: false,
+    ...toRow(body),
   };
-  orders.unshift(newOrder); // ใส่ไว้หัวสุด (ใหม่สุดก่อน)
-  writeOrders(orders);
 
-  // ถ้าเป็นกลุ่มผลิต — สร้าง production entry เปล่าไว้รอ
-  if (newOrder.type !== "design") {
-    const prodPath = path.join(process.cwd(), "src/data/production.json");
-    let prod: Record<string, unknown> = {};
-    try { prod = JSON.parse(fs.readFileSync(prodPath, "utf-8")); } catch { /* empty */ }
-    prod[newOrder.id] = {
-      meta: { fabric: newOrder.fabricType ?? "", collar: newOrder.collarType ?? "", imageUrl: null },
-      players: [],
-    };
-    fs.writeFileSync(prodPath, JSON.stringify(prod, null, 2), "utf-8");
-  }
+  const { data, error } = await db()
+    .from("orders")
+    .insert(row)
+    .select()
+    .single();
 
-  return NextResponse.json({ ok: true, order: newOrder });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true, order: toOrder(data) });
 }
