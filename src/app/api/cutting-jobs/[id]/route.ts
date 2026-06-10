@@ -61,6 +61,8 @@ export async function PUT(
   if (body.note !== undefined) updateData.note = body.note;
   if (body.cutterNote !== undefined) updateData.cutter_note = body.cutterNote;
   if (body.teamName !== undefined) updateData.team_name = body.teamName;
+  if (body.shirtType !== undefined) updateData.shirt_type = body.shirtType;
+  if (body.collarType !== undefined) updateData.collar_type = body.collarType;
   if (body.quantity !== undefined) updateData.quantity = body.quantity;
   if (body.patternPieces !== undefined) updateData.pattern_pieces = body.patternPieces;
 

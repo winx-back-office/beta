@@ -577,6 +577,7 @@ export default function CuttingJobsPage() {
       {editJob && (
         <EditJobModal
           job={editJob}
+          shirtStyles={shirtStyles}
           onClose={() => setEditJob(null)}
           onSave={(updated) => {
             setJobs((prev) => prev.map((j) => (j.id === updated.id ? updated : j)));
@@ -591,13 +592,19 @@ export default function CuttingJobsPage() {
 // ── Edit Job Modal ─────────────────────────────────────────
 function EditJobModal({
   job,
+  shirtStyles,
   onClose,
   onSave,
 }: {
   job: CuttingJob;
+  shirtStyles: ShirtStyle[];
   onClose: () => void;
   onSave: (job: CuttingJob) => void;
 }) {
+  const [shirtType, setShirtType] = useState(job.shirtType);
+  const [collarType, setCollarType] = useState(job.collarType);
+  const [quantity, setQuantity] = useState(job.quantity);
+  const [patternPieces, setPatternPieces] = useState(job.patternPieces);
   const [note, setNote] = useState(job.note ?? "");
   const [cutterNote, setCutterNote] = useState(job.cutterNote ?? "");
   const [status, setStatus] = useState<CuttingJob["status"]>(job.status);
@@ -605,12 +612,49 @@ function EditJobModal({
 
   const fieldCls = "w-full rounded-[var(--radius-md)] border border-border bg-surface-2 px-3 py-2 text-sm text-foreground focus:border-accent focus:outline-none";
 
+  // หาทรงเสื้อที่เลือกอยู่
+  const selectedStyle = shirtStyles.find(
+    (s) => s.name.trim().toLowerCase() === shirtType.trim().toLowerCase()
+  );
+  const collarOptions = selectedStyle?.collars ?? [];
+  const selectedCollar = collarOptions.find(
+    (c) => c.name.trim().toLowerCase() === collarType.trim().toLowerCase()
+  );
+  const piecesPerUnit = selectedCollar?.patternPieces ?? 0;
+  const calculatedPieces = quantity * piecesPerUnit;
+  const mismatch = calculatedPieces > 0 && patternPieces !== calculatedPieces;
+
+  // เมื่อเปลี่ยนทรงเสื้อ ให้รีเซ็ตปกและคำนวณชิ้นใหม่
+  const handleShirtChange = (name: string) => {
+    setShirtType(name);
+    const style = shirtStyles.find((s) => s.name.trim().toLowerCase() === name.trim().toLowerCase());
+    const firstCollar = style?.collars[0];
+    if (firstCollar) {
+      setCollarType(firstCollar.name);
+      setPatternPieces(quantity * firstCollar.patternPieces);
+    }
+  };
+
+  // เมื่อเปลี่ยนปก คำนวณชิ้นใหม่
+  const handleCollarChange = (name: string) => {
+    setCollarType(name);
+    const style = shirtStyles.find((s) => s.name.trim().toLowerCase() === shirtType.trim().toLowerCase());
+    const collar = style?.collars.find((c) => c.name.trim().toLowerCase() === name.trim().toLowerCase());
+    if (collar) setPatternPieces(quantity * collar.patternPieces);
+  };
+
+  // เมื่อเปลี่ยนจำนวนตัว คำนวณชิ้นใหม่
+  const handleQtyChange = (q: number) => {
+    setQuantity(q);
+    if (piecesPerUnit > 0) setPatternPieces(q * piecesPerUnit);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     const res = await fetch(`/api/cutting-jobs/${job.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ note, cutterNote, status }),
+      body: JSON.stringify({ shirtType, collarType, quantity, patternPieces, note, cutterNote, status }),
     });
     const data = await res.json();
     if (data.job) onSave(data.job);
@@ -619,8 +663,8 @@ function EditJobModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md rounded-[var(--radius-lg)] border border-border bg-surface shadow-2xl">
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+      <div className="w-full max-w-md rounded-[var(--radius-lg)] border border-border bg-surface shadow-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4 shrink-0">
           <div className="flex items-center gap-2">
             <Pencil className="h-4 w-4 text-accent" />
             <span className="font-semibold">แก้ไขใบงาน {job.id}</span>
@@ -628,14 +672,72 @@ function EditJobModal({
           <button onClick={onClose} className="text-muted hover:text-foreground"><X className="h-4 w-4" /></button>
         </div>
 
-        <div className="p-6 space-y-4">
-          {/* Info (read-only) */}
-          <div className="rounded-[var(--radius-md)] border border-border bg-surface-2 px-4 py-3 text-sm space-y-1.5">
-            <div className="flex justify-between"><span className="text-muted">ทีม</span><span className="font-medium">{job.teamName}</span></div>
-            <div className="flex justify-between"><span className="text-muted">ทรงเสื้อ</span><span>{job.shirtType}</span></div>
-            <div className="flex justify-between"><span className="text-muted">ปก</span><span>{job.collarType}</span></div>
-            <div className="flex justify-between"><span className="text-muted">จำนวน</span><span>{job.quantity} ตัว · {job.patternPieces} ชิ้น</span></div>
+        <div className="p-6 space-y-4 overflow-y-auto">
+          {/* ทีม (read-only) */}
+          <div className="rounded-[var(--radius-md)] border border-border bg-surface-2 px-4 py-2.5 text-sm flex justify-between">
+            <span className="text-muted">ทีม</span>
+            <span className="font-medium">{job.teamName}</span>
           </div>
+
+          {/* ทรงเสื้อ */}
+          <div>
+            <label className="text-xs text-muted-2 mb-1 block">ทรงเสื้อ</label>
+            <select className={fieldCls} value={shirtType} onChange={(e) => handleShirtChange(e.target.value)}>
+              {shirtStyles.map((s) => (
+                <option key={s.name} value={s.name}>{s.name}</option>
+              ))}
+              {/* fallback ถ้าไม่อยู่ใน list */}
+              {!shirtStyles.some((s) => s.name.trim().toLowerCase() === shirtType.trim().toLowerCase()) && (
+                <option value={shirtType}>{shirtType}</option>
+              )}
+            </select>
+          </div>
+
+          {/* ปก */}
+          <div>
+            <label className="text-xs text-muted-2 mb-1 block">ปก</label>
+            {collarOptions.length > 0 ? (
+              <select className={fieldCls} value={collarType} onChange={(e) => handleCollarChange(e.target.value)}>
+                {collarOptions.map((c) => (
+                  <option key={c.name} value={c.name}>{c.name}</option>
+                ))}
+              </select>
+            ) : (
+              <input className={fieldCls} value={collarType} onChange={(e) => setCollarType(e.target.value)} />
+            )}
+          </div>
+
+          {/* จำนวนตัว + ชิ้นแพทเทิร์น */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-muted-2 mb-1 block">จำนวนตัว</label>
+              <input
+                type="number" min={1}
+                className={fieldCls}
+                value={quantity}
+                onChange={(e) => handleQtyChange(Number(e.target.value))}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-2 mb-1 block">
+                ชิ้นแพทเทิร์น
+                {piecesPerUnit > 0 && <span className="ml-1 text-muted-2">({piecesPerUnit}/ตัว)</span>}
+              </label>
+              <input
+                type="number" min={0}
+                className={`${fieldCls} ${mismatch ? "border-warn" : ""}`}
+                value={patternPieces}
+                onChange={(e) => setPatternPieces(Number(e.target.value))}
+              />
+            </div>
+          </div>
+
+          {/* คำเตือนถ้าชิ้นไม่ตรงกับที่คำนวณได้ */}
+          {mismatch && (
+            <div className="rounded-[var(--radius-md)] border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">
+              ⚠️ ชิ้นแพทเทิร์นไม่ตรงกับที่คำนวณได้ ({calculatedPieces} ชิ้น) — กดบันทึกจะใช้ค่าที่กรอกไว้
+            </div>
+          )}
 
           {/* Status */}
           <div>
@@ -647,32 +749,22 @@ function EditJobModal({
             </select>
           </div>
 
-          {/* Note (สำหรับพิมพ์ QR) */}
+          {/* Note QR */}
           <div>
             <label className="text-xs text-muted-2 mb-1 block">หมายเหตุ (สำหรับพิมพ์ QR)</label>
-            <textarea
-              className={`${fieldCls} resize-none`}
-              rows={2}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="หมายเหตุเพิ่มเติม..."
-            />
+            <textarea className={`${fieldCls} resize-none`} rows={2} value={note}
+              onChange={(e) => setNote(e.target.value)} placeholder="หมายเหตุเพิ่มเติม..." />
           </div>
 
           {/* Cutter Note */}
           <div>
             <label className="text-xs text-muted-2 mb-1 block">หมายเหตุจากช่างตัด</label>
-            <textarea
-              className={`${fieldCls} resize-none`}
-              rows={2}
-              value={cutterNote}
-              onChange={(e) => setCutterNote(e.target.value)}
-              placeholder="หมายเหตุที่ช่างส่งมา..."
-            />
+            <textarea className={`${fieldCls} resize-none`} rows={2} value={cutterNote}
+              onChange={(e) => setCutterNote(e.target.value)} placeholder="หมายเหตุที่ช่างส่งมา..." />
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-border px-6 py-3">
+        <div className="flex justify-end gap-2 border-t border-border px-6 py-3 shrink-0">
           <button onClick={onClose} className="rounded-md border border-border px-4 py-2 text-sm text-muted hover:bg-surface-2">ยกเลิก</button>
           <Button onClick={handleSave} disabled={saving}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
