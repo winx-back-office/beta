@@ -2,10 +2,16 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// ถ้ายังไม่ได้ตั้งค่า env → คืน null เพื่อให้ระบบ fallback ไปใช้ mock data
-export const supabaseEnabled = Boolean(url && anonKey);
+export const supabaseEnabled = Boolean(url && (serviceKey || anonKey));
 
-export const supabase: SupabaseClient | null = supabaseEnabled
-  ? createClient(url!, anonKey!)
+// Client สำหรับ server-side เท่านั้น (service role — ข้ามผ่าน RLS)
+export const supabaseAdmin: SupabaseClient | null = url && serviceKey
+  ? createClient(url, serviceKey, { auth: { persistSession: false } })
+  : null;
+
+// Client สำหรับ browser (publishable key — ต้องมี RLS policy)
+export const supabase: SupabaseClient | null = url && anonKey
+  ? createClient(url, anonKey)
   : null;

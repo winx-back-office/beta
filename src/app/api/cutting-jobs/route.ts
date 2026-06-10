@@ -4,7 +4,8 @@ import { createClient } from "@supabase/supabase-js";
 function getSupabase() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } }
   );
 }
 
@@ -60,19 +61,11 @@ function getPatternPieces(shirtType: string, collarType: string): number {
 
 export async function GET() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !supabaseKey) {
-    return NextResponse.json({ error: "missing env", url: supabaseUrl, hasKey: !!supabaseKey }, { status: 500 });
+    return NextResponse.json({ error: "missing env" }, { status: 500 });
   }
   try {
-    // test raw fetch first
-    const testRes = await fetch(`${supabaseUrl}/rest/v1/cutting_jobs?select=id&limit=1`, {
-      headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
-    });
-    if (!testRes.ok) {
-      const text = await testRes.text();
-      return NextResponse.json({ error: "supabase REST error", status: testRes.status, body: text }, { status: 500 });
-    }
     const { data, error } = await getSupabase()
       .from("cutting_jobs")
       .select("*")
