@@ -1,20 +1,30 @@
 import { NextResponse, type NextRequest } from "next/server";
-import fs from "fs";
-import path from "path";
+import { createClient } from "@supabase/supabase-js";
 import type { PaymentRequest } from "@/lib/payment-config";
 
-const DB_PATH = path.join(process.cwd(), "src/data/payment-requests.json");
-
-function readAll(): PaymentRequest[] {
-  try {
-    return JSON.parse(fs.readFileSync(DB_PATH, "utf-8"));
-  } catch {
-    return [];
-  }
+function db() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } }
+  );
 }
 
-function writeAll(data: PaymentRequest[]) {
-  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), "utf-8");
+function toPaymentRequest(row: Record<string, unknown>): PaymentRequest {
+  return {
+    token: row.token as string,
+    orderId: row.order_id as string,
+    teamName: row.team_name as string,
+    amount: Number(row.amount ?? 0),
+    accountIndex: Number(row.account_index ?? 0),
+    note: (row.note as string) ?? "",
+    status: row.status as PaymentRequest["status"],
+    createdAt: row.created_at as string,
+    slipUrl: (row.slip_url as string) ?? null,
+    slipUploadedAt: (row.slip_uploaded_at as string) ?? null,
+    approvedAt: (row.approved_at as string) ?? null,
+    approvedAmount: row.approved_amount != null ? Number(row.approved_amount) : null,
+  };
 }
 
 // POST /api/payment-requests/[token]/slip
@@ -23,9 +33,6 @@ export async function POST(
   { params }: { params: Promise<{ token: string }> }
 ) {
   const { token } = await params;
-  const all = readAll();
-  const idx = all.findIndex((r) => r.token === token);
-  if (idx === -1) return NextResponse.json({ error: "not found" }, { status: 404 });
 
   const formData = await req.formData();
   const file = formData.get("slip") as File | null;
@@ -33,21 +40,33 @@ export async function POST(
 
   const ext = file.name.split(".").pop() ?? "jpg";
   const fileName = `${token}.${ext}`;
-  const slipsDir = path.join(process.cwd(), "public/slips");
-
-  if (!fs.existsSync(slipsDir)) fs.mkdirSync(slipsDir, { recursive: true });
-
   const buffer = Buffer.from(await file.arrayBuffer());
-  fs.writeFileSync(path.join(slipsDir, fileName), buffer);
 
-  const slipUrl = `/slips/${fileName}`;
-  all[idx] = {
-    ...all[idx],
-    slipUrl,
-    slipUploadedAt: new Date().toISOString(),
-    status: "slip_uploaded",
-  };
-  writeAll(all);
+  // อัพโหลดไป Supabase Storage bucket "slips"
+  const { error: uploadError } = await db()
+    .storage
+    .from("Slip")
+    .upload(fileName, buffer, {
+      contentType: file.type || "image/jpeg",
+      upsert: true,
+    });
 
-  return NextResponse.json({ ok: true, paymentRequest: all[idx] });
+  if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 });
+
+  const { data: urlData } = db().storage.from("Slip").getPublicUrl(fileName);
+  const slipUrl = urlData.publicUrl;
+
+  const { data, error } = await db()
+    .from("payment_requests")
+    .update({
+      slip_url: slipUrl,
+      slip_uploaded_at: new Date().toISOString(),
+      status: "slip_uploaded",
+    })
+    .eq("token", token)
+    .select()
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true, paymentRequest: toPaymentRequest(data) });
 }

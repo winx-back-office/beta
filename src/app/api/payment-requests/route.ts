@@ -1,50 +1,68 @@
 import { NextResponse, type NextRequest } from "next/server";
-import fs from "fs";
-import path from "path";
+import { createClient } from "@supabase/supabase-js";
 import type { PaymentRequest } from "@/lib/payment-config";
 
-const DB_PATH = path.join(process.cwd(), "src/data/payment-requests.json");
-
-function readAll(): PaymentRequest[] {
-  try {
-    return JSON.parse(fs.readFileSync(DB_PATH, "utf-8"));
-  } catch {
-    return [];
-  }
+function db() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } }
+  );
 }
 
-function writeAll(data: PaymentRequest[]) {
-  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), "utf-8");
+function toPaymentRequest(row: Record<string, unknown>): PaymentRequest {
+  return {
+    token: row.token as string,
+    orderId: row.order_id as string,
+    teamName: row.team_name as string,
+    amount: Number(row.amount ?? 0),
+    accountIndex: Number(row.account_index ?? 0),
+    note: (row.note as string) ?? "",
+    status: row.status as PaymentRequest["status"],
+    createdAt: row.created_at as string,
+    slipUrl: (row.slip_url as string) ?? null,
+    slipUploadedAt: (row.slip_uploaded_at as string) ?? null,
+    approvedAt: (row.approved_at as string) ?? null,
+    approvedAmount: row.approved_amount != null ? Number(row.approved_amount) : null,
+  };
 }
 
 // GET /api/payment-requests
 export async function GET() {
-  return NextResponse.json(readAll());
+  const { data, error } = await db()
+    .from("payment_requests")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json((data ?? []).map(toPaymentRequest));
 }
 
 // POST /api/payment-requests
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const all = readAll();
-
   const token = crypto.randomUUID();
-  const newReq: PaymentRequest = {
+
+  const row = {
     token,
-    orderId: body.orderId,
-    teamName: body.teamName,
+    order_id: body.orderId,
+    team_name: body.teamName,
     amount: Number(body.amount),
-    accountIndex: Number(body.accountIndex ?? 0),
+    account_index: Number(body.accountIndex ?? 0),
     note: body.note ?? "",
     status: "pending",
-    createdAt: new Date().toISOString(),
-    slipUrl: null,
-    slipUploadedAt: null,
-    approvedAt: null,
-    approvedAmount: null,
+    created_at: new Date().toISOString(),
+    slip_url: null,
+    slip_uploaded_at: null,
+    approved_at: null,
+    approved_amount: null,
   };
 
-  all.unshift(newReq);
-  writeAll(all);
+  const { data, error } = await db()
+    .from("payment_requests")
+    .insert(row)
+    .select()
+    .single();
 
-  return NextResponse.json({ ok: true, paymentRequest: newReq });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true, paymentRequest: toPaymentRequest(data) });
 }
