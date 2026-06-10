@@ -21,7 +21,6 @@ import {
   loadProduction,
   saveProduction,
   subscribeProduction,
-  supabaseEnabled,
   type PlayerRow,
   type ProductionImage,
 } from "@/lib/production-db";
@@ -141,7 +140,6 @@ export function ProductionTable({
 
   // ===== Realtime sync =====
   useEffect(() => {
-    if (!supabaseEnabled) return;
     return subscribeProduction(orderId, () => {
       if (!savingRef.current) refresh();
     });

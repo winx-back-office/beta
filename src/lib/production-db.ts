@@ -1,5 +1,3 @@
-import { supabase, supabaseEnabled } from "./supabase";
-
 export interface PlayerRow {
   id: string;
   position: number;
@@ -7,7 +5,7 @@ export interface PlayerRow {
   size: string;
   number: string;
   checked: boolean;
-  status: string;  // ข้อความสถานะจากชีต (แทน checkbox)
+  status: string;
   note: string;
 }
 
@@ -19,10 +17,10 @@ export interface ProductionImage {
 export interface ProductionMeta {
   fabric: string;
   collar: string;
-  imageUrl: string | null; // main image (backward compat)
+  imageUrl: string | null;
   images?: ProductionImage[];
-  columnLabels?: string[]; // หัว column จาก sheet import เช่น ["ชื่อผู้เล่น","ไซส์","เลข","เช็คสินค้า",...]
-  sheetsUrl?: string;     // Google Sheets URL สำหรับ auto-sync
+  columnLabels?: string[];
+  sheetsUrl?: string;
 }
 
 export interface ProductionData {
@@ -30,77 +28,40 @@ export interface ProductionData {
   players: PlayerRow[];
 }
 
-export { supabaseEnabled };
-
 // ===== โหลดตารางผลิต =====
 export async function loadProduction(
   orderId: string,
   fallbackFabric: string,
   fallbackCollar = ""
 ): Promise<ProductionData> {
-  // Local API (ไม่มี Supabase)
-  if (!supabaseEnabled) {
-    try {
-      const res = await fetch(`/api/production/${orderId}`, { cache: "no-store" });
-      const json = await res.json();
-      return {
-        meta: {
-          fabric: json.meta?.fabric || fallbackFabric,
-          collar: json.meta?.collar || fallbackCollar,
-          imageUrl: json.meta?.imageUrl || null,
-          images: json.meta?.images ?? undefined,
-          columnLabels: json.meta?.columnLabels ?? undefined,
-          sheetsUrl: json.meta?.sheetsUrl ?? undefined,
-        },
-        players: (json.players || []).map(
-          (p: PlayerRow, i: number): PlayerRow => ({
-            id: p.id || String(i),
-            position: i,
-            name: p.name || "",
-            size: p.size || "",
-            number: p.number || "",
-            checked: !!p.checked,
-            status: p.status || "",
-            note: p.note || "",
-          })
-        ),
-      };
-    } catch {
-      return { meta: { fabric: fallbackFabric, collar: fallbackCollar, imageUrl: null }, players: [] };
-    }
+  try {
+    const res = await fetch(`/api/production/${orderId}`, { cache: "no-store" });
+    const json = await res.json();
+    return {
+      meta: {
+        fabric: json.meta?.fabric || fallbackFabric,
+        collar: json.meta?.collar || fallbackCollar,
+        imageUrl: json.meta?.imageUrl || null,
+        images: json.meta?.images ?? undefined,
+        columnLabels: json.meta?.columnLabels ?? undefined,
+        sheetsUrl: json.meta?.sheetsUrl ?? undefined,
+      },
+      players: (json.players || []).map(
+        (p: PlayerRow, i: number): PlayerRow => ({
+          id: p.id || String(i),
+          position: i,
+          name: p.name || "",
+          size: p.size || "",
+          number: p.number || "",
+          checked: !!p.checked,
+          status: p.status || "",
+          note: p.note || "",
+        })
+      ),
+    };
+  } catch {
+    return { meta: { fabric: fallbackFabric, collar: fallbackCollar, imageUrl: null }, players: [] };
   }
-
-  // Supabase
-  const [metaRes, playersRes] = await Promise.all([
-    supabase!.from("production_meta").select("*").eq("order_id", orderId).maybeSingle(),
-    supabase!
-      .from("production_players")
-      .select("*")
-      .eq("order_id", orderId)
-      .order("position", { ascending: true }),
-  ]);
-
-  const meta: ProductionMeta = metaRes.data
-    ? {
-        fabric: metaRes.data.fabric ?? fallbackFabric,
-        collar: metaRes.data.collar ?? "คอกลม",
-        imageUrl: metaRes.data.image_url ?? null,
-        images: metaRes.data.images ?? undefined,
-      }
-    : { fabric: fallbackFabric, collar: "คอกลม", imageUrl: null };
-
-  const players: PlayerRow[] = (playersRes.data ?? []).map((p) => ({
-    id: p.id,
-    position: p.position,
-    name: p.name ?? "",
-    size: p.size ?? "",
-    number: p.number ?? "",
-    checked: p.checked ?? false,
-    status: p.status ?? "",
-    note: p.note ?? "",
-  }));
-
-  return { meta, players };
 }
 
 // ===== บันทึกตารางผลิต =====
@@ -109,72 +70,21 @@ export async function saveProduction(
   meta: ProductionMeta,
   players: Omit<PlayerRow, "id">[]
 ): Promise<{ ok: boolean; error?: string }> {
-  // Local API
-  if (!supabaseEnabled) {
-    try {
-      const res = await fetch(`/api/production/${orderId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ meta, players }),
-      });
-      const json = await res.json();
-      return json.ok ? { ok: true } : { ok: false, error: "บันทึกล้มเหลว" };
-    } catch (e) {
-      return { ok: false, error: String(e) };
-    }
+  try {
+    const res = await fetch(`/api/production/${orderId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ meta, players }),
+    });
+    const json = await res.json();
+    return json.ok ? { ok: true } : { ok: false, error: json.error ?? "บันทึกล้มเหลว" };
+  } catch (e) {
+    return { ok: false, error: String(e) };
   }
-
-  // Supabase
-  const metaErr = await supabase!.from("production_meta").upsert({
-    order_id: orderId,
-    fabric: meta.fabric,
-    collar: meta.collar,
-    image_url: meta.imageUrl,
-    updated_at: new Date().toISOString(),
-  });
-  if (metaErr.error) return { ok: false, error: metaErr.error.message };
-
-  await supabase!.from("production_players").delete().eq("order_id", orderId);
-
-  if (players.length > 0) {
-    const rows = players.map((p, i) => ({
-      order_id: orderId,
-      position: i,
-      name: p.name,
-      size: p.size,
-      number: p.number,
-      checked: p.checked,
-      note: p.note,
-    }));
-    const insErr = await supabase!.from("production_players").insert(rows);
-    if (insErr.error) return { ok: false, error: insErr.error.message };
-  }
-
-  await supabase!.from("orders").update({ has_production_table: true }).eq("id", orderId);
-
-  return { ok: true };
 }
 
-// ===== Realtime (Supabase เท่านั้น — local ใช้ polling แทน) =====
+// ===== Realtime: ใช้ polling ผ่าน API route =====
 export function subscribeProduction(orderId: string, onChange: () => void) {
-  if (!supabaseEnabled) return () => {};
-
-  const client = supabase!;
-  const channel = client
-    .channel(`production-${orderId}`)
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "production_players", filter: `order_id=eq.${orderId}` },
-      onChange
-    )
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "production_meta", filter: `order_id=eq.${orderId}` },
-      onChange
-    )
-    .subscribe();
-
-  return () => {
-    client.removeChannel(channel);
-  };
+  const interval = setInterval(onChange, 10000);
+  return () => clearInterval(interval);
 }
