@@ -44,6 +44,7 @@ export default function OrderDetailPage() {
   const [paymentRequests, setPaymentRequests] = useState<PaymentRequestLocal[]>([]);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentDefaultAmount, setPaymentDefaultAmount] = useState<number | undefined>();
+  const [slipPreview, setSlipPreview] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/orders/${id}`)
@@ -231,10 +232,10 @@ export default function OrderDetailPage() {
                         {/* สลิป */}
                         {pr.slipUrl && (
                           <div className="border-t border-border px-3 py-2 flex items-center gap-3">
-                            <a href={pr.slipUrl} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                            <button onClick={() => setSlipPreview(pr.slipUrl)} className="shrink-0">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={pr.slipUrl} alt="slip" className="h-14 w-14 rounded-md object-cover border border-border hover:opacity-80 transition-opacity" />
-                            </a>
+                              <img src={pr.slipUrl} alt="slip" className="h-14 w-14 rounded-md object-cover border border-border hover:opacity-80 transition-opacity cursor-zoom-in" />
+                            </button>
                             <div className="text-[10px] text-muted">
                               <div>อัปโหลดสลิป</div>
                               {pr.slipUploadedAt && (
@@ -268,6 +269,37 @@ export default function OrderDetailPage() {
           defaultAmount={paymentDefaultAmount}
           onClose={() => { setPaymentModalOpen(false); setPaymentDefaultAmount(undefined); }}
         />
+      )}
+
+      {/* Slip lightbox */}
+      {slipPreview && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+          onClick={() => setSlipPreview(null)}
+        >
+          <div className="relative max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={slipPreview}
+              alt="slip"
+              className="w-full rounded-[var(--radius-lg)] border border-border shadow-2xl object-contain max-h-[80vh]"
+            />
+            <button
+              onClick={() => setSlipPreview(null)}
+              className="absolute -top-3 -right-3 flex h-7 w-7 items-center justify-center rounded-full bg-surface border border-border text-muted hover:text-foreground shadow-lg"
+            >
+              ✕
+            </button>
+            <a
+              href={slipPreview}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 block text-center text-xs text-muted hover:text-foreground transition-colors"
+            >
+              เปิดรูปเต็ม ↗
+            </a>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -1032,14 +1064,14 @@ function SlipApprovalCard({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-yellow-400">สลิปรอตรวจสอบ</h2>
       </div>
       {pr.slipUrl && (
-        <a href={pr.slipUrl} target="_blank" rel="noopener noreferrer" className="block mb-4">
+        <button onClick={() => setSlipPreview(pr.slipUrl)} className="block mb-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={pr.slipUrl}
             alt="slip"
-            className="max-h-64 w-auto rounded-[var(--radius-md)] border border-border object-contain"
+            className="max-h-64 w-auto rounded-[var(--radius-md)] border border-border object-contain hover:opacity-80 transition-opacity cursor-zoom-in"
           />
-        </a>
+        </button>
       )}
       <div className="mb-4 text-sm text-muted">
         <span>ยอดที่ขอ: </span>
