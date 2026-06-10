@@ -426,6 +426,29 @@ export default function CuttingJobsPage() {
   const [editJob, setEditJob] = useState<CuttingJob | null>(null);
   const [filterStatus, setFilterStatus] = useState<CuttingJob["status"] | "all">("all");
 
+  const ALL_STATUSES: CuttingJob["status"][] = ["pending", "cutting", "done"];
+  const LS_CHIP_KEY = "winx-cut-chip-order";
+  const [chipOrder, setChipOrder] = useState<CuttingJob["status"][]>(() => {
+    if (typeof window === "undefined") return ALL_STATUSES;
+    try { const s = JSON.parse(localStorage.getItem(LS_CHIP_KEY) ?? "[]"); if (s.length) return s; } catch {}
+    return ALL_STATUSES;
+  });
+  const dragChip = useRef<CuttingJob["status"] | null>(null);
+
+  const reorderChips = (fromId: CuttingJob["status"], toId: CuttingJob["status"]) => {
+    if (fromId === toId) return;
+    setChipOrder(prev => {
+      const arr = [...prev];
+      const fi = arr.indexOf(fromId), ti = arr.indexOf(toId);
+      if (fi < 0 || ti < 0) return prev;
+      arr.splice(fi, 1); arr.splice(ti, 0, fromId);
+      localStorage.setItem(LS_CHIP_KEY, JSON.stringify(arr));
+      return arr;
+    });
+  };
+
+  const statusPriority = Object.fromEntries(chipOrder.map((id, i) => [id, i]));
+
   const fetchJobs = () =>
     fetch("/api/cutting-jobs", { cache: "no-store" })
       .then((r) => r.json())
@@ -498,38 +521,63 @@ export default function CuttingJobsPage() {
       <div className="px-6 py-6 space-y-4 max-w-7xl">
         {/* Status filter chips */}
         {(() => {
-          const chips: { key: CuttingJob["status"] | "all"; label: string; color: string; accent: string }[] = [
-            { key: "all", label: "ทั้งหมด", color: "#888", accent: "var(--color-muted)" },
-            { key: "pending", label: "รอตัด", color: "#f97316", accent: "#f97316" },
-            { key: "cutting", label: "กำลังตัด", color: "#22c55e", accent: "#22c55e" },
-            { key: "done", label: "เสร็จแล้ว", color: "#6366f1", accent: "#6366f1" },
-          ];
-          const countOf = (k: CuttingJob["status"] | "all") =>
-            k === "all" ? jobs.length : jobs.filter((j) => j.status === k).length;
+          const STATUS_META: Record<CuttingJob["status"], { label: string; accent: string }> = {
+            pending: { label: "รอตัด", accent: "#f97316" },
+            cutting: { label: "กำลังตัด", accent: "#22c55e" },
+            done:    { label: "เสร็จแล้ว", accent: "#6366f1" },
+          };
+          const displayedCount = filterStatus === "all" ? jobs.length : jobs.filter(j => j.status === filterStatus).length;
           return (
             <div className="rounded-[var(--radius-lg)] border border-border bg-surface px-4 py-3">
               <div className="mb-2 flex items-center gap-2 text-xs text-muted-2">
                 <span className="font-medium">กรองสถานะ:</span>
-                <span>{filterStatus === "all" ? jobs.length : jobs.filter((j) => j.status === filterStatus).length} / {jobs.length} รายการ</span>
+                <span>{displayedCount} / {jobs.length} รายการ</span>
               </div>
               <div className="flex flex-wrap gap-2">
-                {chips.map((chip) => {
-                  const active = filterStatus === chip.key;
-                  const count = countOf(chip.key);
+                {/* chip ทั้งหมด */}
+                <button
+                  onClick={() => setFilterStatus("all")}
+                  className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all border"
+                  style={filterStatus === "all"
+                    ? { backgroundColor: "#88888822", color: "#888", borderColor: "#888" }
+                    : { backgroundColor: "#88888810", color: "#888", borderColor: "#88888840", opacity: 0.6 }}
+                >
+                  <span className="h-1.5 w-1.5 rounded-full shrink-0 bg-[#888]" />
+                  ทั้งหมด <span className="opacity-70">{jobs.length}</span>
+                </button>
+
+                {/* chip แต่ละสถานะ — draggable */}
+                {chipOrder.map((key) => {
+                  const meta = STATUS_META[key];
+                  const count = jobs.filter(j => j.status === key).length;
+                  const active = filterStatus === key;
                   return (
-                    <button
-                      key={chip.key}
-                      onClick={() => setFilterStatus(chip.key)}
-                      className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all"
-                      style={active
-                        ? { backgroundColor: `${chip.accent}22`, color: chip.accent, border: `1.5px solid ${chip.accent}` }
-                        : { backgroundColor: `${chip.accent}10`, color: chip.accent, border: `1.5px solid ${chip.accent}40`, opacity: 0.6 }
-                      }
+                    <div
+                      key={key}
+                      draggable
+                      onDragStart={e => { dragChip.current = key; e.dataTransfer.effectAllowed = "move"; }}
+                      onDragEnd={() => { dragChip.current = null; }}
+                      onDragOver={e => e.preventDefault()}
+                      onDrop={e => {
+                        e.preventDefault();
+                        if (dragChip.current && dragChip.current !== key) reorderChips(dragChip.current, key);
+                        dragChip.current = null;
+                      }}
+                      className="cursor-grab active:cursor-grabbing select-none"
                     >
-                      <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: chip.accent }} />
-                      {chip.label}
-                      <span className="ml-0.5 opacity-70">{count}</span>
-                    </button>
+                      <button
+                        onClick={() => setFilterStatus(active ? "all" : key)}
+                        className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all border"
+                        style={active
+                          ? { backgroundColor: `${meta.accent}22`, color: meta.accent, borderColor: meta.accent }
+                          : { backgroundColor: `${meta.accent}10`, color: meta.accent, borderColor: `${meta.accent}40`, opacity: 0.6 }}
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: meta.accent }} />
+                        {meta.label}
+                        <span className="ml-0.5 opacity-70">{count}</span>
+                        {active && <X className="h-2.5 w-2.5 ml-0.5" />}
+                      </button>
+                    </div>
                   );
                 })}
               </div>
@@ -539,7 +587,10 @@ export default function CuttingJobsPage() {
 
         {/* Jobs Card List */}
         {(() => {
-          const displayed = filterStatus === "all" ? jobs : jobs.filter((j) => j.status === filterStatus);
+          const base = filterStatus === "all" ? jobs : jobs.filter(j => j.status === filterStatus);
+          const displayed = [...base].sort((a, b) =>
+            (statusPriority[a.status] ?? 99) - (statusPriority[b.status] ?? 99)
+          );
           return (
         <div className="flex flex-col gap-2">
           {displayed.length === 0 ? (
