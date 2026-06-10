@@ -20,7 +20,7 @@ import { useAuth } from "@/context/auth-context";
 import { canAccess } from "@/lib/auth";
 
 const nav = [
-  { href: "/", label: "ภาพรวม", icon: LayoutDashboard, menuKey: null as null | string, adminOnly: false },
+  { href: "/", label: "ภาพรวม", icon: LayoutDashboard, menuKey: "overview" as null | string, adminOnly: false },
   { href: "/orders", label: "ออเดอร์", icon: ClipboardList, menuKey: "orders", adminOnly: false },
   { href: "/queue/design", label: "ออกแบบ", icon: Palette, menuKey: "queue", adminOnly: false },
   { href: "/queue/production", label: "ผลิต", icon: Factory, menuKey: "queue", adminOnly: false },

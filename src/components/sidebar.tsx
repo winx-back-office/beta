@@ -21,7 +21,7 @@ import { useAuth } from "@/context/auth-context";
 import { canAccess } from "@/lib/auth";
 
 const nav = [
-  { href: "/", label: "ภาพรวม", icon: LayoutDashboard, badge: null as null | string, menuKey: null as null | string, adminOnly: false },
+  { href: "/", label: "ภาพรวม", icon: LayoutDashboard, badge: null as null | string, menuKey: "overview" as null | string, adminOnly: false },
   { href: "/orders", label: "รายการออเดอร์", icon: ClipboardList, badge: "orders", menuKey: "orders", adminOnly: false },
   { href: "/queue/design", label: "คิวออกแบบ", icon: Palette, badge: "design", menuKey: "queue", adminOnly: false },
   { href: "/queue/production", label: "คิวผลิต", icon: Factory, badge: "production", menuKey: "queue", adminOnly: false },
