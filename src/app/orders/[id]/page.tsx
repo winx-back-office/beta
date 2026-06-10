@@ -133,6 +133,7 @@ export default function OrderDetailPage() {
                 });
                 setPaymentRequests(prev => prev.map(p => p.token === pr.token ? { ...p, status: "rejected" } : p));
               }}
+              onSlipClick={setSlipPreview}
             />
           ))}
         </div>
@@ -1048,10 +1049,12 @@ function SlipApprovalCard({
   pr,
   onApprove,
   onReject,
+  onSlipClick,
 }: {
   pr: PaymentRequestLocal;
   onApprove: (amount: number) => Promise<void>;
   onReject: () => Promise<void>;
+  onSlipClick: (url: string) => void;
 }) {
   const [approvedAmount, setApprovedAmount] = useState(pr.amount);
   const [approving, setApproving] = useState(false);
@@ -1064,7 +1067,7 @@ function SlipApprovalCard({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-yellow-400">สลิปรอตรวจสอบ</h2>
       </div>
       {pr.slipUrl && (
-        <button onClick={() => setSlipPreview(pr.slipUrl)} className="block mb-4">
+        <button onClick={() => onSlipClick(pr.slipUrl!)} className="block mb-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={pr.slipUrl}
