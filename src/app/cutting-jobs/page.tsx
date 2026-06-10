@@ -24,9 +24,9 @@ interface ShirtStyle {
 // Status Badge
 // ──────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: CuttingJob["status"] }) {
-  if (status === "pending") return <Badge tone="neutral">รอตัด</Badge>;
-  if (status === "cutting") return <Badge tone="warn">กำลังตัด ✂️</Badge>;
-  return <Badge tone="success">เสร็จแล้ว</Badge>;
+  if (status === "pending") return <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium" style={{ color: "#888", borderColor: "#88884040", backgroundColor: "#88888815" }}>รอตัด</span>;
+  if (status === "cutting") return <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium" style={{ color: "#f97316", borderColor: "#f9731640", backgroundColor: "#f9731615" }}>กำลังตัด</span>;
+  return <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium" style={{ color: "#22c55e", borderColor: "#22c55e40", backgroundColor: "#22c55e15" }}>เสร็จแล้ว</span>;
 }
 
 // ──────────────────────────────────────────────────────
@@ -522,9 +522,9 @@ export default function CuttingJobsPage() {
         {/* Status filter chips */}
         {(() => {
           const STATUS_META: Record<CuttingJob["status"], { label: string; accent: string }> = {
-            pending: { label: "รอตัด", accent: "#f97316" },
-            cutting: { label: "กำลังตัด", accent: "#22c55e" },
-            done:    { label: "เสร็จแล้ว", accent: "#6366f1" },
+            pending: { label: "รอตัด", accent: "#888888" },
+            cutting: { label: "กำลังตัด", accent: "#f97316" },
+            done:    { label: "เสร็จแล้ว", accent: "#22c55e" },
           };
           const displayedCount = filterStatus === "all" ? jobs.length : jobs.filter(j => j.status === filterStatus).length;
           return (
@@ -644,7 +644,7 @@ export default function CuttingJobsPage() {
                 {job.cutterName && <span>ช่าง <span className="text-foreground font-medium">{job.cutterName}</span></span>}
                 {job.startedAt && <span>รับงาน {formatDateTime(job.startedAt)}</span>}
                 {job.note && (
-                  <span className="text-muted-2">📝 {job.note}</span>
+                  <span className="text-muted-2 border-l-2 border-accent pl-2">{job.note}</span>
                 )}
               </div>
             </div>

@@ -613,6 +613,35 @@ export default function OrdersPage() {
             ) : displayedOrders.map((o) => {
               const s = deriveStatus(o, designMap, prodMap);
               const balance = orderBalance(o);
+              const isDelivered = s.label === "จัดส่งเรียบร้อย";
+              if (isDelivered) {
+                return (
+                  <div
+                    key={o.id}
+                    className="group relative rounded-[var(--radius-lg)] border border-border px-5 py-2.5 transition-colors hover:bg-surface-2"
+                    style={{ backgroundColor: "color-mix(in srgb, #888 8%, var(--color-surface))", borderLeft: "3px solid #666" }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Link href={`/orders/${o.id}`} className="font-mono text-xs text-muted-2 hover:text-accent shrink-0">
+                        {o.id}
+                      </Link>
+                      <Link href={`/orders/${o.id}`} className="text-sm font-medium text-muted hover:text-foreground truncate flex-1">
+                        {o.teamName}
+                      </Link>
+                      <span className="shrink-0 rounded-full border border-[#66666640] bg-[#66666615] px-2.5 py-0.5 text-xs font-medium text-muted-2">
+                        จัดส่งเรียบร้อย
+                      </span>
+                      <button
+                        onClick={() => onDelete(o.id)}
+                        className="invisible group-hover:visible rounded p-1 text-muted hover:bg-red-50 hover:text-red-500 transition-colors"
+                        title="ลบออเดอร์"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
               return (
                 <div
                   key={o.id}

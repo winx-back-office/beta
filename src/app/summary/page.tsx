@@ -15,9 +15,11 @@ interface CuttingJob {
 
 // ===== สถานะออกแบบ =====
 const DESIGN_COLS = [
-  { id: "wait_design", label: "รอออกแบบ", color: "bg-blue-500" },
-  { id: "designing", label: "กำลังออกแบบ", color: "bg-accent" },
-  { id: "send_design", label: "ส่งแบบแล้ว", color: "bg-green-500" },
+  { id: "wait_design", label: "รอออกแบบ",     color: "bg-blue-500" },
+  { id: "designing",  label: "กำลังออกแบบ",   color: "bg-[var(--accent)]" },
+  { id: "revise",     label: "รอแก้ไข",        color: "bg-yellow-500" },
+  { id: "approve",    label: "รออนุมัติ",      color: "bg-purple-500" },
+  { id: "done",       label: "เสร็จสิ้น",      color: "bg-green-500" },
 ];
 
 // ===== สถานะผลิต =====
