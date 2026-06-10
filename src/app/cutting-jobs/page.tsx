@@ -495,83 +495,65 @@ export default function CuttingJobsPage() {
       />
 
       <div className="px-6 py-6 space-y-6 max-w-7xl">
-        {/* Jobs Table */}
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-surface-2">
-                  <th className="px-4 py-3 text-left text-xs text-muted-2">รหัส</th>
-                  <th className="px-4 py-3 text-left text-xs text-muted-2">ออเดอร์/ทีม</th>
-                  <th className="px-4 py-3 text-left text-xs text-muted-2">ทรงเสื้อ</th>
-                  <th className="px-4 py-3 text-left text-xs text-muted-2">ปก</th>
-                  <th className="px-4 py-3 text-right text-xs text-muted-2">จำนวนตัว</th>
-                  <th className="px-4 py-3 text-right text-xs text-muted-2">ชิ้นแพทเทิร์น</th>
-                  <th className="px-4 py-3 text-left text-xs text-muted-2">สถานะ</th>
-                  <th className="px-4 py-3 text-left text-xs text-muted-2">ช่าง</th>
-                  <th className="px-4 py-3 text-left text-xs text-muted-2">เวลารับ</th>
-                  <th className="px-4 py-3 text-left text-xs text-muted-2">หมายเหตุ</th>
-                  <th className="px-4 py-3 text-center text-xs text-muted-2">QR</th>
-                  <th className="px-4 py-3 text-right text-xs text-muted-2">จัดการ</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {jobs.length === 0 && (
-                  <tr>
-                    <td colSpan={12} className="px-4 py-8 text-center text-muted">
-                      ยังไม่มีใบงาน — กด &quot;สร้างใบงานใหม่&quot; เพื่อเริ่ม
-                    </td>
-                  </tr>
+        {/* Jobs Card List */}
+        <div className="flex flex-col gap-2">
+          {jobs.length === 0 ? (
+            <div className="py-12 text-center text-sm text-muted">
+              ยังไม่มีใบงาน — กดปุ่ม &quot;สร้างใบงานใหม่&quot; เพื่อเริ่ม
+            </div>
+          ) : jobs.map((job) => (
+            <div
+              key={job.id}
+              className="group relative rounded-[var(--radius-lg)] border border-border bg-surface px-5 py-4 transition-colors hover:bg-surface-2"
+            >
+              {/* Row 1: ID + ทีม + สถานะ + actions */}
+              <div className="flex items-center gap-3 mb-2">
+                <span className="font-mono text-xs text-accent shrink-0">{job.id}</span>
+                <div className="min-w-0 flex-1">
+                  <span className="font-semibold truncate">{job.teamName}</span>
+                  <span className="ml-2 text-xs text-muted-2">{job.orderId}</span>
+                </div>
+                <StatusBadge status={job.status} />
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => setQrJob(job)}
+                    className="rounded p-1.5 text-muted hover:bg-surface-3 hover:text-foreground transition-colors"
+                    title="แสดง QR"
+                  >
+                    <QrCode className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setEditJob(job)}
+                    className="rounded p-1.5 text-muted hover:bg-surface-3 hover:text-foreground transition-colors"
+                    title="แก้ไขใบงาน"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => deleteJob(job)}
+                    disabled={deleting === job.id}
+                    className="rounded p-1.5 text-muted hover:bg-red-500/10 hover:text-red-400 transition-colors disabled:opacity-50"
+                    title="ลบใบงาน"
+                  >
+                    {deleting === job.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
+              </div>
+              {/* Row 2: ข้อมูลงาน */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+                <span>{job.shirtType}</span>
+                {job.collarType !== job.shirtType && <span className="text-muted-2">· {job.collarType}</span>}
+                <span>{job.quantity} ตัว</span>
+                <span>ชิ้นแพทเทิร์น <span className="font-bold text-accent">{job.patternPieces}</span></span>
+                {job.cutterName && <span>ช่าง <span className="text-foreground font-medium">{job.cutterName}</span></span>}
+                {job.startedAt && <span>รับงาน {formatDateTime(job.startedAt)}</span>}
+                {job.note && (
+                  <span className="text-muted-2">📝 {job.note}</span>
                 )}
-                {jobs.map((job) => (
-                  <tr key={job.id} className="hover:bg-surface-2">
-                    <td className="px-4 py-3 font-mono text-xs">{job.id}</td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{job.teamName}</div>
-                      <div className="text-xs text-muted">{job.orderId}</div>
-                    </td>
-                    <td className="px-4 py-3 text-xs">{job.shirtType}</td>
-                    <td className="px-4 py-3 text-xs">{job.collarType}</td>
-                    <td className="px-4 py-3 text-right font-medium">{job.quantity}</td>
-                    <td className="px-4 py-3 text-right font-bold text-accent">{job.patternPieces}</td>
-                    <td className="px-4 py-3"><StatusBadge status={job.status} /></td>
-                    <td className="px-4 py-3 text-xs text-muted">{job.cutterName ?? "-"}</td>
-                    <td className="px-4 py-3 text-xs text-muted">{formatDateTime(job.startedAt)}</td>
-                    <td className="px-4 py-3 text-xs text-muted max-w-[160px] truncate" title={job.note}>{job.note || "-"}</td>
-                    <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => setQrJob(job)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted hover:bg-surface-3 hover:text-foreground"
-                        title="แสดง QR"
-                      >
-                        <QrCode className="h-4 w-4" />
-                      </button>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => setEditJob(job)}
-                          className="rounded p-1.5 text-muted hover:bg-surface-3 hover:text-foreground transition-colors"
-                          title="แก้ไขใบงาน"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => deleteJob(job)}
-                          disabled={deleting === job.id}
-                          className="rounded p-1.5 text-muted hover:bg-red-500/10 hover:text-red-400 transition-colors disabled:opacity-50"
-                          title="ลบใบงาน"
-                        >
-                          {deleting === job.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+              </div>
+            </div>
+          ))}
+        </div>
 
         {/* Cutter Management */}
         <CutterManagementCard />
