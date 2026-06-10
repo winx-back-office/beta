@@ -36,7 +36,7 @@ function toJob(row: Record<string, unknown>): CuttingJob {
     shirtType: row.shirt_type as string,
     collarType: row.collar_type as string,
     quantity: row.quantity as number,
-    patternPieces: row.pattern_pieces as number,
+    patternPieces: (row.pattern_pieces as number) || getPatternPieces(row.shirt_type as string, row.collar_type as string) * (row.quantity as number),
     token: row.token as string,
     status: row.status as CuttingJob["status"],
     cutterId: row.cutter_id as string | null,
@@ -56,7 +56,8 @@ function getPatternPieces(shirtType: string, collarType: string): number {
     "PRO JACKET ผ้าไมโครพีช|PRO JACKET ผ้าไมโครพีช": 17,
     "PRO JACKET ผ้าวอร์ม|PRO JACKET ผ้าวอร์ม": 20,
   };
-  return map[`${shirtType}|${collarType}`] ?? 0;
+  const key = `${shirtType.toUpperCase()}|${collarType}`;
+  return map[key] ?? 0;
 }
 
 export async function GET() {
