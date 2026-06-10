@@ -510,6 +510,7 @@ export default function CuttingJobsPage() {
                   <th className="px-4 py-3 text-left text-xs text-muted-2">สถานะ</th>
                   <th className="px-4 py-3 text-left text-xs text-muted-2">ช่าง</th>
                   <th className="px-4 py-3 text-left text-xs text-muted-2">เวลารับ</th>
+                  <th className="px-4 py-3 text-left text-xs text-muted-2">หมายเหตุ</th>
                   <th className="px-4 py-3 text-center text-xs text-muted-2">QR</th>
                   <th className="px-4 py-3 text-right text-xs text-muted-2">จัดการ</th>
                 </tr>
@@ -517,7 +518,7 @@ export default function CuttingJobsPage() {
               <tbody className="divide-y divide-border">
                 {jobs.length === 0 && (
                   <tr>
-                    <td colSpan={11} className="px-4 py-8 text-center text-muted">
+                    <td colSpan={12} className="px-4 py-8 text-center text-muted">
                       ยังไม่มีใบงาน — กด &quot;สร้างใบงานใหม่&quot; เพื่อเริ่ม
                     </td>
                   </tr>
@@ -536,6 +537,7 @@ export default function CuttingJobsPage() {
                     <td className="px-4 py-3"><StatusBadge status={job.status} /></td>
                     <td className="px-4 py-3 text-xs text-muted">{job.cutterName ?? "-"}</td>
                     <td className="px-4 py-3 text-xs text-muted">{formatDateTime(job.startedAt)}</td>
+                    <td className="px-4 py-3 text-xs text-muted max-w-[160px] truncate" title={job.note}>{job.note || "-"}</td>
                     <td className="px-4 py-3 text-center">
                       <button
                         onClick={() => setQrJob(job)}
