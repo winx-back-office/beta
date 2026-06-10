@@ -8,36 +8,45 @@ import {
   ClipboardList,
   Palette,
   Factory,
-  Search,
   TableProperties,
   Shirt,
   Layers,
+  Search,
   Scissors,
+  Users,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/auth-context";
+import { canAccess } from "@/lib/auth";
 
 const nav = [
-  { href: "/", label: "ภาพรวม", icon: LayoutDashboard, badge: null as null | string },
-  { href: "/orders", label: "รายการออเดอร์", icon: ClipboardList, badge: "orders" as null | string },
-  { href: "/queue/design", label: "คิวออกแบบ", icon: Palette, badge: "design" },
-  { href: "/queue/production", label: "คิวผลิต", icon: Factory, badge: "production" },
-  { href: "/production-tables", label: "ตารางสั่งผลิต", icon: TableProperties, badge: "prod-table" },
-  { href: "/cutting-jobs", label: "ใบงานตัด", icon: Scissors, badge: null },
-  { href: "/shirt-styles", label: "ข้อมูลทรงเสื้อ", icon: Shirt, badge: null },
-  { href: "/fabrics", label: "ข้อมูลเนื้อผ้า", icon: Layers, badge: null },
-  { href: "/track", label: "ติดตามสถานะ (ลูกค้า)", icon: Search, badge: null },
+  { href: "/", label: "ภาพรวม", icon: LayoutDashboard, badge: null as null | string, menuKey: null as null | string, adminOnly: false },
+  { href: "/orders", label: "รายการออเดอร์", icon: ClipboardList, badge: "orders", menuKey: "orders", adminOnly: false },
+  { href: "/queue/design", label: "คิวออกแบบ", icon: Palette, badge: "design", menuKey: "queue", adminOnly: false },
+  { href: "/queue/production", label: "คิวผลิต", icon: Factory, badge: "production", menuKey: "queue", adminOnly: false },
+  { href: "/production-tables", label: "ตารางสั่งผลิต", icon: TableProperties, badge: "prod-table", menuKey: "production-tables", adminOnly: false },
+  { href: "/cutting-jobs", label: "ใบงานตัด", icon: Scissors, badge: null, menuKey: "cutting-jobs", adminOnly: false },
+  { href: "/shirt-styles", label: "ข้อมูลทรงเสื้อ", icon: Shirt, badge: null, menuKey: null, adminOnly: true },
+  { href: "/fabrics", label: "ข้อมูลเนื้อผ้า", icon: Layers, badge: null, menuKey: null, adminOnly: true },
+  { href: "/track", label: "ติดตามสถานะ (ลูกค้า)", icon: Search, badge: null, menuKey: null, adminOnly: false },
+  { href: "/admin/employees", label: "จัดการพนักงาน", icon: Users, badge: null, menuKey: null, adminOnly: true },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
 
-  if (pathname.startsWith("/cut/") || pathname.startsWith("/pay/") || pathname === "/track") return null;
   const [slipCount, setSlipCount] = useState(0);
   const [designWaitCount, setDesignWaitCount] = useState(0);
   const [productionWaitCount, setProductionWaitCount] = useState(0);
   const [prodTableNewCount, setProdTableNewCount] = useState(0);
 
+  const isPublic = pathname.startsWith("/cut/") || pathname.startsWith("/pay/") || pathname === "/track" || pathname === "/login";
+  if (isPublic) return null;
+
   useEffect(() => {
+    if (!user) return;
     const fetchSlips = () =>
       fetch("/api/payment-requests", { cache: "no-store" })
         .then((r) => r.json())
@@ -69,13 +78,18 @@ export function Sidebar() {
     fetchSlips();
     fetchQueues();
 
-    // อัพเดททันทีเมื่อมีการเปลี่ยนแปลงออเดอร์ในแท็บเดียวกันหรือแท็บอื่น
     const channel = new BroadcastChannel("winx:orders");
     channel.onmessage = () => { fetchSlips(); fetchQueues(); };
-
     const interval = setInterval(() => { fetchSlips(); fetchQueues(); }, 30_000);
     return () => { clearInterval(interval); channel.close(); };
-  }, []);
+  }, [user]);
+
+  const visibleNav = nav.filter(({ menuKey, adminOnly }) => {
+    if (!user) return false;
+    if (adminOnly) return user.role === "admin";
+    if (menuKey === null) return true; // overview, track — always visible
+    return canAccess(user, menuKey);
+  });
 
   return (
     <aside className="sticky top-0 hidden h-screen w-14 shrink-0 flex-col border-r border-border bg-surface min-[720px]:flex min-[720px]:w-64">
@@ -94,9 +108,8 @@ export function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 space-y-1 px-1.5 py-2 min-[720px]:px-3">
-        {nav.map(({ href, label, icon: Icon, badge }) => {
-          const active =
-            href === "/" ? pathname === "/" : pathname.startsWith(href);
+        {visibleNav.map(({ href, label, icon: Icon, badge }) => {
+          const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           const showBadge = badge === "orders" && slipCount > 0;
           const showDesignBadge = badge === "design" && designWaitCount > 0;
           const showProductionBadge = badge === "production" && productionWaitCount > 0;
@@ -142,11 +155,23 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="hidden border-t border-border px-6 py-4 min-[720px]:block">
-        <div className="text-[11px] text-muted-2">WINX STUDIO</div>
-        <div className="text-[11px] text-muted-2">Looking good at every stage</div>
-        <div className="mt-1 text-[11px] font-medium text-accent">Beta 1.2.0.6</div>
+      {/* Footer: user info + logout */}
+      <div className="border-t border-border px-3 py-3 min-[720px]:px-4">
+        <div className="hidden min-[720px]:flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <div className="truncate text-sm font-medium">{user?.name ?? "—"}</div>
+            <div className="text-[11px] text-muted-2">{user?.role === "admin" ? "Admin" : "พนักงาน"}</div>
+          </div>
+          <button onClick={logout} title="ออกจากระบบ" className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-foreground">
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
+        {/* Mobile: icon only */}
+        <div className="flex min-[720px]:hidden justify-center">
+          <button onClick={logout} title="ออกจากระบบ" className="rounded-lg p-1.5 text-muted hover:bg-surface-2">
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </aside>
   );

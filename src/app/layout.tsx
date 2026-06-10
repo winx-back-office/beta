@@ -4,6 +4,7 @@ import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
 import { BottomNav } from "@/components/bottom-nav";
 import { ViewportBadge } from "@/components/viewport-badge";
+import { AuthProvider } from "@/context/auth-context";
 
 const notoThai = Noto_Sans_Thai({
   variable: "--font-noto-thai",
@@ -32,11 +33,13 @@ export default function RootLayout({
       className={`${notoThai.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
-        <div className="flex min-h-screen">
-          <Sidebar />
-          <main className="flex-1 min-w-0 pb-16 min-[720px]:pb-0">{children}</main>
-        </div>
-        <BottomNav />
+        <AuthProvider>
+          <div className="flex min-h-screen">
+            <Sidebar />
+            <main className="flex-1 min-w-0 pb-16 min-[720px]:pb-0">{children}</main>
+          </div>
+          <BottomNav />
+        </AuthProvider>
         <ViewportBadge />
       </body>
     </html>

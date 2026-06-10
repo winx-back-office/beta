@@ -13,40 +13,54 @@ import {
   Shirt,
   Layers,
   Search,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/auth-context";
+import { canAccess } from "@/lib/auth";
 
 const nav = [
-  { href: "/", label: "ภาพรวม", icon: LayoutDashboard },
-  { href: "/orders", label: "ออเดอร์", icon: ClipboardList },
-  { href: "/queue/design", label: "ออกแบบ", icon: Palette },
-  { href: "/queue/production", label: "ผลิต", icon: Factory },
-  { href: "/production-tables", label: "ตารางผลิต", icon: TableProperties },
-  { href: "/cutting-jobs", label: "ใบตัด", icon: Scissors },
-  { href: "/shirt-styles", label: "ทรงเสื้อ", icon: Shirt },
-  { href: "/fabrics", label: "เนื้อผ้า", icon: Layers },
-  { href: "/track", label: "ติดตาม", icon: Search },
+  { href: "/", label: "ภาพรวม", icon: LayoutDashboard, menuKey: null as null | string, adminOnly: false },
+  { href: "/orders", label: "ออเดอร์", icon: ClipboardList, menuKey: "orders", adminOnly: false },
+  { href: "/queue/design", label: "ออกแบบ", icon: Palette, menuKey: "queue", adminOnly: false },
+  { href: "/queue/production", label: "ผลิต", icon: Factory, menuKey: "queue", adminOnly: false },
+  { href: "/production-tables", label: "ตารางผลิต", icon: TableProperties, menuKey: "production-tables", adminOnly: false },
+  { href: "/cutting-jobs", label: "ใบตัด", icon: Scissors, menuKey: "cutting-jobs", adminOnly: false },
+  { href: "/shirt-styles", label: "ทรงเสื้อ", icon: Shirt, menuKey: null, adminOnly: true },
+  { href: "/fabrics", label: "เนื้อผ้า", icon: Layers, menuKey: null, adminOnly: true },
+  { href: "/track", label: "ติดตาม", icon: Search, menuKey: null, adminOnly: false },
+  { href: "/admin/employees", label: "พนักงาน", icon: Users, menuKey: null, adminOnly: true },
 ];
 
 export function BottomNav() {
   const pathname = usePathname();
+  const { user } = useAuth();
   const [slipCount, setSlipCount] = useState(0);
 
+  const isPublic = pathname.startsWith("/cut/") || pathname.startsWith("/pay/") || pathname === "/track" || pathname === "/login";
+  if (isPublic) return null;
+
   useEffect(() => {
+    if (!user) return;
     fetch("/api/payment-requests", { cache: "no-store" })
       .then((r) => r.json())
       .then((data: { status: string }[]) =>
         setSlipCount(data.filter((pr) => pr.status === "slip_uploaded").length)
       )
       .catch(() => {});
-  }, []);
+  }, [user]);
 
-  if (pathname.startsWith("/cut/") || pathname.startsWith("/pay/") || pathname === "/track") return null;
+  const visibleNav = nav.filter(({ menuKey, adminOnly }) => {
+    if (!user) return false;
+    if (adminOnly) return user.role === "admin";
+    if (menuKey === null) return true;
+    return canAccess(user, menuKey);
+  });
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 flex min-[720px]:hidden border-t border-border bg-surface/95 backdrop-blur-sm">
       <div className="flex w-full overflow-x-auto scrollbar-none">
-        {nav.map(({ href, label, icon: Icon }) => {
+        {visibleNav.map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           const hasBadge = href === "/orders" && slipCount > 0;
           return (
