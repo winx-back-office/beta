@@ -160,7 +160,7 @@ export function Sidebar() {
       <div className="hidden min-[720px]:block px-6 pb-2 pt-3">
         <div className="text-[11px] text-muted-2">WINX STUDIO</div>
         <div className="text-[11px] text-muted-2">Looking good at every stage</div>
-        <div className="mt-0.5 text-[11px] font-medium text-accent">Beta 1.2.1</div>
+        <div className="mt-0.5 text-[11px] font-medium text-accent">Beta 1.3.0</div>
       </div>
 
       {/* Footer: user info + logout */}
