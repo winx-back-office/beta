@@ -32,7 +32,6 @@ function toOrder(row: Record<string, unknown>): Order {
     hasProductionTable: Boolean(row.has_production_table),
     productionTableNew: Boolean(row.production_table_new),
     color: row.color as string,
-    note: row.note as string,
   };
 }
 
@@ -57,7 +56,6 @@ function toRow(body: Partial<Order>) {
   if (body.hasProductionTable !== undefined) row.has_production_table = body.hasProductionTable;
   if (body.productionTableNew !== undefined) row.production_table_new = body.productionTableNew;
   if (body.color !== undefined) row.color = body.color;
-  if (body.note !== undefined) row.note = body.note;
   return row;
 }
 
