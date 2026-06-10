@@ -15,6 +15,7 @@ import {
   Scissors,
   Users,
   LogOut,
+  BarChart2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
@@ -22,6 +23,7 @@ import { canAccess } from "@/lib/auth";
 
 const nav = [
   { href: "/", label: "ภาพรวม", icon: LayoutDashboard, badge: null as null | string, menuKey: "overview" as null | string, adminOnly: false },
+  { href: "/summary", label: "สรุปภาพรวมงาน", icon: BarChart2, badge: null, menuKey: "summary", adminOnly: false },
   { href: "/orders", label: "รายการออเดอร์", icon: ClipboardList, badge: "orders", menuKey: "orders", adminOnly: false },
   { href: "/queue/design", label: "คิวออกแบบ", icon: Palette, badge: "design", menuKey: "queue", adminOnly: false },
   { href: "/queue/production", label: "คิวผลิต", icon: Factory, badge: "production", menuKey: "queue", adminOnly: false },

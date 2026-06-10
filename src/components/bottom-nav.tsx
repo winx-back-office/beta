@@ -14,6 +14,7 @@ import {
   Layers,
   Search,
   Users,
+  BarChart2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
@@ -21,6 +22,7 @@ import { canAccess } from "@/lib/auth";
 
 const nav = [
   { href: "/", label: "ภาพรวม", icon: LayoutDashboard, menuKey: "overview" as null | string, adminOnly: false },
+  { href: "/summary", label: "สรุปงาน", icon: BarChart2, menuKey: "summary", adminOnly: false },
   { href: "/orders", label: "ออเดอร์", icon: ClipboardList, menuKey: "orders", adminOnly: false },
   { href: "/queue/design", label: "ออกแบบ", icon: Palette, menuKey: "queue", adminOnly: false },
   { href: "/queue/production", label: "ผลิต", icon: Factory, menuKey: "queue", adminOnly: false },
