@@ -304,14 +304,82 @@ export default function EmployeesPage() {
       )}
 
       {/* Admin card */}
-      <div className="mt-4 rounded-xl border border-border bg-surface-2 p-4">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="h-4 w-4 text-accent" />
-          <span className="text-sm font-medium">Admin</span>
-          <span className="ml-auto text-xs text-muted-2">PIN ตั้งใน .env</span>
-        </div>
-        <p className="mt-1 text-xs text-muted-2">เข้าถึงได้ทุกเมนู</p>
+      <AdminPinCard />
+    </div>
+  );
+}
+
+function AdminPinCard() {
+  const [open, setOpen] = useState(false);
+  const [currentPin, setCurrentPin] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  const handleSave = async () => {
+    if (newPin.length !== 6) { setMsg({ type: "err", text: "PIN ใหม่ต้องมี 6 หลัก" }); return; }
+    if (newPin !== confirmPin) { setMsg({ type: "err", text: "PIN ใหม่ไม่ตรงกัน" }); return; }
+    setSaving(true);
+    setMsg(null);
+    const res = await fetch("/api/admin/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ currentPin, newPin }),
+    });
+    const json = await res.json();
+    setSaving(false);
+    if (!res.ok) { setMsg({ type: "err", text: json.error }); return; }
+    setMsg({ type: "ok", text: "เปลี่ยน PIN สำเร็จ" });
+    setCurrentPin(""); setNewPin(""); setConfirmPin("");
+    setTimeout(() => { setOpen(false); setMsg(null); }, 1500);
+  };
+
+  return (
+    <div className="mt-4 rounded-xl border border-border bg-surface-2 p-4">
+      <div className="flex items-center gap-2">
+        <ShieldCheck className="h-4 w-4 text-accent" />
+        <span className="text-sm font-medium">Admin</span>
+        <button
+          onClick={() => { setOpen((o) => !o); setMsg(null); }}
+          className="ml-auto flex items-center gap-1 rounded-lg border border-border bg-surface px-2.5 py-1 text-xs hover:bg-surface-2"
+        >
+          <Pencil className="h-3 w-3" /> เปลี่ยน PIN
+        </button>
       </div>
+      <p className="mt-1 text-xs text-muted-2">เข้าถึงได้ทุกเมนู</p>
+
+      {open && (
+        <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-2">PIN ปัจจุบัน</label>
+            <PinInput value={currentPin} onChange={setCurrentPin} />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-2">PIN ใหม่</label>
+            <PinInput value={newPin} onChange={setNewPin} />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-2">ยืนยัน PIN ใหม่</label>
+            <PinInput value={confirmPin} onChange={setConfirmPin} />
+          </div>
+          {msg && (
+            <p className={`text-xs ${msg.type === "ok" ? "text-green-500" : "text-red-500"}`}>{msg.text}</p>
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:opacity-90 disabled:opacity-50"
+            >
+              <Check className="h-4 w-4" /> {saving ? "กำลังบันทึก..." : "บันทึก"}
+            </button>
+            <button onClick={() => { setOpen(false); setMsg(null); }} className="rounded-lg border border-border px-4 py-2 text-sm hover:bg-surface-2">
+              ยกเลิก
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

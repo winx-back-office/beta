@@ -18,7 +18,18 @@ export async function POST(req: NextRequest) {
   const { pin } = await req.json();
   if (!pin) return NextResponse.json({ error: "กรุณาใส่ PIN" }, { status: 400 });
 
-  if (pin === process.env.ADMIN_PIN) {
+  // ตรวจ admin PIN — เช็ค DB ก่อน fallback env
+  const { data: storedPin } = await db()
+    .from("app_settings")
+    .select("value")
+    .eq("key", "admin_pin_hash")
+    .maybeSingle();
+
+  const isAdmin = storedPin
+    ? storedPin.value === hashPin(pin)
+    : pin === process.env.ADMIN_PIN;
+
+  if (isAdmin) {
     return NextResponse.json({
       user: {
         id: "admin",
