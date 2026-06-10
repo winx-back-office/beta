@@ -523,10 +523,10 @@ export default function CuttingJobsPage() {
                       className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all"
                       style={active
                         ? { backgroundColor: `${chip.accent}22`, color: chip.accent, border: `1.5px solid ${chip.accent}` }
-                        : { backgroundColor: "transparent", color: "var(--color-muted)", border: "1.5px solid var(--color-border)" }
+                        : { backgroundColor: `${chip.accent}10`, color: chip.accent, border: `1.5px solid ${chip.accent}40`, opacity: 0.6 }
                       }
                     >
-                      <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: active ? chip.accent : "#888" }} />
+                      <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: chip.accent }} />
                       {chip.label}
                       <span className="ml-0.5 opacity-70">{count}</span>
                     </button>
