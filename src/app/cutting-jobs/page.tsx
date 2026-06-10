@@ -424,6 +424,7 @@ export default function CuttingJobsPage() {
   const [marking, setMarking] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [editJob, setEditJob] = useState<CuttingJob | null>(null);
+  const [filterStatus, setFilterStatus] = useState<CuttingJob["status"] | "all">("all");
 
   const fetchJobs = () =>
     fetch("/api/cutting-jobs", { cache: "no-store" })
@@ -494,14 +495,58 @@ export default function CuttingJobsPage() {
         }
       />
 
-      <div className="px-6 py-6 space-y-6 max-w-7xl">
+      <div className="px-6 py-6 space-y-4 max-w-7xl">
+        {/* Status filter chips */}
+        {(() => {
+          const chips: { key: CuttingJob["status"] | "all"; label: string; color: string; accent: string }[] = [
+            { key: "all", label: "ทั้งหมด", color: "#888", accent: "var(--color-muted)" },
+            { key: "pending", label: "รอตัด", color: "#f97316", accent: "#f97316" },
+            { key: "cutting", label: "กำลังตัด", color: "#22c55e", accent: "#22c55e" },
+            { key: "done", label: "เสร็จแล้ว", color: "#6366f1", accent: "#6366f1" },
+          ];
+          const countOf = (k: CuttingJob["status"] | "all") =>
+            k === "all" ? jobs.length : jobs.filter((j) => j.status === k).length;
+          return (
+            <div className="rounded-[var(--radius-lg)] border border-border bg-surface px-4 py-3">
+              <div className="mb-2 flex items-center gap-2 text-xs text-muted-2">
+                <span className="font-medium">กรองสถานะ:</span>
+                <span>{filterStatus === "all" ? jobs.length : jobs.filter((j) => j.status === filterStatus).length} / {jobs.length} รายการ</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {chips.map((chip) => {
+                  const active = filterStatus === chip.key;
+                  const count = countOf(chip.key);
+                  return (
+                    <button
+                      key={chip.key}
+                      onClick={() => setFilterStatus(chip.key)}
+                      className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all"
+                      style={active
+                        ? { backgroundColor: `${chip.accent}22`, color: chip.accent, border: `1.5px solid ${chip.accent}` }
+                        : { backgroundColor: "transparent", color: "var(--color-muted)", border: "1.5px solid var(--color-border)" }
+                      }
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: active ? chip.accent : "#888" }} />
+                      {chip.label}
+                      <span className="ml-0.5 opacity-70">{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Jobs Card List */}
+        {(() => {
+          const displayed = filterStatus === "all" ? jobs : jobs.filter((j) => j.status === filterStatus);
+          return (
         <div className="flex flex-col gap-2">
-          {jobs.length === 0 ? (
+          {displayed.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted">
               ยังไม่มีใบงาน — กดปุ่ม &quot;สร้างใบงานใหม่&quot; เพื่อเริ่ม
             </div>
-          ) : jobs.map((job) => (
+          ) : displayed.map((job) => (
             <div
               key={job.id}
               className="group relative rounded-[var(--radius-lg)] border border-border bg-surface px-5 py-4 transition-colors hover:bg-surface-2"
@@ -554,6 +599,8 @@ export default function CuttingJobsPage() {
             </div>
           ))}
         </div>
+          );
+        })()}
 
         {/* Cutter Management */}
         <CutterManagementCard />
