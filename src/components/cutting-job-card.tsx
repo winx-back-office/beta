@@ -75,13 +75,19 @@ export function CuttingJobCard({ orderId }: { orderId: string }) {
           )}
 
           {job.status === "done" && (
-            <div className="text-xs">
+            <div className="text-xs space-y-0.5">
               {job.cutterName && (
                 <div><span className="text-muted">ช่าง: </span><span className="font-medium">{job.cutterName}</span></div>
               )}
               {job.completedAt && (
-                <div><span className="text-muted">เสร็จ: </span>{formatDateTime(job.completedAt)}</div>
+                <div><span className="text-muted">ส่งงาน: </span>{formatDateTime(job.completedAt)}</div>
               )}
+            </div>
+          )}
+
+          {job.printedAt && (
+            <div className="text-xs text-muted">
+              พิมพ์ใบตัด: {formatDateTime(job.printedAt)}
             </div>
           )}
 

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { RefreshCw, ClipboardList, Palette, Factory, Scissors, TableProperties } from "lucide-react";
+import { RefreshCw, ClipboardList, Palette, Factory, Scissors, TableProperties, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import type { Order } from "@/lib/types";
 
@@ -188,19 +188,21 @@ export default function SummaryPage() {
           <StatCard label="งานผลิต" value={produceOrders.length} tone="text-purple-500" href="/queue/production" sub="รายการ" />
         </div>
 
-        {/* Design queue */}
-        {designOrders.length > 0 && (
-          <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-            <SectionHeader icon={Palette} title="คิวออกแบบ" href="/queue/design" />
-            <ProgressBar cols={DESIGN_COLS} counts={designCounts} />
-          </div>
-        )}
-
-        {/* Production queue */}
-        {produceOrders.length > 0 && (
-          <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-            <SectionHeader icon={Factory} title="คิวผลิต" href="/queue/production" />
-            <ProgressBar cols={PROD_COLS} counts={prodCounts} />
+        {/* Design + Production queue */}
+        {(designOrders.length > 0 || produceOrders.length > 0) && (
+          <div className="grid grid-cols-1 gap-3 min-[720px]:grid-cols-2">
+            {designOrders.length > 0 && (
+              <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+                <SectionHeader icon={Palette} title="คิวออกแบบ" href="/queue/design" />
+                <ProgressBar cols={DESIGN_COLS} counts={designCounts} />
+              </div>
+            )}
+            {produceOrders.length > 0 && (
+              <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+                <SectionHeader icon={Factory} title="คิวผลิต" href="/queue/production" />
+                <ProgressBar cols={PROD_COLS} counts={prodCounts} />
+              </div>
+            )}
           </div>
         )}
 
@@ -224,6 +226,9 @@ export default function SummaryPage() {
             </div>
           </div>
         </div>
+
+        {/* Delivery Calendar */}
+        <DeliveryCalendar orders={orders} />
 
         {/* Active orders list */}
         <div className="rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
@@ -250,12 +255,209 @@ export default function SummaryPage() {
                       {formatDate(o.startDate)}
                     </span>
                   )}
+                  {o.deliveryDate && (
+                    <span className="shrink-0 text-xs text-muted-2 hidden min-[720px]:flex items-center gap-1">
+                      <span className="text-muted-2">→</span>
+                      <span className="text-foreground font-medium">{formatDate(o.deliveryDate)}</span>
+                    </span>
+                  )}
                 </Link>
               ))}
             </div>
           )}
         </div>
 
+      </div>
+    </div>
+  );
+}
+
+// ── Delivery Calendar ─────────────────────────────────────────
+const TH_MONTHS = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+const DOW = ["อา","จ","อ","พ","พฤ","ศ","ส"];
+
+function DeliveryCalendar({ orders }: { orders: Order[] }) {
+  const today = new Date();
+  const [cur, setCur] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+
+  // group orders by deliveryDate key (YYYY-MM-DD)
+  const byDate = useMemo(() => {
+    const map: Record<string, Order[]> = {};
+    orders.forEach((o) => {
+      if (!o.deliveryDate) return;
+      const k = o.deliveryDate.slice(0, 10);
+      if (!map[k]) map[k] = [];
+      map[k].push(o);
+    });
+    return map;
+  }, [orders]);
+
+  const noDateCount = useMemo(() => orders.filter((o) => !o.deliveryDate).length, [orders]);
+
+  const year = cur.getFullYear();
+  const month = cur.getMonth();
+  const firstDow = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const selectedOrders = selectedKey ? (byDate[selectedKey] ?? []) : [];
+
+  const changeMonth = (d: number) => {
+    setCur(new Date(cur.getFullYear(), cur.getMonth() + d, 1));
+    setSelectedKey(null);
+  };
+
+  const selectDay = (key: string) => {
+    setSelectedKey((prev) => (prev === key ? null : key));
+  };
+
+  return (
+    <div className="rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
+        <div className="flex items-center gap-3">
+          <CalendarDays className="h-4 w-4 text-accent" />
+          <h2 className="font-semibold text-sm">ปฏิทินวันจัดส่งสินค้า</h2>
+          <div className="flex items-center gap-3 ml-1">
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0" />
+              <span className="text-[11px] text-muted-2">ออกแบบ</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-purple-500 shrink-0" />
+              <span className="text-[11px] text-muted-2">ผลิต</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-amber-400 shrink-0" />
+              <span className="text-[11px] text-muted-2">หลายงาน</span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {noDateCount > 0 && (
+            <span className="text-[11px] text-muted-2 hidden min-[720px]:inline">
+              {noDateCount} งานยังไม่กรอกวันจัดส่ง
+            </span>
+          )}
+          <div className="flex items-center gap-1">
+            <button onClick={() => changeMonth(-1)} className="rounded-lg p-1 text-muted hover:bg-surface-2 transition-colors" aria-label="เดือนก่อน">
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="text-sm font-medium min-w-[120px] text-center">
+              {TH_MONTHS[month]} {year + 543}
+            </span>
+            <button onClick={() => changeMonth(1)} className="rounded-lg p-1 text-muted hover:bg-surface-2 transition-colors" aria-label="เดือนถัดไป">
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-4 min-[720px]:p-5">
+        {/* DOW header */}
+        <div className="grid grid-cols-7 gap-1.5 mb-1.5">
+          {DOW.map((d) => (
+            <div key={d} className="text-center text-xs font-medium text-muted-2 py-1">{d}</div>
+          ))}
+        </div>
+
+        {/* Day grid */}
+        <div className="grid grid-cols-7 gap-1.5">
+          {Array.from({ length: firstDow }).map((_, i) => (
+            <div key={`e${i}`} />
+          ))}
+          {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => {
+            const key = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+            const dayOrders = byDate[key] ?? [];
+            const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === d;
+            const isSel = selectedKey === key;
+            const count = dayOrders.length;
+            const hasMultiple = count > 1;
+            const hasDesign = dayOrders.some(o => o.type === "design" || o.type === "design_produce");
+            const hasProduce = dayOrders.some(o => o.type === "produce" || o.type === "design_produce");
+
+            return (
+              <button
+                key={key}
+                onClick={() => selectDay(key)}
+                className={cn(
+                  "min-h-[60px] rounded-xl border text-left px-2 pt-2 pb-1.5 transition-all",
+                  isSel
+                    ? "border-accent bg-accent-soft shadow-sm"
+                    : isToday
+                    ? "border-accent bg-accent-soft shadow-sm"
+                    : count > 0
+                    ? "border-border bg-surface-2 hover:bg-surface hover:shadow-sm cursor-pointer"
+                    : "border-border bg-surface hover:bg-surface-2 cursor-default"
+                )}
+              >
+                {/* Day number */}
+                {isToday ? (
+                  <span className="text-base font-bold block leading-none mb-1.5 text-accent">
+                    {d}
+                  </span>
+                ) : (
+                  <span className={cn(
+                    "text-sm font-semibold block leading-none mb-1.5",
+                    isSel ? "text-accent" : count > 0 ? "text-foreground" : "text-muted"
+                  )}>{d}</span>
+                )}
+
+                {/* Team names */}
+                {count > 0 && (
+                  <div className="flex flex-col gap-0.5 mt-0.5">
+                    {dayOrders.slice(0, 2).map((o) => (
+                      <span key={o.id} className={cn(
+                        "block truncate text-[10px] font-medium leading-tight rounded px-1 py-0.5",
+                        o.type === "design" || o.type === "design_produce"
+                          ? "bg-blue-500/10 text-blue-500"
+                          : "bg-purple-500/10 text-purple-500"
+                      )}>{o.teamName}</span>
+                    ))}
+                    {count > 2 && (
+                      <span className="text-[10px] text-muted-2 leading-none px-1">+{count - 2} งาน</span>
+                    )}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Selected day panel */}
+        {selectedKey && (
+          <div className="mt-4 rounded-xl border border-border overflow-hidden">
+            <div className="px-4 py-3 bg-surface-2 border-b border-border flex items-center gap-2">
+              <CalendarDays className="h-3.5 w-3.5 text-accent shrink-0" />
+              <span className="text-sm font-medium">
+                {parseInt(selectedKey.slice(8, 10))} {TH_MONTHS[parseInt(selectedKey.slice(5, 7)) - 1]} {parseInt(selectedKey.slice(0, 4)) + 543}
+              </span>
+              {selectedOrders.length > 0 && (
+                <span className="ml-auto text-xs text-muted-2">{selectedOrders.length} งาน</span>
+              )}
+            </div>
+            {selectedOrders.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-2">ไม่มีงานจัดส่งในวันนี้</div>
+            ) : (
+              <div className="divide-y divide-border">
+                {selectedOrders.map((o) => (
+                  <Link key={o.id} href={`/orders/${o.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2 transition-colors">
+                    <span className="font-mono text-[11px] text-muted-2 shrink-0 w-28">{o.id}</span>
+                    <span className="font-medium text-sm flex-1 truncate">{o.teamName}</span>
+                    <span className={cn(
+                      "shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium",
+                      o.type === "design"
+                        ? "bg-blue-500/10 text-blue-500"
+                        : "bg-purple-500/10 text-purple-500"
+                    )}>
+                      {o.type === "design" ? "ออกแบบ" : "ผลิต"}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

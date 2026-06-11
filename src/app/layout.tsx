@@ -36,7 +36,7 @@ export default function RootLayout({
         <AuthProvider>
           <div className="flex min-h-screen">
             <Sidebar />
-            <main className="flex-1 min-w-0 pb-16 min-[720px]:pb-0">{children}</main>
+            <main className="flex-1 min-w-0 pb-16 min-[720px]:pb-0 print:pb-0">{children}</main>
           </div>
           <BottomNav />
         </AuthProvider>

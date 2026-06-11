@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
 
   // ตรวจหา fabric, shirt style และ collar จาก 10 rows แรก
   const COLLAR_KEYWORDS = ["คอกลม", "คอวี", "คอวี่", "คอปกวี", "คอปกกีฬา", "คอปก", "คอจีน", "คอเต่า",
-    "คอสองชั้น", "วีคอ", "รีไขว้", "วีคางหมู", "ปกกระดุม"];
+    "คอสองชั้น", "วีคอ", "รีไขว้", "วีคางหมู", "คอคางหมู", "คางหมู", "ปกกระดุม"];
   let detectedFabric = "";
   let detectedShirt = "";
   let detectedCollar = "";

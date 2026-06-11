@@ -39,7 +39,7 @@ export function BottomNav() {
   const { user } = useAuth();
   const [slipCount, setSlipCount] = useState(0);
 
-  const isPublic = pathname.startsWith("/cut/") || pathname.startsWith("/pay/") || pathname === "/track" || pathname === "/login";
+  const isPublic = pathname.startsWith("/cut/") || pathname.startsWith("/pay/") || pathname.startsWith("/address/") || pathname === "/track" || pathname === "/login" || pathname.endsWith("/print");
 
   useEffect(() => {
     if (!user || isPublic) return;
@@ -61,7 +61,7 @@ export function BottomNav() {
   if (isPublic) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 flex min-[720px]:hidden border-t border-border bg-surface/95 backdrop-blur-sm">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 flex min-[720px]:hidden border-t border-border bg-surface/95 backdrop-blur-sm print:hidden">
       <div className="flex w-full overflow-x-auto scrollbar-none">
         {visibleNav.map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);

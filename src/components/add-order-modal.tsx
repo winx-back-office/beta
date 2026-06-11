@@ -35,6 +35,7 @@ export function AddOrderModal({ open, onClose, onCreated, editOrder }: Props) {
   const [type, setType] = useState<CustomerType>("produce");
   const [teamName, setTeamName] = useState("");
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
+  const [deliveryDate, setDeliveryDate] = useState("");
   const [designPackage, setDesignPackage] = useState(DESIGN_PACKAGES[0]);
   const [designPackagePrice, setDesignPackagePrice] = useState("");
   const [shirtType, setShirtType] = useState("");
@@ -55,6 +56,7 @@ export function AddOrderModal({ open, onClose, onCreated, editOrder }: Props) {
       setType(editOrder.type);
       setTeamName(editOrder.teamName);
       setStartDate(editOrder.startDate);
+      setDeliveryDate(editOrder.deliveryDate ?? "");
       setDesignPackage(editOrder.designPackage ?? DESIGN_PACKAGES[0]);
       setDesignPackagePrice(String(editOrder.designPackagePrice ?? ""));
       setShirtType(editOrder.shirtType ?? "");
@@ -133,7 +135,7 @@ export function AddOrderModal({ open, onClose, onCreated, editOrder }: Props) {
 
   const reset = () => {
     setType("produce");
-    setTeamName(""); setStartDate(new Date().toISOString().slice(0, 10));
+    setTeamName(""); setStartDate(new Date().toISOString().slice(0, 10)); setDeliveryDate("");
     setDesignPackage(DESIGN_PACKAGES[0]); setDesignPackagePrice("");
     setShirtType(""); setFabricType(""); setCollarType("");
     setQuantity(""); setProductionPrice(""); setCost(DEFAULT_COST);
@@ -151,6 +153,7 @@ export function AddOrderModal({ open, onClose, onCreated, editOrder }: Props) {
         type,
         teamName: teamName.trim(),
         startDate,
+        deliveryDate: deliveryDate || undefined,
         deposit: parseFloat(deposit) || 0,
         ...(isDesign && {
           designPackage,
@@ -235,9 +238,13 @@ export function AddOrderModal({ open, onClose, onCreated, editOrder }: Props) {
               <Label>ชื่อทีม *</Label>
               <Input value={teamName} onChange={e => setTeamName(e.target.value)} placeholder="เช่น FC WINX" />
             </div>
-            <div className="col-span-2">
+            <div>
               <Label>วันที่เริ่ม</Label>
               <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+            </div>
+            <div>
+              <Label>วันจัดส่งสินค้า</Label>
+              <Input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} />
             </div>
           </div>
 
