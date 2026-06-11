@@ -63,7 +63,7 @@ export function Sidebar() {
     const fetchQueues = () =>
       fetch("/api/orders", { cache: "no-store" })
         .then((r) => r.json())
-        .then((orders: { type: string; designStatus?: string; productionStatus?: string; hasProductionTable?: boolean }[]) => {
+        .then((orders: { type: string; designStatus?: string; productionStatus?: string; hasProductionTable?: boolean; designPackage?: string }[]) => {
           setDesignWaitCount(orders.filter(
             (o) => (o.type === "design" || o.type === "design_produce" || (o.type === "produce" && o.designPackage)) &&
               (!o.designStatus || o.designStatus === "wait_design")
