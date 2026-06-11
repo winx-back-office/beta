@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>คู่มือการใช้งานใบงานตัดแพทเทิร์น — WINX STUDIO</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: #f5f5f0;
+    color: #1a1a2e;
+    font-size: 14pt;
+    line-height: 1.6;
+  }
+
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    background: white;
+    padding: 16mm 14mm;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 3px solid #6366f1;
+    padding-bottom: 14px;
+    margin-bottom: 20px;
+  }
+  .logo {
+    width: 48px; height: 48px;
+    background: #6366f1;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 22px; font-weight: 900;
+    flex-shrink: 0;
+  }
+  .header-text h1 { font-size: 18pt; font-weight: 800; color: #1a1a2e; }
+  .header-text p { font-size: 10pt; color: #6b7280; margin-top: 2px; }
+
+  .subtitle-bar {
+    background: #eef2ff;
+    border-left: 4px solid #6366f1;
+    padding: 10px 14px;
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 24px;
+    font-size: 11pt;
+    color: #4338ca;
+    font-weight: 600;
+  }
+
+  /* ── Section ── */
+  .section { margin-bottom: 28px; }
+  .section-title {
+    font-size: 13pt;
+    font-weight: 800;
+    color: #1a1a2e;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 6px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-num {
+    width: 26px; height: 26px;
+    background: #6366f1;
+    border-radius: 50%;
+    color: white;
+    font-size: 11pt;
+    font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ── Phone mockup ── */
+  .phone-wrap {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    margin-bottom: 14px;
+  }
+  .phone-wrap.center { justify-content: center; }
+  .phone {
+    width: 160px;
+    flex-shrink: 0;
+    border: 3px solid #1a1a2e;
+    border-radius: 22px;
+    overflow: hidden;
+    background: #0f1117;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  }
+  .phone-bar {
+    background: #15171e;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .phone-logo {
+    width: 22px; height: 22px;
+    background: #6366f1;
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 10px; font-weight: 900;
+    flex-shrink: 0;
+  }
+  .phone-bar-text { }
+  .phone-bar-text .t1 { font-size: 8px; color: white; font-weight: 700; letter-spacing: 0.5px; }
+  .phone-bar-text .t2 { font-size: 6px; color: rgba(255,255,255,0.35); letter-spacing: 1px; text-transform: uppercase; }
+  .phone-body { padding: 10px; }
+
+  /* Phone content elements */
+  .p-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 10px;
+    margin-bottom: 8px;
+  }
+  .p-label { font-size: 6px; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 3px; }
+  .p-val { font-size: 9px; color: white; font-weight: 700; }
+  .p-val-big { font-size: 22px; color: white; font-weight: 900; line-height: 1; }
+  .p-val-purple { color: #818cf8; }
+  .p-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .p-stat {
+    background: rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 8px 6px;
+    text-align: center;
+  }
+  .p-stat-purple {
+    background: rgba(99,102,241,0.15);
+    border: 1px solid rgba(99,102,241,0.3);
+  }
+
+  /* PIN pad */
+  .p-dots { display: flex; justify-content: center; gap: 8px; margin: 10px 0; }
+  .p-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.2); }
+  .p-dot.filled { background: #818cf8; }
+  .p-numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 6px; }
+  .p-num {
+    height: 28px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 10px; font-weight: 700;
+  }
+  .p-btn {
+    margin-top: 8px;
+    background: #6366f1;
+    border-radius: 10px;
+    padding: 8px;
+    text-align: center;
+    color: white;
+    font-size: 8px;
+    font-weight: 700;
+  }
+  .p-btn-green { background: #22c55e; }
+  .p-title-sm { font-size: 7px; color: rgba(255,255,255,0.5); text-align: center; margin-bottom: 4px; font-weight: 600; }
+  .p-status-yellow {
+    background: rgba(234,179,8,0.1);
+    border: 1px solid rgba(234,179,8,0.3);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .p-status-green {
+    background: rgba(34,197,94,0.1);
+    border: 1px solid rgba(34,197,94,0.3);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+  }
+  .status-text-y { color: #fde047; font-size: 9px; font-weight: 700; }
+  .status-text-g { color: #86efac; font-size: 9px; font-weight: 700; }
+  .status-sub { font-size: 7px; color: rgba(255,255,255,0.4); margin-top: 3px; }
+
+  /* Issue chips */
+  .p-chips { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+  .p-chip {
+    font-size: 6px;
+    padding: 2px 6px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.6);
+  }
+  .p-chip.active { background: rgba(239,68,68,0.7); color: white; }
+  .p-textarea {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    height: 22px;
+    margin-top: 4px;
+  }
+
+  /* ── Description text ── */
+  .desc {
+    flex: 1;
+    font-size: 11pt;
+    color: #374151;
+    line-height: 1.7;
+  }
+  .desc strong { color: #1a1a2e; }
+  .step-item {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    align-items: flex-start;
+  }
+  .step-num {
+    width: 22px; height: 22px;
+    background: #eef2ff;
+    border: 2px solid #6366f1;
+    border-radius: 50%;
+    color: #6366f1;
+    font-size: 9pt;
+    font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* ── Tips / Note box ── */
+  .tip-box {
+    background: #fffbeb;
+    border: 1.5px solid #f59e0b;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-top: 10px;
+    font-size: 10pt;
+    color: #92400e;
+  }
+  .tip-box::before { content: "💡 "; }
+  .note-box {
+    background: #f0fdf4;
+    border: 1.5px solid #22c55e;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-top: 10px;
+    font-size: 10pt;
+    color: #166534;
+  }
+  .note-box::before { content: "✅ "; }
+  .warn-box {
+    background: #fff1f2;
+    border: 1.5px solid #f43f5e;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-top: 10px;
+    font-size: 10pt;
+    color: #9f1239;
+  }
+  .warn-box::before { content: "⚠️ "; }
+
+  /* ── Summary flow ── */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 16px 0;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .flow-step {
+    background: #eef2ff;
+    border: 2px solid #6366f1;
+    border-radius: 12px;
+    padding: 10px 16px;
+    text-align: center;
+    min-width: 80px;
+  }
+  .flow-icon { font-size: 18pt; display: block; }
+  .flow-text { font-size: 9pt; font-weight: 700; color: #4338ca; margin-top: 3px; }
+  .flow-arrow { font-size: 16pt; color: #6366f1; padding: 0 6px; flex-shrink: 0; }
+
+  /* ── Footer ── */
+  .footer {
+    margin-top: 28px;
+    padding-top: 12px;
+    border-top: 2px solid #e5e7eb;
+    font-size: 9pt;
+    color: #9ca3af;
+    text-align: center;
+  }
+
+  @media print {
+    body { background: white; }
+    .page { padding: 12mm 12mm; box-shadow: none; }
+    a { text-decoration: none; color: inherit; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">W</div>
+    <div class="header-text">
+      <h1>คู่มือการใช้งาน — ใบงานตัดแพทเทิร์น</h1>
+      <p>WINX STUDIO · สำหรับช่างตัด</p>
+    </div>
+  </div>
+
+  <div class="subtitle-bar">
+    ก่อนเริ่มงานทุกครั้ง ช่างตัดต้องเปิดลิงก์ใบงานที่ได้รับ แล้วทำตามขั้นตอนในคู่มือนี้
+  </div>
+
+  <!-- ขั้นตอนรวม -->
+  <div class="section">
+    <div class="flow">
+      <div class="flow-step">
+        <span class="flow-icon">📱</span>
+        <div class="flow-text">เปิดลิงก์<br>ใบงาน</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <span class="flow-icon">🔢</span>
+        <div class="flow-text">ใส่ PIN<br>รับงาน</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <span class="flow-icon">✂️</span>
+        <div class="flow-text">ตัดงาน<br>ตามใบงาน</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <span class="flow-icon">✅</span>
+        <div class="flow-text">กดส่งงาน<br>เสร็จแล้ว</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ขั้นตอนที่ 1 -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num">1</div>
+      เปิดลิงก์ใบงาน — อ่านรายละเอียดงาน
+    </div>
+
+    <div class="phone-wrap">
+      <!-- Phone mockup: job details -->
+      <div class="phone">
+        <div class="phone-bar">
+          <div class="phone-logo">W</div>
+          <div class="phone-bar-text">
+            <div class="t1">WINX STUDIO</div>
+            <div class="t2">ใบงานตัดแพทเทิร์น</div>
+          </div>
+        </div>
+        <div class="phone-body">
+          <div class="p-card">
+            <div class="p-label">รหัสใบงาน</div>
+            <div class="p-val">CUT-2025-042</div>
+          </div>
+          <div class="p-card">
+            <div class="p-grid2">
+              <div>
+                <div class="p-label">ชื่อทีม</div>
+                <div class="p-val">ทีมนักกีฬา</div>
+              </div>
+              <div>
+                <div class="p-label">ทรงเสื้อ</div>
+                <div class="p-val">คอกลม</div>
+              </div>
+            </div>
+            <div style="margin-top:6px">
+              <div class="p-label">ประเภทคอ</div>
+              <div class="p-val">rib</div>
+            </div>
+          </div>
+          <div class="p-grid2">
+            <div class="p-stat">
+              <div class="p-label">จำนวนตัว</div>
+              <div class="p-val-big">50</div>
+              <div class="p-label" style="margin-top:2px">ตัว</div>
+            </div>
+            <div class="p-stat p-stat-purple">
+              <div class="p-label" style="color:#a5b4fc">ชิ้นแพทเทิร์น</div>
+              <div class="p-val-big p-val-purple">8</div>
+              <div class="p-label" style="color:#a5b4fc;margin-top:2px">ชิ้น</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="desc">
+        <div class="step-item">
+          <div class="step-num">①</div>
+          <div>เปิดลิงก์ใบงานที่ <strong>อาร์มส่งให้</strong> ผ่านมือถือ</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">②</div>
+          <div>อ่านรายละเอียดงานให้ครบ ได้แก่<br>
+            · <strong>ชื่อทีม</strong> — ของลูกค้ารายนี้<br>
+            · <strong>ทรงเสื้อ / ประเภทคอ</strong> — แบบที่ต้องตัด<br>
+            · <strong>จำนวนตัว</strong> — ต้องตัดกี่ตัว<br>
+            · <strong>ชิ้นแพทเทิร์น</strong> (สีม่วง) — มีชิ้นส่วนกี่ชิ้นต่อตัว
+          </div>
+        </div>
+        <div class="tip-box">
+          ตรวจสอบจำนวนตัวและชิ้นแพทเทิร์นให้ถูกก่อนเริ่มตัด เพื่อป้องกันการตัดผิด
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ขั้นตอนที่ 2 -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num">2</div>
+      ใส่ PIN 4 หลัก เพื่อรับงาน
+    </div>
+
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="phone-bar">
+          <div class="phone-logo">W</div>
+          <div class="phone-bar-text">
+            <div class="t1">WINX STUDIO</div>
+            <div class="t2">ใบงานตัดแพทเทิร์น</div>
+          </div>
+        </div>
+        <div class="phone-body">
+          <div class="p-title-sm">ใส่ PIN เพื่อรับงาน</div>
+          <div class="p-label" style="text-align:center;font-size:6px;color:rgba(255,255,255,0.3)">กรอก 4 หลัก</div>
+          <div class="p-dots">
+            <div class="p-dot filled"></div>
+            <div class="p-dot filled"></div>
+            <div class="p-dot filled"></div>
+            <div class="p-dot filled"></div>
+          </div>
+          <div class="p-numpad">
+            <div class="p-num">1</div><div class="p-num">2</div><div class="p-num">3</div>
+            <div class="p-num">4</div><div class="p-num">5</div><div class="p-num">6</div>
+            <div class="p-num">7</div><div class="p-num">8</div><div class="p-num">9</div>
+            <div class="p-num"></div><div class="p-num">0</div><div class="p-num">⌫</div>
+          </div>
+          <div class="p-btn" style="margin-top:8px">รับงานตัด ✂️</div>
+        </div>
+      </div>
+
+      <div class="desc">
+        <div class="step-item">
+          <div class="step-num">①</div>
+          <div>เลื่อนลงมาด้านล่างของใบงาน จะเห็น <strong>แป้นกด PIN</strong></div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">②</div>
+          <div>กด PIN 4 หลักของตัวเอง (แต่ละคนมี PIN ไม่เหมือนกัน)</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">③</div>
+          <div>กดปุ่ม <strong>"รับงานตัด ✂️"</strong> — ระบบจะบันทึกชื่อคุณเป็นผู้รับงาน</div>
+        </div>
+        <div class="tip-box">
+          PIN ผิด จะมีกล่องสีแดงแจ้งเตือน ให้กรอกใหม่ ถ้าจำ PIN ไม่ได้ให้ติดต่ออาร์ม
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ขั้นตอนที่ 3 -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num">3</div>
+      ตัดงาน — หน้าจอระหว่างดำเนินการ
+    </div>
+
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="phone-bar">
+          <div class="phone-logo">W</div>
+          <div class="phone-bar-text">
+            <div class="t1">WINX STUDIO</div>
+            <div class="t2">ใบงานตัดแพทเทิร์น</div>
+          </div>
+        </div>
+        <div class="phone-body">
+          <div class="p-card">
+            <div class="p-label">รหัสใบงาน</div>
+            <div class="p-val">CUT-2025-042</div>
+          </div>
+          <div class="p-status-yellow">
+            <div style="font-size:18px;margin-bottom:4px">✂️</div>
+            <div class="status-text-y">กำลังดำเนินการ</div>
+            <div class="status-sub">โดย สมชาย ช่างตัด</div>
+            <div class="status-sub">รับงานเมื่อ 11 มิ.ย. 2568, 09:30</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="desc">
+        <div class="step-item">
+          <div class="step-num">①</div>
+          <div>หลังรับงาน หน้าจอจะเปลี่ยนเป็น <strong>กล่องสีเหลือง</strong> "กำลังดำเนินการ" พร้อมแสดงชื่อและเวลาที่รับงาน</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">②</div>
+          <div>ตัดงานตามรายละเอียดที่แสดงด้านบน</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">③</div>
+          <div>เมื่อตัดเสร็จ <strong>ไม่ต้องปิดหน้าจอ</strong> — เลื่อนลงเพื่อกดส่งงาน</div>
+        </div>
+        <div class="note-box">
+          ระบบบันทึกเวลาที่คุณรับงานไว้อัตโนมัติ ไม่ต้องจดแยก
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ขั้นตอนที่ 4 -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num">4</div>
+      กดส่งงาน — ยืนยันตัดเสร็จแล้ว
+    </div>
+
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="phone-bar">
+          <div class="phone-logo">W</div>
+          <div class="phone-bar-text">
+            <div class="t1">WINX STUDIO</div>
+            <div class="t2">ใบงานตัดแพทเทิร์น</div>
+          </div>
+        </div>
+        <div class="phone-body">
+          <div class="p-title-sm">ตรวจสอบก่อนส่งงาน</div>
+          <div class="p-card" style="margin-top:6px">
+            <div class="p-label">จำนวนตัว</div>
+            <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:6px;text-align:center;margin-top:3px">
+              <div style="font-size:18px;color:white;font-weight:900">50</div>
+            </div>
+          </div>
+          <div class="p-card">
+            <div class="p-label">ข้อผิดพลาด (ถ้ามี)</div>
+            <div class="p-chips">
+              <div class="p-chip">มีงานเสีย</div>
+              <div class="p-chip">ผ้าไม่พอ</div>
+              <div class="p-chip active">แพทเทิร์นหาย</div>
+              <div class="p-chip">ตัดผิดไซส์</div>
+            </div>
+            <div class="p-textarea"></div>
+          </div>
+          <div class="p-btn p-btn-green">✅ ตัดงานเสร็จแล้ว — ส่งงาน</div>
+        </div>
+      </div>
+
+      <div class="desc">
+        <div class="step-item">
+          <div class="step-num">①</div>
+          <div>ตรวจสอบ <strong>จำนวนตัว</strong> ให้ตรงกับที่ตัดจริง (แก้ไขได้ถ้าตัดได้จำนวนต่างออกไป)</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">②</div>
+          <div>ถ้ามีปัญหา ให้กดเลือก <strong>ข้อผิดพลาด</strong> ที่เกิดขึ้น<br>
+            · มีงานเสีย<br>
+            · ผ้าไม่พอ<br>
+            · แพทเทิร์นหาย<br>
+            · ตัดผิดไซส์<br>
+            หรือพิมพ์อธิบายเพิ่มเติมในช่องด้านล่าง
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">③</div>
+          <div>กดปุ่มสีเขียว <strong>"ตัดงานเสร็จแล้ว — ส่งงาน"</strong> แล้วยืนยัน</div>
+        </div>
+        <div class="warn-box">
+          กดส่งงานแล้วจะ<strong>ไม่สามารถแก้ไขได้</strong> ตรวจสอบให้ครบก่อนกด
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ขั้นตอนที่ 5 — ส่งเสร็จ -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num">5</div>
+      งานส่งเสร็จ — หน้าจอยืนยัน
+    </div>
+
+    <div class="phone-wrap">
+      <div class="phone" style="width:140px">
+        <div class="phone-bar">
+          <div class="phone-logo">W</div>
+          <div class="phone-bar-text">
+            <div class="t1">WINX STUDIO</div>
+            <div class="t2">ใบงานตัดแพทเทิร์น</div>
+          </div>
+        </div>
+        <div class="phone-body">
+          <div class="p-card">
+            <div class="p-label">รหัสใบงาน</div>
+            <div class="p-val">CUT-2025-042</div>
+          </div>
+          <div class="p-status-green">
+            <div style="font-size:18px;margin-bottom:4px">✅</div>
+            <div class="status-text-g">ตัดเสร็จแล้ว</div>
+            <div class="status-sub">โดย สมชาย ช่างตัด</div>
+            <div class="status-sub">เสร็จเมื่อ 11 มิ.ย. 2568, 11:45</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="desc">
+        <div class="step-item">
+          <div class="step-num">①</div>
+          <div>หน้าจอจะเปลี่ยนเป็น <strong>กล่องสีเขียว</strong> "ตัดเสร็จแล้ว"</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">②</div>
+          <div>ระบบบันทึกชื่อคุณและ<strong>เวลาที่ส่งงาน</strong>ไว้อัตโนมัติ</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">③</div>
+          <div>สามารถปิดหน้าต่างได้เลย — <strong>งานถูกบันทึกเรียบร้อยแล้ว</strong></div>
+        </div>
+        <div class="note-box">
+          อาร์มจะเห็นสถานะงานของคุณในระบบทันที ไม่ต้องแจ้งแยก
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- สรุปปัญหาที่พบบ่อย -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num" style="background:#f59e0b">!</div>
+      ปัญหาที่พบบ่อย
+    </div>
+
+    <table style="width:100%;border-collapse:collapse;font-size:10pt">
+      <thead>
+        <tr style="background:#eef2ff">
+          <th style="padding:8px 12px;text-align:left;border:1px solid #ddd;width:38%">ปัญหา</th>
+          <th style="padding:8px 12px;text-align:left;border:1px solid #ddd">วิธีแก้</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding:8px 12px;border:1px solid #ddd">ลิงก์ใบงานเปิดไม่ได้</td>
+          <td style="padding:8px 12px;border:1px solid #ddd">ขอลิงก์ใหม่จากอาร์ม หรือลองเปิดใน Browser อื่น</td>
+        </tr>
+        <tr style="background:#fafafa">
+          <td style="padding:8px 12px;border:1px solid #ddd">ใส่ PIN แล้วขึ้นว่า PIN ผิด</td>
+          <td style="padding:8px 12px;border:1px solid #ddd">ติดต่ออาร์มเพื่อตรวจสอบ PIN ของคุณ</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 12px;border:1px solid #ddd">กดส่งงานแล้วหน้าค้าง</td>
+          <td style="padding:8px 12px;border:1px solid #ddd">รีเฟรชหน้าใหม่ ถ้ายังค้างให้แจ้งอาร์มทันที</td>
+        </tr>
+        <tr style="background:#fafafa">
+          <td style="padding:8px 12px;border:1px solid #ddd">หน้าแสดง "ตัดเสร็จแล้ว" แต่ยังไม่ได้ตัด</td>
+          <td style="padding:8px 12px;border:1px solid #ddd">แจ้งอาร์มทันที ห้ามเปิดลิงก์ใบงานของคนอื่น</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 12px;border:1px solid #ddd">ลืมกดส่งงาน / ปิดหน้าต่างไปแล้ว</td>
+          <td style="padding:8px 12px;border:1px solid #ddd">เปิดลิงก์เดิมซ้ำได้ แล้วกดส่งงานตามปกติ</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    WINX STUDIO — ระบบจัดการงานตัดแพทเทิร์น &nbsp;|&nbsp; ติดต่ออาร์มงานเพื่อขอความช่วยเหลือ
+  </div>
+
+</div>
+</body>
+</html>

@@ -222,6 +222,11 @@ export default function EmployeesPage() {
         </div>
       )}
 
+      {/* Admin card */}
+      <div className="mb-4">
+        <AdminPinCard />
+      </div>
+
       {/* List */}
       {loading ? (
         <div className="py-12 text-center text-sm text-muted-2">กำลังโหลด...</div>
@@ -305,8 +310,6 @@ export default function EmployeesPage() {
         </div>
       )}
 
-      {/* Admin card */}
-      <AdminPinCard />
     </div>
   );
 }

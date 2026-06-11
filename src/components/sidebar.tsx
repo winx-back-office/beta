@@ -42,7 +42,7 @@ const navGroups: NavGroup[] = [
   {
     groupLabel: "ภาพรวม",
     items: [
-      { href: "/", label: "ภาพรวม", icon: LayoutDashboard, badge: null, menuKey: "overview", adminOnly: false },
+      { href: "/", label: "ภาพรวมการเงิน", icon: LayoutDashboard, badge: null, menuKey: "overview", adminOnly: false },
       { href: "/summary", label: "สรุปภาพรวมงาน", icon: BarChart2, badge: null, menuKey: "summary", adminOnly: false },
     ],
   },

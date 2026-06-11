@@ -266,16 +266,16 @@
 <div class="header">
   <h1>WINX Studio Back Office</h1>
   <div class="sub">สรุปฟีเจอร์และฟังก์ชั่นของระบบ</div>
-  <span class="badge">Current: v0.1.0 → Target: Beta 1.1</span>
+  <span class="badge">Beta 1.2.1 — 2026-06-05</span>
 </div>
 
 <!-- Stats -->
 <div class="stats-bar">
-  <div class="stat"><div class="num">8</div><div class="lbl">หน้าหลัก</div></div>
-  <div class="stat"><div class="num">10</div><div class="lbl">API Routes</div></div>
+  <div class="stat"><div class="num">12</div><div class="lbl">หน้าหลัก</div></div>
+  <div class="stat"><div class="num">16</div><div class="lbl">API Routes</div></div>
   <div class="stat"><div class="num">3</div><div class="lbl">ประเภทออเดอร์</div></div>
   <div class="stat"><div class="num">10</div><div class="lbl">สถานะผลิต</div></div>
-  <div class="stat"><div class="num">5</div><div class="lbl">สถานะออกแบบ</div></div>
+  <div class="stat"><div class="num">4</div><div class="lbl">สถานะ Payment</div></div>
 </div>
 
 <!-- Legend -->
@@ -357,30 +357,131 @@
       <h3>🔍 รายละเอียดออเดอร์</h3>
       <div class="route">/orders/[id]</div>
       <div class="feat-group">
-        <div class="feat-label">แสดงข้อมูล (คอลัมน์ซ้าย)</div>
+        <div class="feat-label">Auto-save (Beta 1.2)</div>
         <ul class="feat-list">
-          <li class="display"><span class="dot"></span>ข้อมูลออเดอร์: ทีม, วันเริ่ม, ทรงเสื้อ, ผ้า, ปก</li>
-          <li class="display"><span class="dot"></span>การเงิน: ราคา, จำนวน, ค่าส่ง, ค่าบริการ, VAT, ยอดรวม, มัดจำ, คงค้าง</li>
+          <li class="action"><span class="dot"></span>ข้อมูลออเดอร์: แก้ไขได้เลย บันทึก on blur/change</li>
+          <li class="action"><span class="dot"></span>สรุปยอด: แก้ไขทุกช่องได้ทันที auto-save on blur</li>
+          <li class="action"><span class="dot"></span>ต้นทุนการผลิต: inline auto-save + ปุ่มซ่อน/แสดงราคา</li>
+          <li class="calc"><span class="dot"></span>FinanceCard sync อัตโนมัติเมื่อเปลี่ยนทรงเสื้อ/ผ้า/ปก</li>
         </ul>
       </div>
       <div class="feat-group">
-        <div class="feat-label">แสดงข้อมูล (คอลัมน์ขวา)</div>
+        <div class="feat-label">การเงินและ Payment (Beta 1.2)</div>
         <ul class="feat-list">
-          <li class="display"><span class="dot"></span>กำไรประมาณการ</li>
+          <li class="action"><span class="dot"></span>ปุ่มเก็บมัดจำ / ยอดสุดท้าย + quick-select 30%/50%</li>
+          <li class="display"><span class="dot"></span>ประวัติ payment requests พร้อม thumbnail สลิป</li>
+          <li class="action"><span class="dot"></span>ยกเลิก payment request ที่ pending ได้</li>
+          <li class="display"><span class="dot"></span>badge "ชำระครบแล้ว" เมื่อยอดคงเหลือ = 0</li>
+        </ul>
+      </div>
+      <div class="feat-group">
+        <div class="feat-label">คอลัมน์ขวา</div>
+        <ul class="feat-list">
+          <li class="display"><span class="dot"></span>กำไรประมาณการ + ปุ่มซ่อน/แสดง</li>
           <li class="display"><span class="dot"></span>ต้นทุนต่อตัว (ผ้า, กระดาษ, หมึก, ตัด, เย็บ, อื่นๆ)</li>
-          <li class="display"><span class="dot"></span>ตารางสั่งผลิต: รายชื่อผู้เล่น, การกระจายไซส์, ติ๊กรับ</li>
+          <li class="display"><span class="dot"></span>ตารางสั่งผลิต + ใบงานตัดแพทเทิร์น</li>
+          <li class="action"><span class="dot"></span>ปุ่ม "ส่งลูกค้า" (screenshot สรุปการเงิน)</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== SECTION 1.5: ระบบตัดแพทเทิร์น ===== -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:#1a2a1a">✂️</div>
+    <h2>ระบบตัดแพทเทิร์น <span class="en">Cutting Jobs (Beta 1.2)</span></h2>
+  </div>
+  <div class="page-grid">
+
+    <div class="page-card c-green">
+      <h3>✂️ จัดการใบงานตัด</h3>
+      <div class="route">/cutting-jobs</div>
+      <div class="feat-group">
+        <div class="feat-label">แสดงข้อมูล</div>
+        <ul class="feat-list">
+          <li class="display"><span class="dot"></span>ตารางใบงาน: ID, ทีม, ทรงเสื้อ, ปก, จำนวน, ชิ้นแพทเทิร์น, สถานะ, ช่าง, เวลา</li>
+          <li class="display"><span class="dot"></span>Badge สถานะ: รอตัด / กำลังตัด / ตัดเสร็จ</li>
+          <li class="display"><span class="dot"></span>คิวช่างตัด (ซ่อน/แสดงได้)</li>
         </ul>
       </div>
       <div class="feat-group">
         <div class="feat-label">ฟังก์ชั่น</div>
         <ul class="feat-list">
-          <li class="action"><span class="dot"></span>แก้ไขข้อมูลออเดอร์ (toggle edit mode)</li>
-          <li class="action"><span class="dot"></span>สลับ VAT on/off</li>
-          <li class="action"><span class="dot"></span>สลับต้นทุนแบบรายหมวด / override</li>
-          <li class="action"><span class="dot"></span>ลิงก์ไปยังตารางผลิต</li>
-          <li class="action"><span class="dot"></span>ปุ่ม "ส่งลูกค้า" (screenshot สรุปการเงิน)</li>
-          <li class="calc"><span class="dot"></span>คำนวณราคาอัตโนมัติตามทรงเสื้อ/ผ้า/ปก/จำนวน</li>
-          <li class="action"><span class="dot"></span>แจ้งเตือนและซิงค์จำนวนถ้าไม่ตรงกับตาราง</li>
+          <li class="action"><span class="dot"></span>สร้างใบงานตัดจากออเดอร์</li>
+          <li class="modal"><span class="dot"></span>Modal QR ใบงาน: แสดง QR + ชื่อทีม + จำนวน + ชิ้นแพทเทิร์น</li>
+          <li class="action"><span class="dot"></span>พิมพ์ใบงานตัด (popup HTML พร้อมขั้นตอนการใช้งาน)</li>
+          <li class="action"><span class="dot"></span>แก้ไขใบงาน: สถานะ, หมายเหตุ QR, หมายเหตุช่าง</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="page-card c-teal">
+      <h3>📱 หน้าช่างตัด (Mobile)</h3>
+      <div class="route">/cut/[token]</div>
+      <div class="feat-group">
+        <div class="feat-label">แสดงข้อมูล</div>
+        <ul class="feat-list">
+          <li class="display"><span class="dot"></span>รายละเอียดใบงาน: ทีม, ทรงเสื้อ, ปก, จำนวน, ชิ้นแพทเทิร์น</li>
+          <li class="display"><span class="dot"></span>สถานะปัจจุบัน (รอตัด / กำลังตัด)</li>
+        </ul>
+      </div>
+      <div class="feat-group">
+        <div class="feat-label">ฟังก์ชั่น</div>
+        <ul class="feat-list">
+          <li class="action"><span class="dot"></span>รับงานด้วย PIN ช่างตัด</li>
+          <li class="action"><span class="dot"></span>กด "ตัดงานเสร็จแล้ว" พร้อมยืนยันจำนวน</li>
+          <li class="action"><span class="dot"></span>เลือก issue tags: มีงานเสีย, ผ้าไม่พอ ฯลฯ</li>
+          <li class="action"><span class="dot"></span>ส่ง cutterNote กลับไปยังระบบ</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== SECTION 1.6: ระบบเรียกเก็บเงิน ===== -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:#1a2a00">💳</div>
+    <h2>ระบบเรียกเก็บเงิน <span class="en">Payment Requests (Beta 1.2)</span></h2>
+  </div>
+  <div class="page-grid">
+
+    <div class="page-card c-yellow">
+      <h3>💰 หน้าชำระเงิน (ลูกค้า)</h3>
+      <div class="route">/pay/[token]</div>
+      <div class="feat-group">
+        <div class="feat-label">แสดงข้อมูล</div>
+        <ul class="feat-list">
+          <li class="display"><span class="dot"></span>ชื่อทีม, Order ID, รายละเอียดเสื้อ</li>
+          <li class="display"><span class="dot"></span>Pill tags: ราคาเสื้อ / ราคาเนื้อผ้า / ราคาคอ / จำนวน</li>
+          <li class="display"><span class="dot"></span>QR PromptPay พร้อมยอดตายตัว</li>
+          <li class="display"><span class="dot"></span>Stats 2 คอลัมน์: ยอดชำระครั้งนี้ / ยอดคงเหลือ</li>
+          <li class="display"><span class="dot"></span>ข้อมูลบัญชีรับโอน</li>
+        </ul>
+      </div>
+      <div class="feat-group">
+        <div class="feat-label">ฟังก์ชั่น</div>
+        <ul class="feat-list">
+          <li class="action"><span class="dot"></span>อัปโหลดสลิปการโอน</li>
+          <li class="display"><span class="dot"></span>สถานะ: รอตรวจสอบ / ยืนยันแล้ว</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="page-card c-yellow">
+      <h3>🏦 Modal เรียกเก็บเงิน</h3>
+      <div class="route">Component: PaymentRequestModal</div>
+      <div class="feat-group">
+        <div class="feat-label">ฟังก์ชั่น</div>
+        <ul class="feat-list">
+          <li class="action"><span class="dot"></span>Quick-select ยอด: 30% / 50% / ยอดคงเหลือ</li>
+          <li class="action"><span class="dot"></span>เลือกบัญชีรับเงิน (Prompt Pay)</li>
+          <li class="action"><span class="dot"></span>ใส่หมายเหตุถึงลูกค้า</li>
+          <li class="action"><span class="dot"></span>สร้างลิงก์ชำระเงิน + บันทึกลงออเดอร์</li>
         </ul>
       </div>
     </div>
@@ -662,6 +763,37 @@
       </ul>
     </div>
 
+    <div class="model-card">
+      <h4>CuttingJob <span style="font-size:0.7rem;color:#4a5568">(Beta 1.2)</span></h4>
+      <ul class="field-list">
+        <li><span class="field-name">id</span><span class="field-type">string (CUT-xxx)</span></li>
+        <li><span class="field-name">orderId</span><span class="field-type">string</span></li>
+        <li><span class="field-name">teamName / shirtType / collarType</span><span class="field-type">string</span></li>
+        <li><span class="field-name">quantity / patternPieces</span><span class="field-type">number</span></li>
+        <li><span class="field-name">token</span><span class="field-type">UUID (QR link)</span></li>
+        <li><span class="field-name">status</span><span class="field-type">pending | cutting | done</span></li>
+        <li><span class="field-name">cutterId / cutterName</span><span class="field-type">string?</span></li>
+        <li><span class="field-name">startedAt / completedAt</span><span class="field-type">ISO string?</span></li>
+        <li><span class="field-name">note</span><span class="field-type">string (สำหรับ QR)</span></li>
+        <li><span class="field-name">cutterNote</span><span class="field-type">string (จากช่าง)</span></li>
+      </ul>
+    </div>
+
+    <div class="model-card">
+      <h4>PaymentRequest <span style="font-size:0.7rem;color:#4a5568">(Beta 1.2)</span></h4>
+      <ul class="field-list">
+        <li><span class="field-name">token</span><span class="field-type">UUID</span></li>
+        <li><span class="field-name">orderId / teamName</span><span class="field-type">string</span></li>
+        <li><span class="field-name">amount</span><span class="field-type">number</span></li>
+        <li><span class="field-name">accountIndex</span><span class="field-type">number</span></li>
+        <li><span class="field-name">note</span><span class="field-type">string</span></li>
+        <li><span class="field-name">status</span><span class="field-type">pending | slip_uploaded | approved | rejected</span></li>
+        <li><span class="field-name">slipUrl</span><span class="field-type">string?</span></li>
+        <li><span class="field-name">slipUploadedAt / approvedAt</span><span class="field-type">ISO string?</span></li>
+        <li><span class="field-name">approvedAmount</span><span class="field-type">number?</span></li>
+      </ul>
+    </div>
+
   </div>
 </div>
 
@@ -731,6 +863,36 @@
           <td class="route-path">/api/groups</td>
           <td>จัดกลุ่มออเดอร์ (Order Groups)</td>
         </tr>
+        <tr>
+          <td><span class="method GET">GET</span><span class="method POST">POST</span></td>
+          <td class="route-path">/api/cutting-jobs</td>
+          <td>ดึงรายการ / สร้างใบงานตัด</td>
+        </tr>
+        <tr>
+          <td><span class="method GET">GET</span><span class="method PUT">PUT</span></td>
+          <td class="route-path">/api/cutting-jobs/[id]</td>
+          <td>ดูรายละเอียด / อัปเดตสถานะ, cutterNote, จำนวน</td>
+        </tr>
+        <tr>
+          <td><span class="method GET">GET</span></td>
+          <td class="route-path">/api/cutting-jobs/claim</td>
+          <td>ช่างตัดรับงานด้วย PIN</td>
+        </tr>
+        <tr>
+          <td><span class="method GET">GET</span><span class="method POST">POST</span></td>
+          <td class="route-path">/api/payment-requests</td>
+          <td>ดึงรายการ / สร้าง payment request</td>
+        </tr>
+        <tr>
+          <td><span class="method GET">GET</span><span class="method PUT">PUT</span><span class="method DELETE">DELETE</span></td>
+          <td class="route-path">/api/payment-requests/[token]</td>
+          <td>ดูรายละเอียด / อัปเดต / ยกเลิก (เฉพาะ pending)</td>
+        </tr>
+        <tr>
+          <td><span class="method POST">POST</span></td>
+          <td class="route-path">/api/payment-requests/[token]/slip</td>
+          <td>อัปโหลดสลิปการโอน</td>
+        </tr>
       </tbody>
     </table>
   </div>
@@ -759,7 +921,7 @@
 </div>
 
 <footer>
-  WINX Studio Back Office — สร้างสรุปจาก codebase จริง · v0.1.0 → Beta 1.1
+  WINX Studio Back Office — Beta 1.2.1 · อัปเดต 2026-06-05
 </footer>
 
 </body>
