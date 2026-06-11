@@ -30,6 +30,7 @@ async function getJobByToken(token: string): Promise<CuttingJob | null> {
     cutterName: data.cutter_name,
     startedAt: data.started_at,
     completedAt: data.completed_at,
+    printedAt: data.printed_at,
     createdAt: data.created_at,
     note: data.note,
     cutterNote: data.cutter_note ?? "",
