@@ -656,8 +656,6 @@ export default function CuttingJobsPage() {
           );
         })()}
 
-        {/* Cutter Management */}
-        <CutterManagementCard />
       </div>
 
       {createOpen && (
