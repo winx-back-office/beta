@@ -39,6 +39,17 @@ export async function POST(
       .eq("id", id);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    // Sync production queue → "กำลังเย็บ" column
+    // Find column id by title since it's user-configurable
+    const { data: colData } = await supabase.from("production_columns").select("data").eq("id", "singleton").single();
+    const cols: { id: string; title: string }[] = colData?.data ?? [];
+    const sewingCol = cols.find((c) => c.title === "กำลังเย็บ");
+    const { data: sewJob } = await supabase.from("cutting_jobs").select("order_id").eq("id", id).single();
+    if (sewJob?.order_id && sewingCol) {
+      await supabase.from("orders").update({ production_status: sewingCol.id }).eq("id", sewJob.order_id);
+    }
+
     return NextResponse.json({ success: true, sewerName: sewer.name });
   }
 
