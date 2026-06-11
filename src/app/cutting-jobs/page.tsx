@@ -25,9 +25,20 @@ interface ShirtStyle {
 // Status Badge
 // ──────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: CuttingJob["status"] }) {
-  if (status === "pending") return <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium" style={{ color: "#888", borderColor: "#88884040", backgroundColor: "#88888815" }}>รอตัด</span>;
-  if (status === "cutting") return <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium" style={{ color: "#f97316", borderColor: "#f9731640", backgroundColor: "#f9731615" }}>กำลังตัด</span>;
-  return <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium" style={{ color: "#22c55e", borderColor: "#22c55e40", backgroundColor: "#22c55e15" }}>เสร็จแล้ว</span>;
+  const map: Record<CuttingJob["status"], { label: string; color: string }> = {
+    pending:  { label: "รอตัด",      color: "#888" },
+    cutting:  { label: "กำลังตัด",   color: "#f97316" },
+    cut_done: { label: "ตัดเสร็จ",   color: "#3b82f6" },
+    sewing:   { label: "กำลังเย็บ",  color: "#a855f7" },
+    done:     { label: "เสร็จสมบูรณ์", color: "#22c55e" },
+  };
+  const { label, color } = map[status] ?? { label: status, color: "#888" };
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium"
+      style={{ color, borderColor: `${color}40`, backgroundColor: `${color}15` }}>
+      {label}
+    </span>
+  );
 }
 
 // ──────────────────────────────────────────────────────
@@ -533,9 +544,11 @@ export default function CuttingJobsPage() {
         {/* Status filter chips */}
         {(() => {
           const STATUS_META: Record<CuttingJob["status"], { label: string; accent: string }> = {
-            pending: { label: "รอตัด", accent: "#888888" },
-            cutting: { label: "กำลังตัด", accent: "#f97316" },
-            done:    { label: "เสร็จแล้ว", accent: "#22c55e" },
+            pending:  { label: "รอตัด",       accent: "#888888" },
+            cutting:  { label: "กำลังตัด",    accent: "#f97316" },
+            cut_done: { label: "ตัดเสร็จ",    accent: "#3b82f6" },
+            sewing:   { label: "กำลังเย็บ",   accent: "#a855f7" },
+            done:     { label: "เสร็จสมบูรณ์", accent: "#22c55e" },
           };
           const displayedCount = filterStatus === "all" ? jobs.length : jobs.filter(j => j.status === filterStatus).length;
           return (

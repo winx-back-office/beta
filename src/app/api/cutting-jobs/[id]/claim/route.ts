@@ -12,8 +12,37 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const { pin } = await req.json();
+  const { pin, phase } = await req.json(); // phase: "cutting" | "sewing"
 
+  if (phase === "sewing") {
+    // Claim sewing phase — lookup from sewers table
+    const { data: sewer, error: sewerError } = await supabase
+      .from("sewers")
+      .select("*")
+      .eq("pin", pin)
+      .eq("active", true)
+      .single();
+
+    if (sewerError || !sewer) {
+      return NextResponse.json({ error: "PIN ไม่ถูกต้อง" }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from("cutting_jobs")
+      .update({
+        status: "sewing",
+        sewing_status: "sewing",
+        sewer_id: sewer.id,
+        sewer_name: sewer.name,
+        sewing_started_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: true, sewerName: sewer.name });
+  }
+
+  // Default: cutting phase — lookup from cutters table
   const { data: cutter, error: cutterError } = await supabase
     .from("cutters")
     .select("*")
@@ -37,7 +66,7 @@ export async function POST(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Move production queue card to "pattern_cut" when cutter claims the job
+  // Sync production queue → pattern_cut
   const { data: job } = await supabase.from("cutting_jobs").select("order_id").eq("id", id).single();
   if (job?.order_id) {
     await supabase.from("orders").update({ production_status: "pattern_cut" }).eq("id", job.order_id);

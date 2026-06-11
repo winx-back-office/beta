@@ -18,12 +18,17 @@ export interface CuttingJob {
   quantity: number;
   patternPieces: number;
   token: string;
-  status: "pending" | "cutting" | "done";
+  status: "pending" | "cutting" | "cut_done" | "sewing" | "done";
   cutterId: string | null;
   cutterName: string | null;
   startedAt: string | null;
   completedAt: string | null;
   printedAt: string | null;
+  sewingStatus: "pending" | "sewing" | "done";
+  sewerId: string | null;
+  sewerName: string | null;
+  sewingStartedAt: string | null;
+  sewingCompletedAt: string | null;
   createdAt: string;
   note: string;
   cutterNote: string;
@@ -45,6 +50,11 @@ function toJob(row: Record<string, unknown>): CuttingJob {
     startedAt: row.started_at as string | null,
     completedAt: row.completed_at as string | null,
     printedAt: row.printed_at as string | null,
+    sewingStatus: (row.sewing_status as CuttingJob["sewingStatus"]) ?? "pending",
+    sewerId: row.sewer_id as string | null,
+    sewerName: row.sewer_name as string | null,
+    sewingStartedAt: row.sewing_started_at as string | null,
+    sewingCompletedAt: row.sewing_completed_at as string | null,
     createdAt: row.created_at as string,
     note: row.note as string,
     cutterNote: (row.cutter_note as string) ?? "",

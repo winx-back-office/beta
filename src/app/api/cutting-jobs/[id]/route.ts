@@ -26,6 +26,11 @@ function toJob(row: Record<string, unknown>): CuttingJob {
     startedAt: row.started_at as string | null,
     completedAt: row.completed_at as string | null,
     printedAt: row.printed_at as string | null,
+    sewingStatus: (row.sewing_status as CuttingJob["sewingStatus"]) ?? "pending",
+    sewerId: row.sewer_id as string | null,
+    sewerName: row.sewer_name as string | null,
+    sewingStartedAt: row.sewing_started_at as string | null,
+    sewingCompletedAt: row.sewing_completed_at as string | null,
     createdAt: row.created_at as string,
     note: row.note as string,
     cutterNote: (row.cutter_note as string) ?? "",
@@ -67,6 +72,11 @@ export async function PUT(
   if (body.quantity !== undefined) updateData.quantity = body.quantity;
   if (body.patternPieces !== undefined) updateData.pattern_pieces = body.patternPieces;
   if (body.printedAt !== undefined) updateData.printed_at = body.printedAt;
+  if (body.sewingStatus !== undefined) updateData.sewing_status = body.sewingStatus;
+  if (body.sewerId !== undefined) updateData.sewer_id = body.sewerId;
+  if (body.sewerName !== undefined) updateData.sewer_name = body.sewerName;
+  if (body.sewingStartedAt !== undefined) updateData.sewing_started_at = body.sewingStartedAt;
+  if (body.sewingCompletedAt !== undefined) updateData.sewing_completed_at = body.sewingCompletedAt;
 
   const { data, error } = await getSupabase()
     .from("cutting_jobs")
@@ -84,18 +94,17 @@ export async function PUT(
     const orderId = updatedJob.orderId;
 
     if (body.status === "cutting") {
-      // Move production card to "pattern_cut" when any cutting job starts
       await supabase.from("orders").update({ production_status: "pattern_cut" }).eq("id", orderId);
+    } else if (body.status === "cut_done") {
+      // All cutting jobs cut_done → move to sew column
+      const { data: allJobs } = await supabase.from("cutting_jobs").select("status").eq("order_id", orderId);
+      const allCutDone = allJobs?.every((j) => j.status === "cut_done" || j.status === "sewing" || j.status === "done");
+      if (allCutDone) await supabase.from("orders").update({ production_status: "sew" }).eq("id", orderId);
     } else if (body.status === "done") {
-      // Check if ALL cutting jobs for this order are now done
-      const { data: allJobs } = await supabase
-        .from("cutting_jobs")
-        .select("status")
-        .eq("order_id", orderId);
+      // All sewing done → move to done column
+      const { data: allJobs } = await supabase.from("cutting_jobs").select("status").eq("order_id", orderId);
       const allDone = allJobs?.every((j) => j.status === "done");
-      if (allDone) {
-        await supabase.from("orders").update({ production_status: "sew" }).eq("id", orderId);
-      }
+      if (allDone) await supabase.from("orders").update({ production_status: "done" }).eq("id", orderId);
     }
   }
 

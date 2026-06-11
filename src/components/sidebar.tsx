@@ -81,6 +81,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: "/admin/employees", label: "จัดการพนักงาน", icon: Users, badge: null, menuKey: null, adminOnly: true },
       { href: "/admin/cutters", label: "จัดการช่างตัด", icon: Scissors, badge: null, menuKey: null, adminOnly: true },
+      { href: "/admin/sewers", label: "จัดการช่างเย็บ", icon: Layers, badge: null, menuKey: null, adminOnly: true },
     ],
   },
 ];
