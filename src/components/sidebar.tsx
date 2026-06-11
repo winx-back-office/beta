@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -23,20 +24,64 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
 import { canAccess } from "@/lib/auth";
 
-const nav = [
-  { href: "/", label: "ภาพรวม", icon: LayoutDashboard, badge: null as null | string, menuKey: "overview" as null | string, adminOnly: false },
-  { href: "/summary", label: "สรุปภาพรวมงาน", icon: BarChart2, badge: null, menuKey: "summary", adminOnly: false },
-  { href: "/orders", label: "รายการออเดอร์", icon: ClipboardList, badge: "orders", menuKey: "orders", adminOnly: false },
-  { href: "/queue/design", label: "คิวออกแบบ", icon: Palette, badge: "design", menuKey: "queue", adminOnly: false },
-  { href: "/queue/production", label: "คิวผลิต", icon: Factory, badge: "production", menuKey: "queue", adminOnly: false },
-  { href: "/production-tables", label: "ตารางสั่งผลิต", icon: TableProperties, badge: "prod-table", menuKey: "production-tables", adminOnly: false },
-  { href: "/cutting-jobs", label: "ใบงานตัด", icon: Scissors, badge: null, menuKey: "cutting-jobs", adminOnly: false },
-  { href: "/delivery-notes", label: "ใบส่งสินค้า", icon: PackageCheck, badge: null, menuKey: "delivery-notes", adminOnly: false },
-  { href: "/design-packages", label: "แพคเกจออกแบบ", icon: Crown, badge: null, menuKey: null, adminOnly: true },
-  { href: "/shirt-styles", label: "ข้อมูลทรงเสื้อ", icon: Shirt, badge: null, menuKey: null, adminOnly: true },
-  { href: "/fabrics", label: "ข้อมูลเนื้อผ้า", icon: Layers, badge: null, menuKey: null, adminOnly: true },
-  { href: "/track", label: "ติดตามสถานะ (ลูกค้า)", icon: Search, badge: null, menuKey: null, adminOnly: false },
-  { href: "/admin/employees", label: "จัดการพนักงาน", icon: Users, badge: null, menuKey: null, adminOnly: true },
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  badge: null | string;
+  menuKey: null | string;
+  adminOnly: boolean;
+};
+
+type NavGroup = {
+  groupLabel: string;
+  items: NavItem[];
+};
+
+const navGroups: NavGroup[] = [
+  {
+    groupLabel: "ภาพรวม",
+    items: [
+      { href: "/", label: "ภาพรวม", icon: LayoutDashboard, badge: null, menuKey: "overview", adminOnly: false },
+      { href: "/summary", label: "สรุปภาพรวมงาน", icon: BarChart2, badge: null, menuKey: "summary", adminOnly: false },
+    ],
+  },
+  {
+    groupLabel: "ออเดอร์ & คิว",
+    items: [
+      { href: "/orders", label: "รายการออเดอร์", icon: ClipboardList, badge: "orders", menuKey: "orders", adminOnly: false },
+      { href: "/queue/design", label: "คิวออกแบบ", icon: Palette, badge: "design", menuKey: "queue", adminOnly: false },
+      { href: "/queue/production", label: "คิวผลิต", icon: Factory, badge: "production", menuKey: "queue", adminOnly: false },
+      { href: "/production-tables", label: "ตารางสั่งผลิต", icon: TableProperties, badge: "prod-table", menuKey: "production-tables", adminOnly: false },
+    ],
+  },
+  {
+    groupLabel: "ใบงาน",
+    items: [
+      { href: "/cutting-jobs", label: "ใบงานตัด", icon: Scissors, badge: null, menuKey: "cutting-jobs", adminOnly: false },
+      { href: "/delivery-notes", label: "ใบส่งสินค้า", icon: PackageCheck, badge: null, menuKey: "delivery-notes", adminOnly: false },
+    ],
+  },
+  {
+    groupLabel: "แพคเกจ & ข้อมูลเสื้อ",
+    items: [
+      { href: "/design-packages", label: "แพคเกจออกแบบ", icon: Crown, badge: null, menuKey: null, adminOnly: true },
+      { href: "/shirt-styles", label: "ข้อมูลทรงเสื้อ", icon: Shirt, badge: null, menuKey: null, adminOnly: true },
+      { href: "/fabrics", label: "ข้อมูลเนื้อผ้า", icon: Layers, badge: null, menuKey: null, adminOnly: true },
+    ],
+  },
+  {
+    groupLabel: "ส่วนของลูกค้า",
+    items: [
+      { href: "/track", label: "ติดตามสถานะ (ลูกค้า)", icon: Search, badge: null, menuKey: null, adminOnly: false },
+    ],
+  },
+  {
+    groupLabel: "จัดการพนักงาน",
+    items: [
+      { href: "/admin/employees", label: "จัดการพนักงาน", icon: Users, badge: null, menuKey: null, adminOnly: true },
+    ],
+  },
 ];
 
 export function Sidebar() {
@@ -89,12 +134,16 @@ export function Sidebar() {
     return () => { clearInterval(interval); channel.close(); };
   }, [user]);
 
-  const visibleNav = nav.filter(({ menuKey, adminOnly }) => {
+  const filterItem = ({ menuKey, adminOnly }: NavItem) => {
     if (!user) return false;
     if (adminOnly) return user.role === "admin";
     if (menuKey === null) return true;
     return canAccess(user, menuKey);
-  });
+  };
+
+  const visibleGroups = navGroups
+    .map((g) => ({ ...g, items: g.items.filter(filterItem) }))
+    .filter((g) => g.items.length > 0);
 
   if (isPublic) return null;
 
@@ -114,52 +163,61 @@ export function Sidebar() {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 space-y-1 px-1.5 py-2 min-[720px]:px-3">
-        {visibleNav.map(({ href, label, icon: Icon, badge }) => {
-          const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
-          const showBadge = badge === "orders" && slipCount > 0;
-          const showDesignBadge = badge === "design" && designWaitCount > 0;
-          const showProductionBadge = badge === "production" && productionWaitCount > 0;
-          const showProdTableBadge = badge === "prod-table" && prodTableNewCount > 0;
-          return (
-            <Link
-              key={href}
-              href={href}
-              title={label}
-              target={href === "/track" ? "_blank" : undefined}
-              rel={href === "/track" ? "noopener noreferrer" : undefined}
-              className={cn(
-                "flex items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2.5 text-sm transition-colors min-[720px]:px-3",
-                active
-                  ? "bg-accent-soft text-accent font-medium"
-                  : "text-muted hover:bg-surface-2 hover:text-foreground"
-              )}
-            >
-              <Icon className="h-[18px] w-[18px] shrink-0" />
-              <span className="hidden min-[720px]:inline flex-1">{label}</span>
-              {showBadge && (
-                <span className="hidden min-[720px]:flex ml-auto h-5 min-w-5 items-center justify-center rounded-full bg-yellow-400 px-1.5 text-[10px] font-bold text-black">
-                  {slipCount}
-                </span>
-              )}
-              {showDesignBadge && (
-                <span className="hidden min-[720px]:flex ml-auto h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[10px] font-bold text-accent-foreground">
-                  {designWaitCount}
-                </span>
-              )}
-              {showProductionBadge && (
-                <span className="hidden min-[720px]:flex ml-auto h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[10px] font-bold text-accent-foreground">
-                  {productionWaitCount}
-                </span>
-              )}
-              {showProdTableBadge && (
-                <span className="hidden min-[720px]:flex ml-auto h-5 min-w-5 items-center justify-center rounded-full bg-yellow-400 px-1.5 text-[10px] font-bold text-black">
-                  {prodTableNewCount}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 overflow-y-auto px-1.5 py-2 min-[720px]:px-3">
+        {visibleGroups.map((group, gi) => (
+          <div key={group.groupLabel} className={gi > 0 ? "mt-4" : ""}>
+            <div className="hidden min-[720px]:block px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-widest text-muted-2">
+              {group.groupLabel}
+            </div>
+            <div className="space-y-0.5">
+              {group.items.map(({ href, label, icon: Icon, badge }) => {
+                const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+                const showBadge = badge === "orders" && slipCount > 0;
+                const showDesignBadge = badge === "design" && designWaitCount > 0;
+                const showProductionBadge = badge === "production" && productionWaitCount > 0;
+                const showProdTableBadge = badge === "prod-table" && prodTableNewCount > 0;
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    title={label}
+                    target={href === "/track" ? "_blank" : undefined}
+                    rel={href === "/track" ? "noopener noreferrer" : undefined}
+                    className={cn(
+                      "flex items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2.5 text-sm transition-colors min-[720px]:px-3",
+                      active
+                        ? "bg-accent-soft text-accent font-medium"
+                        : "text-muted hover:bg-surface-2 hover:text-foreground"
+                    )}
+                  >
+                    <Icon className="h-[18px] w-[18px] shrink-0" />
+                    <span className="hidden min-[720px]:inline flex-1">{label}</span>
+                    {showBadge && (
+                      <span className="hidden min-[720px]:flex ml-auto h-5 min-w-5 items-center justify-center rounded-full bg-yellow-400 px-1.5 text-[10px] font-bold text-black">
+                        {slipCount}
+                      </span>
+                    )}
+                    {showDesignBadge && (
+                      <span className="hidden min-[720px]:flex ml-auto h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[10px] font-bold text-accent-foreground">
+                        {designWaitCount}
+                      </span>
+                    )}
+                    {showProductionBadge && (
+                      <span className="hidden min-[720px]:flex ml-auto h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[10px] font-bold text-accent-foreground">
+                        {productionWaitCount}
+                      </span>
+                    )}
+                    {showProdTableBadge && (
+                      <span className="hidden min-[720px]:flex ml-auto h-5 min-w-5 items-center justify-center rounded-full bg-yellow-400 px-1.5 text-[10px] font-bold text-black">
+                        {prodTableNewCount}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* Version */}
