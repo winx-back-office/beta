@@ -12,6 +12,7 @@ import { notifyOrdersUpdated } from "@/lib/broadcast";
 
 import { designColumns } from "@/lib/mock-data";
 import type { QueueColumn } from "@/lib/types";
+import { useShirtStyleOptions, useFabricOptions, useCollarOptions } from "@/lib/use-catalog";
 
 type ColStatus = { label: string; accent: string };
 type ColMap = Record<string, ColStatus>;
@@ -350,16 +351,21 @@ export default function OrdersPage() {
         return 0;
       });
     } else {
-      // default: เรียงตามลำดับ chip แล้ว secondary sort วันที่ใหม่สุด
+      // default: เรียงตามลำดับ chip, secondary sort ID ใหม่สุดขึ้นก่อน
       list.sort((a, b) => {
         const ap = statusPriority[getStatusId(a)] ?? 999;
         const bp = statusPriority[getStatusId(b)] ?? 999;
         if (ap !== bp) return ap - bp;
-        return (b.startDate ?? "").localeCompare(a.startDate ?? "");
+        return b.id.localeCompare(a.id);
       });
     }
     return list;
   }, [orders, search, filterType, filterStatus, sortKey, sortDir, designMap, prodMap, statusPriority]);
+
+  const designDisplayed = useMemo(() => displayedOrders.filter(o => o.type === "design" || o.type === "design_produce"), [displayedOrders]);
+  const produceDisplayed = useMemo(() => displayedOrders.filter(o => o.type === "produce"), [displayedOrders]);
+  const [designCollapsed, setDesignCollapsed] = useState(false);
+  const [produceCollapsed, setProduceCollapsed] = useState(false);
 
   const hasFilters = search || filterType !== "all" || filterStatus !== "all" || sortKey !== null;
   const clearFilters = () => {
@@ -434,6 +440,15 @@ export default function OrdersPage() {
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, startDate } : o)));
   };
 
+  const onUpdateDeliveryDate = async (id: string, deliveryDate: string) => {
+    await fetch(`/api/orders/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deliveryDate: deliveryDate || null }),
+    });
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, deliveryDate } : o)));
+  };
+
 
   return (
     <div>
@@ -472,7 +487,7 @@ export default function OrdersPage() {
         {/* Type filter + counter + clear */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
           <div className="flex items-center gap-1 rounded-[var(--radius-md)] border border-border bg-surface-2 p-0.5 text-xs">
-            {(["all","design","design_produce","produce"] as const).map(t => (
+            {(["all","design","produce"] as const).map(t => (
               <button
                 key={t}
                 onClick={() => setFilterType(t)}
@@ -566,40 +581,106 @@ export default function OrdersPage() {
                   ? "ยังไม่มีออเดอร์"
                   : <span>ไม่พบรายการ — <button onClick={clearFilters} className="text-accent hover:underline">ล้างตัวกรอง</button></span>}
               </div>
-            ) : displayedOrders.map((o) => {
-              const s = deriveStatus(o, designMap, prodMap);
-              const balance = orderBalance(o);
-              return (
-                <Link key={o.id} href={`/orders/${o.id}`}>
-                  <div
-                    className="rounded-[var(--radius-lg)] border border-border bg-surface p-4 transition-colors active:bg-surface-2"
-                    style={s.accent && s.accent !== "#666" ? { borderLeft: `3px solid ${s.accent}`, backgroundColor: `color-mix(in srgb, ${s.accent} 3%, var(--color-surface))` } : {}}
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="min-w-0">
-                        <div className="font-semibold truncate">{o.teamName}</div>
-                        <div className="font-mono text-xs text-muted mt-0.5">{o.id}</div>
-                      </div>
-                      <StatusCell order={o} onSave={(field, value) => onUpdateQueueStatus(o.id, field, value)} designMap={designMap} prodMap={prodMap} />
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-muted">
-                      <div className="flex items-center gap-2">
-                        <Badge tone={o.type === "design" ? "info" : o.type === "produce" ? "purple" : "accent"}>
-                          {CUSTOMER_TYPE_LABEL[o.type]}
-                        </Badge>
-                        {o.quantity != null && <span>{o.quantity} ตัว</span>}
-                        {o.startDate && <span>{formatDate(o.startDate)}</span>}
-                      </div>
-                      <div className="text-right font-medium">
-                        {balance > 0
-                          ? <span className="text-warn">{formatBaht(balance)}</span>
-                          : <span className="text-success text-xs">ชำระครบ</span>}
-                      </div>
-                    </div>
+            ) : (
+              <>
+                {designDisplayed.length > 0 && (
+                  <div>
+                    <button onClick={() => setDesignCollapsed(v => !v)} className="flex items-center gap-2 px-1 py-2 w-full text-left hover:opacity-70 transition-opacity">
+                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: "var(--info)" }} />
+                      <span className="text-xs font-semibold text-muted-2 uppercase tracking-wider">คิวออกแบบ</span>
+                      <span className="text-xs text-muted-2">({designDisplayed.length})</span>
+                      <ChevronDown className={`ml-auto h-3.5 w-3.5 text-muted-2 transition-transform ${designCollapsed ? "-rotate-90" : ""}`} />
+                    </button>
+                    {!designCollapsed && designDisplayed.map((o) => {
+                      const s = deriveStatus(o, designMap, prodMap);
+                      const balance = orderBalance(o);
+                      if (s.label === "จัดส่งเรียบร้อย") {
+                        return (
+                          <Link key={o.id} href={`/orders/${o.id}`}>
+                            <div className="rounded-[var(--radius-lg)] border border-border px-4 py-2.5 mb-2 flex items-center gap-3" style={{ backgroundColor: "color-mix(in srgb, #888 8%, var(--color-surface))", borderLeft: "3px solid #666" }}>
+                              <span className="font-medium text-muted truncate flex-1">{o.teamName}</span>
+                              <span className="shrink-0 rounded-full border border-[#66666640] bg-[#66666615] px-2.5 py-0.5 text-xs font-medium text-muted-2">จัดส่งเรียบร้อย</span>
+                            </div>
+                          </Link>
+                        );
+                      }
+                      return (
+                        <Link key={o.id} href={`/orders/${o.id}`}>
+                          <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-4 mb-2 transition-colors active:bg-surface-2" style={s.accent && s.accent !== "#666" ? { borderLeft: `3px solid ${s.accent}`, backgroundColor: `color-mix(in srgb, ${s.accent} 3%, var(--color-surface))` } : {}}>
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="min-w-0">
+                                <div className="font-semibold truncate">{o.teamName}</div>
+                                <div className="font-mono text-xs text-muted mt-0.5">{o.id}</div>
+                              </div>
+                              <StatusCell order={o} onSave={(field, value) => onUpdateQueueStatus(o.id, field, value)} designMap={designMap} prodMap={prodMap} />
+                            </div>
+                            <div className="flex items-center justify-between text-xs text-muted">
+                              <div className="flex items-center gap-2">
+                                <Badge tone={o.type === "design" ? "info" : "accent"}>{CUSTOMER_TYPE_LABEL[o.type]}</Badge>
+                                {o.quantity != null && <span>{o.quantity} ตัว</span>}
+                                {o.startDate && <span>{formatDate(o.startDate)}</span>}
+                                {o.deliveryDate && <span className="text-muted-2">→ {formatDate(o.deliveryDate)}</span>}
+                              </div>
+                              <div className="text-right font-medium">
+                                {balance > 0 ? <span className="text-warn">{formatBaht(balance)}</span> : <span className="text-success text-xs">ชำระครบ</span>}
+                              </div>
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </div>
-                </Link>
-              );
-            })}
+                )}
+                {produceDisplayed.length > 0 && (
+                  <div>
+                    <button onClick={() => setProduceCollapsed(v => !v)} className="flex items-center gap-2 px-1 py-2 w-full text-left hover:opacity-70 transition-opacity">
+                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: "#a855f7" }} />
+                      <span className="text-xs font-semibold text-muted-2 uppercase tracking-wider">คิวผลิต</span>
+                      <span className="text-xs text-muted-2">({produceDisplayed.length})</span>
+                      <ChevronDown className={`ml-auto h-3.5 w-3.5 text-muted-2 transition-transform ${produceCollapsed ? "-rotate-90" : ""}`} />
+                    </button>
+                    {!produceCollapsed && produceDisplayed.map((o) => {
+                      const s = deriveStatus(o, designMap, prodMap);
+                      const balance = orderBalance(o);
+                      if (s.label === "จัดส่งเรียบร้อย") {
+                        return (
+                          <Link key={o.id} href={`/orders/${o.id}`}>
+                            <div className="rounded-[var(--radius-lg)] border border-border px-4 py-2.5 mb-2 flex items-center gap-3" style={{ backgroundColor: "color-mix(in srgb, #888 8%, var(--color-surface))", borderLeft: "3px solid #666" }}>
+                              <span className="font-medium text-muted truncate flex-1">{o.teamName}</span>
+                              <span className="shrink-0 rounded-full border border-[#66666640] bg-[#66666615] px-2.5 py-0.5 text-xs font-medium text-muted-2">จัดส่งเรียบร้อย</span>
+                            </div>
+                          </Link>
+                        );
+                      }
+                      return (
+                        <Link key={o.id} href={`/orders/${o.id}`}>
+                          <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-4 mb-2 transition-colors active:bg-surface-2" style={s.accent && s.accent !== "#666" ? { borderLeft: `3px solid ${s.accent}`, backgroundColor: `color-mix(in srgb, ${s.accent} 3%, var(--color-surface))` } : {}}>
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="min-w-0">
+                                <div className="font-semibold truncate">{o.teamName}</div>
+                                <div className="font-mono text-xs text-muted mt-0.5">{o.id}</div>
+                              </div>
+                              <StatusCell order={o} onSave={(field, value) => onUpdateQueueStatus(o.id, field, value)} designMap={designMap} prodMap={prodMap} />
+                            </div>
+                            <div className="flex items-center justify-between text-xs text-muted">
+                              <div className="flex items-center gap-2">
+                                <Badge tone="purple">{CUSTOMER_TYPE_LABEL[o.type]}</Badge>
+                                {o.quantity != null && <span>{o.quantity} ตัว</span>}
+                                {o.startDate && <span>{formatDate(o.startDate)}</span>}
+                                {o.deliveryDate && <span className="text-muted-2">→ {formatDate(o.deliveryDate)}</span>}
+                              </div>
+                              <div className="text-right font-medium">
+                                {balance > 0 ? <span className="text-warn">{formatBaht(balance)}</span> : <span className="text-success text-xs">ชำระครบ</span>}
+                              </div>
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           {/* Desktop card list — hidden on mobile, visible at 720px+ */}
@@ -610,88 +691,117 @@ export default function OrdersPage() {
                   ? <>ยังไม่มีออเดอร์ — กดปุ่ม &ldquo;เพิ่มออเดอร์&rdquo; เพื่อเริ่มต้น</>
                   : <span>ไม่พบรายการที่ตรงกับเงื่อนไข — <button onClick={clearFilters} className="text-accent hover:underline">ล้างตัวกรอง</button></span>}
               </div>
-            ) : displayedOrders.map((o) => {
-              const s = deriveStatus(o, designMap, prodMap);
-              const balance = orderBalance(o);
-              const isDelivered = s.label === "จัดส่งเรียบร้อย";
-              if (isDelivered) {
-                return (
-                  <div
-                    key={o.id}
-                    className="group relative rounded-[var(--radius-lg)] border border-border px-5 py-2.5 transition-colors hover:bg-surface-2"
-                    style={{ backgroundColor: "color-mix(in srgb, #888 8%, var(--color-surface))", borderLeft: "3px solid #666" }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Link href={`/orders/${o.id}`} className="font-mono text-xs text-muted-2 hover:text-accent shrink-0">
-                        {o.id}
-                      </Link>
-                      <Link href={`/orders/${o.id}`} className="text-sm font-medium text-muted hover:text-foreground truncate flex-1">
-                        {o.teamName}
-                      </Link>
-                      <span className="shrink-0 rounded-full border border-[#66666640] bg-[#66666615] px-2.5 py-0.5 text-xs font-medium text-muted-2">
-                        จัดส่งเรียบร้อย
-                      </span>
-                      <button
-                        onClick={() => onDelete(o.id)}
-                        className="invisible group-hover:visible rounded p-1 text-muted hover:bg-red-50 hover:text-red-500 transition-colors"
-                        title="ลบออเดอร์"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              }
-              return (
-                <div
-                  key={o.id}
-                  className="group relative rounded-[var(--radius-lg)] border border-border bg-surface px-5 py-4 transition-colors hover:bg-surface-2"
-                  style={s.accent && s.accent !== "#666" ? { borderLeft: `3px solid ${s.accent}`, backgroundColor: `color-mix(in srgb, ${s.accent} 3%, var(--color-surface))` } : {}}
-                  onMouseMove={e => (o.shirtType || o.fabricType || o.collarType) && setTooltip({ order: o, x: e.clientX, y: e.clientY })}
-                  onMouseLeave={() => setTooltip(null)}
-                >
-                  {/* Row 1: ID + team name + status + delete */}
-                  <div className="flex items-center gap-3 mb-2">
-                    <Link href={`/orders/${o.id}`} className="font-mono text-xs text-accent hover:underline shrink-0">
-                      {o.id}
-                    </Link>
-                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                      <Link href={`/orders/${o.id}`} className="font-semibold hover:text-accent truncate">
-                        {o.teamName}
-                      </Link>
-                      {hasTableUpdate(o.id) && <span className="h-2 w-2 rounded-full bg-warn shrink-0" title="มีข้อมูลอัพเดทในตารางสั่งผลิต" />}
-                      {hasSlipPending(o.id) && <span className="h-2 w-2 rounded-full bg-yellow-400 shrink-0" title="มีสลิปรอตรวจสอบ" />}
-                    </div>
-                    <StatusCell order={o} onSave={(field, value) => onUpdateQueueStatus(o.id, field, value)} designMap={designMap} prodMap={prodMap} />
-                    <button
-                      onClick={() => onDelete(o.id)}
-                      className="invisible group-hover:visible rounded p-1 text-muted hover:bg-red-50 hover:text-red-500 transition-colors"
-                      title="ลบออเดอร์"
-                    >
-                      <Trash2 className="h-4 w-4" />
+            ) : (
+              <>
+                {designDisplayed.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <button onClick={() => setDesignCollapsed(v => !v)} className="flex items-center gap-2 px-1 pt-2 pb-1 w-full text-left hover:opacity-70 transition-opacity">
+                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: "var(--info)" }} />
+                      <span className="text-xs font-semibold text-muted-2 uppercase tracking-wider">คิวออกแบบ</span>
+                      <span className="text-xs text-muted-2">({designDisplayed.length})</span>
+                      <ChevronDown className={`ml-auto h-3.5 w-3.5 text-muted-2 transition-transform ${designCollapsed ? "-rotate-90" : ""}`} />
                     </button>
+                    {!designCollapsed && designDisplayed.map((o) => {
+                      const s = deriveStatus(o, designMap, prodMap);
+                      const balance = orderBalance(o);
+                      const isDelivered = s.label === "จัดส่งเรียบร้อย";
+                      if (isDelivered) {
+                        return (
+                          <div key={o.id} className="group relative rounded-[var(--radius-lg)] border border-border px-5 py-2.5 transition-colors hover:bg-surface-2" style={{ backgroundColor: "color-mix(in srgb, #888 8%, var(--color-surface))", borderLeft: "3px solid #666" }}>
+                            <div className="flex items-center gap-3">
+                              <Link href={`/orders/${o.id}`} className="font-mono text-xs text-muted-2 hover:text-accent shrink-0">{o.id}</Link>
+                              <Link href={`/orders/${o.id}`} className="text-sm font-medium text-muted hover:text-foreground truncate flex-1">{o.teamName}</Link>
+                              <span className="shrink-0 rounded-full border border-[#66666640] bg-[#66666615] px-2.5 py-0.5 text-xs font-medium text-muted-2">จัดส่งเรียบร้อย</span>
+                              <button onClick={() => onDelete(o.id)} className="invisible group-hover:visible rounded p-1 text-muted hover:bg-red-50 hover:text-red-500 transition-colors" title="ลบออเดอร์"><Trash2 className="h-4 w-4" /></button>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div key={o.id} className="group relative rounded-[var(--radius-lg)] border border-border bg-surface px-5 py-4 transition-colors hover:bg-surface-2" style={s.accent && s.accent !== "#666" ? { borderLeft: `3px solid ${s.accent}`, backgroundColor: `color-mix(in srgb, ${s.accent} 3%, var(--color-surface))` } : {}} onMouseMove={e => (o.shirtType || o.fabricType || o.collarType) && setTooltip({ order: o, x: e.clientX, y: e.clientY })} onMouseLeave={() => setTooltip(null)}>
+                          <div className="flex items-center gap-3 mb-2">
+                            <Link href={`/orders/${o.id}`} className="font-mono text-xs text-accent hover:underline shrink-0">{o.id}</Link>
+                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                              <Link href={`/orders/${o.id}`} className="font-semibold hover:text-accent truncate">{o.teamName}</Link>
+                              {hasTableUpdate(o.id) && <span className="h-2 w-2 rounded-full bg-warn shrink-0" />}
+                              {hasSlipPending(o.id) && <span className="h-2 w-2 rounded-full bg-yellow-400 shrink-0" />}
+                            </div>
+                            <StatusCell order={o} onSave={(field, value) => onUpdateQueueStatus(o.id, field, value)} designMap={designMap} prodMap={prodMap} />
+                            <button onClick={() => onDelete(o.id)} className="invisible group-hover:visible rounded p-1 text-muted hover:bg-red-50 hover:text-red-500 transition-colors" title="ลบออเดอร์"><Trash2 className="h-4 w-4" /></button>
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-muted">
+                            <Badge tone={o.type === "design" ? "info" : "accent"}>{CUSTOMER_TYPE_LABEL[o.type]}</Badge>
+                            {o.shirtType && <span>{o.shirtType}</span>}
+                            {o.collarType && <span>{o.collarType}</span>}
+                            {o.quantity != null && <span>{o.quantity} ตัว</span>}
+                            <DateCell date={o.startDate} onSave={d => onUpdateDate(o.id, d)} />
+                            <DateCell date={o.deliveryDate ?? ""} onSave={d => onUpdateDeliveryDate(o.id, d)} label="จัดส่ง" />
+                            <div className="ml-auto flex items-center gap-4">
+                              <span className="text-muted-2">รวม <span className="font-semibold text-foreground">{formatBaht(orderTotal(o))}</span></span>
+                              <span className="text-muted-2">มัดจำ <span className="text-muted">{formatBaht(o.deposit)}</span></span>
+                              <span>{balance > 0 ? <span className="font-semibold text-warn">คงเหลือ {formatBaht(balance)}</span> : <span className="text-success">ชำระครบ</span>}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  {/* Row 2: meta + financials */}
-                  <div className="flex items-center gap-4 text-xs text-muted">
-                    <Badge tone={o.type === "design" ? "info" : o.type === "produce" ? "purple" : "accent"}>
-                      {CUSTOMER_TYPE_LABEL[o.type]}
-                    </Badge>
-                    {o.shirtType && <span>{o.shirtType}</span>}
-                    {o.quantity != null && <span>{o.quantity} ตัว</span>}
-                    <DateCell date={o.startDate} onSave={d => onUpdateDate(o.id, d)} />
-                    <div className="ml-auto flex items-center gap-4">
-                      <span className="text-muted-2">รวม <span className="font-semibold text-foreground">{formatBaht(orderTotal(o))}</span></span>
-                      <span className="text-muted-2">มัดจำ <span className="text-muted">{formatBaht(o.deposit)}</span></span>
-                      <span>
-                        {balance > 0
-                          ? <span className="font-semibold text-warn">คงเหลือ {formatBaht(balance)}</span>
-                          : <span className="text-success">ชำระครบ</span>}
-                      </span>
-                    </div>
+                )}
+                {produceDisplayed.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <button onClick={() => setProduceCollapsed(v => !v)} className="flex items-center gap-2 px-1 pt-2 pb-1 w-full text-left hover:opacity-70 transition-opacity">
+                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: "#a855f7" }} />
+                      <span className="text-xs font-semibold text-muted-2 uppercase tracking-wider">คิวผลิต</span>
+                      <span className="text-xs text-muted-2">({produceDisplayed.length})</span>
+                      <ChevronDown className={`ml-auto h-3.5 w-3.5 text-muted-2 transition-transform ${produceCollapsed ? "-rotate-90" : ""}`} />
+                    </button>
+                    {!produceCollapsed && produceDisplayed.map((o) => {
+                      const s = deriveStatus(o, designMap, prodMap);
+                      const balance = orderBalance(o);
+                      const isDelivered = s.label === "จัดส่งเรียบร้อย";
+                      if (isDelivered) {
+                        return (
+                          <div key={o.id} className="group relative rounded-[var(--radius-lg)] border border-border px-5 py-2.5 transition-colors hover:bg-surface-2" style={{ backgroundColor: "color-mix(in srgb, #888 8%, var(--color-surface))", borderLeft: "3px solid #666" }}>
+                            <div className="flex items-center gap-3">
+                              <Link href={`/orders/${o.id}`} className="font-mono text-xs text-muted-2 hover:text-accent shrink-0">{o.id}</Link>
+                              <Link href={`/orders/${o.id}`} className="text-sm font-medium text-muted hover:text-foreground truncate flex-1">{o.teamName}</Link>
+                              <span className="shrink-0 rounded-full border border-[#66666640] bg-[#66666615] px-2.5 py-0.5 text-xs font-medium text-muted-2">จัดส่งเรียบร้อย</span>
+                              <button onClick={() => onDelete(o.id)} className="invisible group-hover:visible rounded p-1 text-muted hover:bg-red-50 hover:text-red-500 transition-colors" title="ลบออเดอร์"><Trash2 className="h-4 w-4" /></button>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div key={o.id} className="group relative rounded-[var(--radius-lg)] border border-border bg-surface px-5 py-4 transition-colors hover:bg-surface-2" style={s.accent && s.accent !== "#666" ? { borderLeft: `3px solid ${s.accent}`, backgroundColor: `color-mix(in srgb, ${s.accent} 3%, var(--color-surface))` } : {}} onMouseMove={e => (o.shirtType || o.fabricType || o.collarType) && setTooltip({ order: o, x: e.clientX, y: e.clientY })} onMouseLeave={() => setTooltip(null)}>
+                          <div className="flex items-center gap-3 mb-2">
+                            <Link href={`/orders/${o.id}`} className="font-mono text-xs text-accent hover:underline shrink-0">{o.id}</Link>
+                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                              <Link href={`/orders/${o.id}`} className="font-semibold hover:text-accent truncate">{o.teamName}</Link>
+                              {hasTableUpdate(o.id) && <span className="h-2 w-2 rounded-full bg-warn shrink-0" />}
+                              {hasSlipPending(o.id) && <span className="h-2 w-2 rounded-full bg-yellow-400 shrink-0" />}
+                            </div>
+                            <StatusCell order={o} onSave={(field, value) => onUpdateQueueStatus(o.id, field, value)} designMap={designMap} prodMap={prodMap} />
+                            <button onClick={() => onDelete(o.id)} className="invisible group-hover:visible rounded p-1 text-muted hover:bg-red-50 hover:text-red-500 transition-colors" title="ลบออเดอร์"><Trash2 className="h-4 w-4" /></button>
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-muted">
+                            <Badge tone="purple">{CUSTOMER_TYPE_LABEL[o.type]}</Badge>
+                            {o.shirtType && <span>{o.shirtType}</span>}
+                            {o.quantity != null && <span>{o.quantity} ตัว</span>}
+                            <DateCell date={o.startDate} onSave={d => onUpdateDate(o.id, d)} />
+                            <DateCell date={o.deliveryDate ?? ""} onSave={d => onUpdateDeliveryDate(o.id, d)} label="จัดส่ง" />
+                            <div className="ml-auto flex items-center gap-4">
+                              <span className="text-muted-2">รวม <span className="font-semibold text-foreground">{formatBaht(orderTotal(o))}</span></span>
+                              <span className="text-muted-2">มัดจำ <span className="text-muted">{formatBaht(o.deposit)}</span></span>
+                              <span>{balance > 0 ? <span className="font-semibold text-warn">คงเหลือ {formatBaht(balance)}</span> : <span className="text-success">ชำระครบ</span>}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
-              );
-            })}
+                )}
+              </>
+            )}
           </div>
           </>
         )}
@@ -842,7 +952,7 @@ function ColorDot({ color, onSelect }: { color?: string; onSelect: (c: string) =
   );
 }
 
-function DateCell({ date, onSave }: { date: string; onSave: (d: string) => void }) {
+function DateCell({ date, onSave, label }: { date: string; onSave: (d: string) => void; label?: string }) {
   const [editing, setEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -852,7 +962,7 @@ function DateCell({ date, onSave }: { date: string; onSave: (d: string) => void 
   };
 
   const commit = (val: string) => {
-    if (val) onSave(val);
+    onSave(val);
     setEditing(false);
   };
 
@@ -863,7 +973,7 @@ function DateCell({ date, onSave }: { date: string; onSave: (d: string) => void 
         type="date"
         autoFocus
         defaultValue={date?.slice(0, 10)}
-        onChange={e => { if (e.target.value) commit(e.target.value); }}
+        onChange={e => commit(e.target.value)}
         onBlur={e => commit(e.target.value)}
         className="w-28 rounded bg-surface-3 px-1 py-0.5 text-center text-sm text-foreground outline-none [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:hidden"
       />
@@ -874,9 +984,10 @@ function DateCell({ date, onSave }: { date: string; onSave: (d: string) => void 
     <span
       onDoubleClick={start}
       title="ดับเบิ้ลคลิกเพื่อแก้ไข"
-      className="cursor-pointer select-none rounded px-2 py-0.5 hover:bg-surface-3"
+      className="cursor-pointer select-none rounded px-2 py-0.5 hover:bg-surface-3 flex items-center gap-1"
     >
-      {formatDate(date)}
+      {label && <span className="text-muted-2">{label}</span>}
+      {date ? formatDate(date) : <span className="text-muted-2 italic">—</span>}
     </span>
   );
 }
@@ -892,6 +1003,9 @@ function ImportSheetsModal({
   onClose: () => void;
   onImported: (orders: Order[]) => void;
 }) {
+  const shirtStyleOptions = useShirtStyleOptions();
+  const fabricOptions = useFabricOptions();
+  const collarOptions = useCollarOptions();
   const [mode, setMode] = useState<"orders" | "production">("production");
   const [url, setUrl] = useState("");
   const [fetching, setFetching] = useState(false);
@@ -929,9 +1043,15 @@ function ImportSheetsModal({
       setDetectedFabric(data.detectedFabric ?? "");
       setDetectedShirt(data.detectedShirt ?? "");
       setDetectedCollar(data.detectedCollar ?? "");
-      setShirtType(data.detectedShirt ?? "");
-      setFabricType(data.detectedFabric ?? "");
-      setCollarType(data.detectedCollar ?? "");
+      const detected = (data.detectedShirt ?? "").toUpperCase();
+      const matched = shirtStyleOptions.find(s => s.toUpperCase() === detected || detected.includes(s.toUpperCase()) || s.toUpperCase().includes(detected));
+      setShirtType(matched ?? data.detectedShirt ?? "");
+      const detectedFab = (data.detectedFabric ?? "").toLowerCase();
+      const matchedFab = fabricOptions.find(f => f.toLowerCase() === detectedFab || detectedFab.includes(f.toLowerCase()) || f.toLowerCase().includes(detectedFab));
+      setFabricType(matchedFab ?? data.detectedFabric ?? "");
+      const detectedCol = (data.detectedCollar ?? "").toLowerCase();
+      const matchedCol = collarOptions.find(c => c.toLowerCase() === detectedCol || detectedCol.includes(c.toLowerCase()) || c.toLowerCase().includes(detectedCol));
+      setCollarType(matchedCol ?? data.detectedCollar ?? "");
       if (data.sheetTitle) setTeamName(data.sheetTitle);
     } else {
       setRows(data.rows);
@@ -1077,15 +1197,26 @@ function ImportSheetsModal({
                 </div>
                 <div>
                   <label className="text-xs text-muted-2 mb-1 block">ทรงเสื้อ {detectedShirt && <span className="text-accent">(ตรวจพบ: {detectedShirt})</span>}</label>
-                  <input className={fieldCls} value={shirtType} onChange={e => setShirtType(e.target.value)} placeholder="เช่น Basic Jersey" />
+                  <select className={fieldCls} value={shirtType} onChange={e => setShirtType(e.target.value)}>
+                    <option value="">— เลือกทรงเสื้อ —</option>
+                    {shirtStyleOptions.map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="text-xs text-muted-2 mb-1 block">เนื้อผ้า {detectedFabric && <span className="text-accent">(ตรวจพบ: {detectedFabric})</span>}</label>
-                  <input className={fieldCls} value={fabricType} onChange={e => setFabricType(e.target.value)} placeholder="เช่น เม็ดข้าวสาร 150 แกรม" />
+                  <select className={fieldCls} value={fabricType} onChange={e => setFabricType(e.target.value)}>
+                    <option value="">— เลือกเนื้อผ้า —</option>
+                    {fabricOptions.map(f => <option key={f} value={f}>{f}</option>)}
+                  </select>
                 </div>
                 <div>
                   <label className="text-xs text-muted-2 mb-1 block">ประเภทคอ {detectedCollar && <span className="text-accent">(ตรวจพบ: {detectedCollar})</span>}</label>
-                  <input className={fieldCls} value={collarType} onChange={e => setCollarType(e.target.value)} placeholder="เช่น คอกลม, คอวี" />
+                  <select className={fieldCls} value={collarType} onChange={e => setCollarType(e.target.value)}>
+                    <option value="">— เลือกประเภทคอ —</option>
+                    {collarOptions.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
                 </div>
               </div>
               {players.length > 0 && (

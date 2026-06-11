@@ -12,6 +12,7 @@ import {
   CUSTOMER_TYPE_LABEL,
   type Order,
   type ProductionCost,
+  type DeliveryAddress,
 } from "@/lib/types";
 import { formatBaht, formatDate } from "@/lib/utils";
 import { ArrowLeft, FileSpreadsheet, Table2, Loader2, Pencil, X, Check, Camera, Link2, Copy, CheckCheck, CreditCard } from "lucide-react";
@@ -109,6 +110,7 @@ export default function OrderDetailPage() {
         <div className="space-y-4 lg:col-span-2">
           <OrderInfoCard order={order} onSave={save} onOptimisticUpdate={optimisticUpdate} />
           {isProduce && <FinanceCard order={order} onSave={save} />}
+          <DeliveryAddressCard order={order} onSave={save} />
           {isProduce && order.hasProductionTable && <ProductionSummaryCard orderId={order.id} />}
           {paymentRequests.filter(pr => pr.status === "slip_uploaded").map(pr => (
             <SlipApprovalCard
@@ -311,6 +313,8 @@ function OrderInfoCard({ order, onSave, onOptimisticUpdate }: { order: Order; on
   const [draft, setDraft] = useState<Partial<Order>>({
     teamName: order.teamName,
     startDate: order.startDate,
+    deliveryDate: order.deliveryDate,
+    deliveryAddress: order.deliveryAddress ?? { name: "", phone: "", address1: "", address2: "", postal: "" },
     shirtType: order.shirtType,
     fabricType: order.fabricType,
     collarType: order.collarType,
@@ -355,15 +359,15 @@ function OrderInfoCard({ order, onSave, onOptimisticUpdate }: { order: Order; on
   }, [draft.shirtType, draft.fabricType, draft.collarType]);
 
   return (
-    <Card className="p-6">
-      <div className="mb-4 flex items-center justify-between">
+    <Card className="p-5">
+      <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-2">ข้อมูลออเดอร์</h2>
         <div className="flex items-center gap-1.5 text-xs text-muted">
           {saving && <Loader2 className="h-3 w-3 animate-spin" />}
           {saved && !saving && <><Check className="h-3 w-3 text-success" /><span className="text-success">บันทึกแล้ว</span></>}
         </div>
       </div>
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
         <EditField label="ชื่อทีม">
           <input className="field-input" value={draft.teamName ?? ""}
             onChange={e => setDraft(d => ({ ...d, teamName: e.target.value }))}
@@ -374,13 +378,34 @@ function OrderInfoCard({ order, onSave, onOptimisticUpdate }: { order: Order; on
             onChange={e => setDraft(d => ({ ...d, startDate: e.target.value }))}
             onBlur={() => autoSave(draft)} />
         </EditField>
+        <EditField label="วันจัดส่งสินค้า">
+          <input type="date" className="field-input" value={draft.deliveryDate?.slice(0, 10) ?? ""}
+            onChange={e => setDraft(d => ({ ...d, deliveryDate: e.target.value || undefined }))}
+            onBlur={() => autoSave(draft)} />
+        </EditField>
+        <EditField label="แพคเกจออกแบบ">
+          <select className="field-input" value={draft.designPackage ?? ""}
+            onChange={e => {
+              const pkg = e.target.value;
+              const prices: Record<string, number> = {
+                "JERSEY ONE": 0, "PLAYER": 1690, "PRO PLAYER": 2990, "PRO LEAGUE": 3990, "QUICK DESIGN": 1000,
+              };
+              const price = prices[pkg] ?? 0;
+              const next = { ...draft, designPackage: pkg, ...(pkg ? { designPackagePrice: price } : {}) };
+              setDraft(next);
+              autoSave(next);
+            }}>
+            <option value="">— ไม่มีแพคเกจออกแบบ —</option>
+            <option value="JERSEY ONE">JERSEY ONE — ฟรี</option>
+            <option value="PLAYER">PLAYER — 1,690 บาท</option>
+            <option value="PRO PLAYER">PRO PLAYER — 2,990 บาท</option>
+            <option value="PRO LEAGUE">PRO LEAGUE — 3,990 บาท</option>
+            <option value="QUICK DESIGN">QUICK DESIGN — 1,000 บาท</option>
+          </select>
+        </EditField>
+
         {order.type === "design" ? (
           <>
-            <EditField label="แพคเกจออกแบบ" full>
-              <input className="field-input" value={draft.designPackage ?? ""}
-                onChange={e => setDraft(d => ({ ...d, designPackage: e.target.value }))}
-                onBlur={() => autoSave(draft)} />
-            </EditField>
             <EditField label="รายละเอียดเพิ่มเติม" full>
               <textarea rows={4} className="field-input resize-none" value={draft.designNotes ?? ""}
                 onChange={e => setDraft(d => ({ ...d, designNotes: e.target.value }))}
@@ -389,45 +414,42 @@ function OrderInfoCard({ order, onSave, onOptimisticUpdate }: { order: Order; on
             </EditField>
           </>
         ) : (
-          <>
-            <EditField label="ประเภทเสื้อ">
-              <select className="field-input" value={draft.shirtType ?? ""}
+          <EditField label="ประเภทเสื้อ / เนื้อผ้า / ประเภทคอ" full>
+            <div className="grid grid-cols-3 gap-2">
+            <select className="field-input" value={draft.shirtType ?? ""}
                 onChange={e => setDraft(d => ({ ...d, shirtType: e.target.value, fabricType: "", collarType: "" }))}>
-                <option value="">— เลือกทรงเสื้อ —</option>
+                <option value="">— ทรงเสื้อ —</option>
                 {!shirtOptions.includes(draft.shirtType ?? "") && draft.shirtType && (
                   <option value={draft.shirtType}>{draft.shirtType}</option>
                 )}
                 {shirtOptions.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
-            </EditField>
-            <EditField label="เนื้อผ้า">
               <select className="field-input" value={draft.fabricType ?? ""}
                 onChange={e => setDraft(d => ({ ...d, fabricType: e.target.value }))}
                 disabled={!draft.shirtType}>
-                <option value="">{draft.shirtType ? "— เลือกเนื้อผ้า —" : "— เลือกทรงเสื้อก่อน —"}</option>
+                <option value="">{draft.shirtType ? "— เนื้อผ้า —" : "— เลือกทรงก่อน —"}</option>
                 {!filteredFabricOptions.some(f => f.name === (draft.fabricType ?? "")) && draft.fabricType && (
                   <option value={draft.fabricType}>{draft.fabricType}</option>
                 )}
                 {filteredFabricOptions.map(f => (
-                  <option key={f.name} value={f.name}>{f.name}{f.price > 0 ? ` (+${f.price} บาท)` : ""}</option>
+                  <option key={f.name} value={f.name}>{f.name}{f.price > 0 ? ` (+${f.price})` : ""}</option>
                 ))}
               </select>
-            </EditField>
-            <EditField label="ประเภทคอ">
               <select className="field-input" value={draft.collarType ?? ""}
                 onChange={e => setDraft(d => ({ ...d, collarType: e.target.value }))}
                 disabled={!draft.shirtType}>
-                <option value="">{draft.shirtType ? "— เลือกประเภทคอ —" : "— เลือกทรงเสื้อก่อน —"}</option>
+                <option value="">{draft.shirtType ? "— ประเภทคอ —" : "— เลือกทรงก่อน —"}</option>
                 {!filteredCollarOptions.some(c => c.name === (draft.collarType ?? "")) && draft.collarType && (
                   <option value={draft.collarType}>{draft.collarType}</option>
                 )}
                 {filteredCollarOptions.map(c => (
-                  <option key={c.name} value={c.name}>{c.name}{c.price > 0 ? ` (+${c.price} บาท)` : ""}</option>
+                  <option key={c.name} value={c.name}>{c.name}{c.price > 0 ? ` (+${c.price})` : ""}</option>
                 ))}
               </select>
-            </EditField>
-          </>
+            </div>
+          </EditField>
         )}
+
       </dl>
     </Card>
   );
@@ -646,25 +668,20 @@ function FinanceCard({ order, onSave }: { order: Order; onSave: (p: Partial<Orde
         </div>
 
         <div className="space-y-3 text-sm">
-          {order.type === "design" ? (
-            <div className="flex items-center justify-between gap-3">
-              <span>ราคาแพคเกจ</span>
-              <input type="number" min={0} className={numInputCls}
-                value={draft.designPackagePrice ?? 0}
-                onChange={e => setDraft(d => ({ ...d, designPackagePrice: Number(e.target.value) }))}
-                onBlur={() => autoSave(draft)} />
-            </div>
-          ) : (
+          {(order.type === "design" || order.type === "design_produce" || (order.type === "produce" && order.designPackage)) ? (
             <>
-              {order.type === "design_produce" && (
-                <div className="flex items-center justify-between gap-3">
-                  <span>ค่าออกแบบ</span>
-                  <input type="number" min={0} className={numInputCls}
-                    value={draft.designPackagePrice ?? 0}
-                    onChange={e => setDraft(d => ({ ...d, designPackagePrice: Number(e.target.value) }))}
-                    onBlur={() => autoSave(draft)} />
-                </div>
-              )}
+              <div className="flex items-center justify-between gap-3">
+                <span>{order.type === "design" ? "ราคาแพคเกจ" : "ค่าออกแบบ"}</span>
+                <input type="number" min={0} className={numInputCls}
+                  value={draft.designPackagePrice ?? 0}
+                  onChange={e => setDraft(d => ({ ...d, designPackagePrice: Number(e.target.value) }))}
+                  onBlur={() => autoSave(draft)} />
+              </div>
+            </>
+          ) : null}
+
+          {order.type !== "design" && (
+            <>
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <span className="whitespace-nowrap">ราคาผลิต/ตัว</span>
@@ -741,7 +758,7 @@ function FinanceCard({ order, onSave }: { order: Order; onSave: (p: Partial<Orde
         </div>
       </Card>
 
-      {printOpen && <FinancePrintModal order={order} onClose={() => setPrintOpen(false)} />}
+      {printOpen && <FinancePrintModal order={liveOrder} onClose={() => setPrintOpen(false)} />}
     </>
   );
 }
@@ -790,10 +807,13 @@ function FinancePrintModal({ order, onClose }: { order: Order; onClose: () => vo
     if (order.type !== "design") {
       lines.push(`ราคาผลิต: ${formatBaht(order.productionPrice ?? 0)}/ตัว x ${order.quantity ?? 1} ตัว = ${formatBaht((order.productionPrice ?? 0) * (order.quantity ?? 1))}`);
     }
+    if (order.designPackage) {
+      lines.push(`แพคเกจออกแบบ: ${order.designPackage}`);
+    }
     if (order.type === "design") {
       lines.push(`ราคาแพคเกจ: ${formatBaht(order.designPackagePrice ?? 0)}`);
     }
-    if (order.type === "design_produce") {
+    if (order.type === "design_produce" || (order.type === "produce" && order.designPackage)) {
       lines.push(`ค่าออกแบบ: ${formatBaht(order.designPackagePrice ?? 0)}`);
     }
     if ((order.shipping ?? 0) > 0) lines.push(`ค่าจัดส่ง: ${formatBaht(order.shipping ?? 0)}`);
@@ -841,8 +861,14 @@ function FinancePrintModal({ order, onClose }: { order: Order; onClose: () => vo
               <span className="font-medium">{formatBaht((order.productionPrice ?? 0) * (order.quantity ?? 1))}</span>
             </div>
           )}
-          {order.type === "design" && <SummaryRow label="ราคาแพคเกจ" value={order.designPackagePrice ?? 0} />}
-          {order.type === "design_produce" && <SummaryRow label="ค่าออกแบบ" value={order.designPackagePrice ?? 0} />}
+          {order.designPackage && (
+            <div className="flex justify-between text-xs text-muted">
+              <span>แพคเกจออกแบบ</span>
+              <span className="font-medium text-foreground">{order.designPackage}</span>
+            </div>
+          )}
+          {(order.type === "design") && <SummaryRow label="ราคาแพคเกจ" value={order.designPackagePrice ?? 0} />}
+          {(order.type === "design_produce" || (order.type === "produce" && order.designPackage)) && <SummaryRow label="ค่าออกแบบ" value={order.designPackagePrice ?? 0} />}
           {(order.shipping ?? 0) > 0 && <SummaryRow label="ค่าจัดส่ง" value={order.shipping ?? 0} />}
           {(order.serviceCharge ?? 0) > 0 && <SummaryRow label="ค่าบริการอื่นๆ" value={order.serviceCharge ?? 0} />}
           {order.vat && <SummaryRow label="VAT 7%" value={vatAmount} muted />}
@@ -909,6 +935,75 @@ function Field({ label, value, full }: { label: string; value: string; full?: bo
       <dt className="text-xs text-muted-2">{label}</dt>
       <dd className="mt-0.5 font-medium">{value}</dd>
     </div>
+  );
+}
+
+// ── Delivery Address Card ──────────────────────────────────────
+function DeliveryAddressCard({ order, onSave }: { order: Order; onSave: (patch: Partial<Order>) => Promise<void> }) {
+  const empty: DeliveryAddress = { name: "", phone: "", address1: "", address2: "", postal: "" };
+  const [addr, setAddr] = useState<DeliveryAddress>(order.deliveryAddress ?? empty);
+  const [collapsed, setCollapsed] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const copyLink = () => {
+    const url = `${window.location.origin}/address/${order.id}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const hasAddress = !!(order.deliveryAddress?.name || order.deliveryAddress?.address1);
+
+  const field = (key: keyof DeliveryAddress, label: string, placeholder: string) => (
+    <div>
+      <label className="text-xs text-muted-2 block mb-0.5">{label}</label>
+      <input
+        className="field-input w-full"
+        placeholder={placeholder}
+        value={addr[key]}
+        onChange={e => setAddr(a => ({ ...a, [key]: e.target.value }))}
+        onBlur={() => onSave({ deliveryAddress: addr })}
+      />
+    </div>
+  );
+
+  return (
+    <Card>
+      <div className={`px-5 py-4 flex items-center justify-between gap-2 ${collapsed ? "" : "border-b border-border"}`}>
+        <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+          <h2 className="text-sm font-semibold shrink-0">ที่อยู่จัดส่ง</h2>
+          {hasAddress && collapsed && (
+            <span className="text-xs text-muted-2 truncate">{addr.name}{addr.address1 ? ` · ${addr.address1}` : ""}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            onClick={copyLink}
+            className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-[#6366f1]/10 text-[#818cf8] hover:bg-[#6366f1]/20 transition-colors"
+            title="สร้างลิงก์ให้ลูกค้ากรอกที่อยู่"
+          >
+            {copied ? <CheckCheck className="h-3.5 w-3.5" /> : <Link2 className="h-3.5 w-3.5" />}
+            {copied ? "คัดลอกแล้ว" : "สร้างลิงก์"}
+          </button>
+          <button
+            onClick={() => setCollapsed(c => !c)}
+            className="text-xs px-2.5 py-1.5 rounded-md text-muted-2 hover:bg-surface-2 transition-colors"
+          >
+            {collapsed ? "แสดง" : "ซ่อน"}
+          </button>
+        </div>
+      </div>
+      {!collapsed && (
+        <div className="px-5 py-4 grid grid-cols-2 gap-3 text-sm">
+          {field("name", "ชื่อผู้รับ", "ชื่อ-นามสกุล")}
+          {field("phone", "เบอร์โทร", "08x-xxx-xxxx")}
+          {field("address1", "ที่อยู่บรรทัด 1", "บ้านเลขที่ ซอย ถนน")}
+          {field("address2", "ที่อยู่บรรทัด 2", "แขวง/ตำบล เขต/อำเภอ จังหวัด")}
+          {field("postal", "รหัสไปรษณีย์", "10xxx")}
+        </div>
+      )}
+    </Card>
   );
 }
 

@@ -23,6 +23,7 @@ export interface CuttingJob {
   cutterName: string | null;
   startedAt: string | null;
   completedAt: string | null;
+  printedAt: string | null;
   createdAt: string;
   note: string;
   cutterNote: string;
@@ -43,6 +44,7 @@ function toJob(row: Record<string, unknown>): CuttingJob {
     cutterName: row.cutter_name as string | null,
     startedAt: row.started_at as string | null,
     completedAt: row.completed_at as string | null,
+    printedAt: row.printed_at as string | null,
     createdAt: row.created_at as string,
     note: row.note as string,
     cutterNote: (row.cutter_note as string) ?? "",

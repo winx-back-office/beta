@@ -19,6 +19,8 @@ function toOrder(row: Record<string, unknown>): Order {
     shirtType: row.shirt_type as string,
     fabricType: row.fabric_type as string,
     collarType: row.collar_type as string,
+    deliveryDate: row.delivery_date as string | undefined,
+    deliveryAddress: row.delivery_address ? (() => { try { return JSON.parse(row.delivery_address as string); } catch { return undefined; } })() : undefined,
     quantity: row.quantity as number,
     productionPrice: Number(row.production_price ?? 0),
     shipping: Number(row.shipping ?? 0),
@@ -43,6 +45,8 @@ function toRow(body: Partial<Order>) {
   if (body.shirtType !== undefined) row.shirt_type = body.shirtType;
   if (body.fabricType !== undefined) row.fabric_type = body.fabricType;
   if (body.collarType !== undefined) row.collar_type = body.collarType;
+  if (body.deliveryDate !== undefined) row.delivery_date = body.deliveryDate || null;
+  if (body.deliveryAddress !== undefined) row.delivery_address = body.deliveryAddress ? JSON.stringify(body.deliveryAddress) : null;
   if (body.quantity !== undefined) row.quantity = body.quantity;
   if (body.productionPrice !== undefined) row.production_price = body.productionPrice;
   if (body.shipping !== undefined) row.shipping = body.shipping;

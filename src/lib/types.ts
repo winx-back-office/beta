@@ -24,11 +24,21 @@ export interface ProductionCost {
   other: number; // ต้นทุนอื่นๆ
 }
 
+export interface DeliveryAddress {
+  name: string;
+  phone: string;
+  address1: string;
+  address2: string;
+  postal: string;
+}
+
 export interface Order {
   id: string; // รหัสเฉพาะ เช่น WNX-2501
   type: CustomerType;
   teamName: string; // ชื่อทีม
   startDate: string; // วันที่เริ่ม (ISO)
+  deliveryDate?: string; // วันจัดส่งสินค้า (ISO)
+  deliveryAddress?: DeliveryAddress; // ที่อยู่จัดส่ง
 
   // กลุ่ม A — ออกแบบ
   designPackage?: string; // แพคเกจออกแบบ
@@ -76,7 +86,8 @@ export function costTotal(o: Order): number {
 // ยอดรวมทั้งหมด (ราคาขาย) = ค่าออกแบบ + (ราคาผลิต/ตัว × จำนวน) + ค่าจัดส่ง + ค่าบริการอื่นๆ [+ VAT 7%]
 export function orderSubtotal(o: Order): number {
   if (o.type === "design") return o.designPackagePrice ?? 0;
-  const designFee = o.type === "design_produce" ? (o.designPackagePrice ?? 0) : 0;
+  const designFee = (o.type === "design_produce" || (o.type === "produce" && o.designPackage))
+    ? (o.designPackagePrice ?? 0) : 0;
   const prodTotal = (o.productionPrice ?? 0) * (o.quantity || 1);
   return designFee + prodTotal + (o.shipping ?? 0) + (o.serviceCharge ?? 0);
 }

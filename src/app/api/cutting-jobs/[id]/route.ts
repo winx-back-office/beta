@@ -25,6 +25,7 @@ function toJob(row: Record<string, unknown>): CuttingJob {
     cutterName: row.cutter_name as string | null,
     startedAt: row.started_at as string | null,
     completedAt: row.completed_at as string | null,
+    printedAt: row.printed_at as string | null,
     createdAt: row.created_at as string,
     note: row.note as string,
     cutterNote: (row.cutter_note as string) ?? "",
@@ -65,6 +66,7 @@ export async function PUT(
   if (body.collarType !== undefined) updateData.collar_type = body.collarType;
   if (body.quantity !== undefined) updateData.quantity = body.quantity;
   if (body.patternPieces !== undefined) updateData.pattern_pieces = body.patternPieces;
+  if (body.printedAt !== undefined) updateData.printed_at = body.printedAt;
 
   const { data, error } = await getSupabase()
     .from("cutting_jobs")
@@ -74,6 +76,29 @@ export async function PUT(
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Sync production queue status based on cutting job status
+  if (body.status !== undefined) {
+    const supabase = getSupabase();
+    const updatedJob = toJob(data);
+    const orderId = updatedJob.orderId;
+
+    if (body.status === "cutting") {
+      // Move production card to "pattern_cut" when any cutting job starts
+      await supabase.from("orders").update({ production_status: "pattern_cut" }).eq("id", orderId);
+    } else if (body.status === "done") {
+      // Check if ALL cutting jobs for this order are now done
+      const { data: allJobs } = await supabase
+        .from("cutting_jobs")
+        .select("status")
+        .eq("order_id", orderId);
+      const allDone = allJobs?.every((j) => j.status === "done");
+      if (allDone) {
+        await supabase.from("orders").update({ production_status: "sew" }).eq("id", orderId);
+      }
+    }
+  }
+
   return NextResponse.json({ ok: true, job: toJob(data) });
 }
 

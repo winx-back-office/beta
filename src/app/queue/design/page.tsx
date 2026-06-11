@@ -21,7 +21,7 @@ export default function DesignQueuePage() {
     setAllOrders(orders);
 
     const designOrders = orders.filter(
-      (o) => o.type === "design" || o.type === "design_produce"
+      (o) => o.type === "design" || o.type === "design_produce" || (o.type === "produce" && !!o.designPackage)
     );
 
     setCards(
@@ -50,7 +50,7 @@ export default function DesignQueuePage() {
 
   const inTargetColIds = new Set(cards.filter(c => c.columnId === addTarget).map(c => c.orderId));
   const availableOrders = allOrders.filter(
-    (o) => (o.type === "design" || o.type === "design_produce") && !inTargetColIds.has(o.id)
+    (o) => (o.type === "design" || o.type === "design_produce" || (o.type === "produce" && !!o.designPackage)) && !inTargetColIds.has(o.id)
   );
 
   const addToQueue = async (order: Order) => {

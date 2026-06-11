@@ -9,10 +9,12 @@ import {
   Palette,
   Factory,
   TableProperties,
+  Crown,
   Shirt,
   Layers,
   Search,
   Scissors,
+  PackageCheck,
   Users,
   LogOut,
   BarChart2,
@@ -29,6 +31,8 @@ const nav = [
   { href: "/queue/production", label: "คิวผลิต", icon: Factory, badge: "production", menuKey: "queue", adminOnly: false },
   { href: "/production-tables", label: "ตารางสั่งผลิต", icon: TableProperties, badge: "prod-table", menuKey: "production-tables", adminOnly: false },
   { href: "/cutting-jobs", label: "ใบงานตัด", icon: Scissors, badge: null, menuKey: "cutting-jobs", adminOnly: false },
+  { href: "/delivery-notes", label: "ใบส่งสินค้า", icon: PackageCheck, badge: null, menuKey: "delivery-notes", adminOnly: false },
+  { href: "/design-packages", label: "แพคเกจออกแบบ", icon: Crown, badge: null, menuKey: null, adminOnly: true },
   { href: "/shirt-styles", label: "ข้อมูลทรงเสื้อ", icon: Shirt, badge: null, menuKey: null, adminOnly: true },
   { href: "/fabrics", label: "ข้อมูลเนื้อผ้า", icon: Layers, badge: null, menuKey: null, adminOnly: true },
   { href: "/track", label: "ติดตามสถานะ (ลูกค้า)", icon: Search, badge: null, menuKey: null, adminOnly: false },
@@ -44,7 +48,7 @@ export function Sidebar() {
   const [productionWaitCount, setProductionWaitCount] = useState(0);
   const [prodTableNewCount, setProdTableNewCount] = useState(0);
 
-  const isPublic = pathname.startsWith("/cut/") || pathname.startsWith("/pay/") || pathname === "/track" || pathname === "/login";
+  const isPublic = pathname.startsWith("/cut/") || pathname.startsWith("/pay/") || pathname.startsWith("/address/") || pathname === "/track" || pathname === "/login" || pathname.endsWith("/print");
 
   useEffect(() => {
     if (!user || isPublic) return;
@@ -61,7 +65,7 @@ export function Sidebar() {
         .then((r) => r.json())
         .then((orders: { type: string; designStatus?: string; productionStatus?: string; hasProductionTable?: boolean }[]) => {
           setDesignWaitCount(orders.filter(
-            (o) => (o.type === "design" || o.type === "design_produce") &&
+            (o) => (o.type === "design" || o.type === "design_produce" || (o.type === "produce" && o.designPackage)) &&
               (!o.designStatus || o.designStatus === "wait_design")
           ).length);
           setProductionWaitCount(orders.filter(
@@ -95,7 +99,7 @@ export function Sidebar() {
   if (isPublic) return null;
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-14 shrink-0 flex-col border-r border-border bg-surface min-[720px]:flex min-[720px]:w-64">
+    <aside className="sticky top-0 hidden h-screen w-14 shrink-0 flex-col border-r border-border bg-surface min-[720px]:flex min-[720px]:w-64 print:hidden">
       {/* Logo */}
       <div className="flex items-center gap-2 px-3 py-6 min-[720px]:px-6">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground font-black text-lg">
@@ -162,7 +166,7 @@ export function Sidebar() {
       <div className="hidden min-[720px]:block px-6 pb-2 pt-3">
         <div className="text-[11px] text-muted-2">WINX STUDIO</div>
         <div className="text-[11px] text-muted-2">Looking good at every stage</div>
-        <div className="mt-0.5 text-[11px] font-medium text-accent">Beta 1.3.1</div>
+        <div className="mt-0.5 text-[11px] font-medium text-accent">Beta 1.3.2</div>
       </div>
 
       {/* Footer: user info + logout */}

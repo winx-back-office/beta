@@ -6,6 +6,7 @@ import { Loader2, QrCode, ChevronDown, ChevronUp, Check, Pencil, Scissors, Trash
 import type { CuttingJob } from "@/app/api/cutting-jobs/route";
 import type { Order } from "@/lib/types";
 import QRCode from "qrcode";
+import { notifyOrdersUpdated } from "@/lib/broadcast";
 
 interface Cutter {
   id: string;
@@ -86,6 +87,8 @@ function QRModal({ job, onClose }: { job: CuttingJob; onClose: () => void }) {
           <button
             onClick={() => {
               if (!qrUrl) return;
+              const now = new Date();
+              const printedDate = now.toLocaleString("th-TH", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
               const win = window.open("", "_blank");
               if (!win) return;
               win.document.write(`<!DOCTYPE html><html><head><title>ใบงานตัดแพทเทิร์น — ${job.id}</title>
@@ -101,6 +104,7 @@ function QRModal({ job, onClose }: { job: CuttingJob; onClose: () => void }) {
                   .team { font-size: 15px; font-weight: 600; margin-top: 14px; text-align: center; }
                   .shirt { font-size: 12px; color: #666; margin-top: 3px; text-align: center; }
                   .note-box { font-size: 12px; color: #555; margin-top: 8px; background: #f5f5f5; border-radius: 6px; padding: 5px 12px; text-align: center; max-width: 260px; }
+                  .printed-at { font-size: 10px; color: #aaa; margin-top: 10px; text-align: center; }
                   .steps { margin-top: 28px; border-top: 1px dashed #ddd; padding-top: 20px; width: 100%; max-width: 300px; }
                   .steps-title { font-size: 11px; font-weight: 700; color: #888; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; text-align: center; }
                   .step { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
@@ -118,6 +122,7 @@ function QRModal({ job, onClose }: { job: CuttingJob; onClose: () => void }) {
                 <div class="team">${job.teamName}</div>
                 <div class="shirt">${job.shirtType} · ${job.collarType}</div>
                 ${job.note ? `<div class="note-box">📝 ${job.note}</div>` : ""}
+                <div class="printed-at">พิมพ์เมื่อ: ${printedDate}</div>
                 <div class="steps">
                   <div class="steps-title">วิธีการใช้งาน</div>
                   <div class="step"><div class="step-num">1</div><div class="step-text">สแกน QR Code ด้วยกล้องมือถือ</div></div>
@@ -127,6 +132,11 @@ function QRModal({ job, onClose }: { job: CuttingJob; onClose: () => void }) {
                 <script>window.onload = () => { window.print(); window.close(); }<\/script>
               </body></html>`);
               win.document.close();
+              fetch(`/api/cutting-jobs/${job.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ printedAt: new Date().toISOString() }),
+              }).catch(() => {});
             }}
             className="flex-1 rounded-md bg-accent py-2 text-sm font-semibold text-accent-foreground"
           >
@@ -486,6 +496,7 @@ export default function CuttingJobsPage() {
     });
     const data = await res.json();
     if (data.job) setJobs((prev) => prev.map((j) => (j.id === job.id ? data.job : j)));
+    notifyOrdersUpdated();
     setMarking(null);
   };
 
@@ -602,50 +613,42 @@ export default function CuttingJobsPage() {
               key={job.id}
               className="group relative rounded-[var(--radius-lg)] border border-border bg-surface px-5 py-4 transition-colors hover:bg-surface-2"
             >
-              {/* Row 1: ID + ทีม + สถานะ + actions */}
-              <div className="flex items-center gap-3 mb-2">
-                <span className="font-mono text-xs text-accent shrink-0">{job.id}</span>
+              <div className="flex gap-3">
+                {/* Left */}
                 <div className="min-w-0 flex-1">
-                  <span className="font-semibold truncate">{job.teamName}</span>
-                  <span className="ml-2 text-xs text-muted-2">{job.orderId}</span>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-mono text-xs text-accent shrink-0">{job.id}</span>
+                    <span className="font-semibold truncate">{job.teamName}</span>
+                    <span className="text-xs text-muted-2 shrink-0">{job.orderId}</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+                    <span>{job.shirtType}</span>
+                    {job.collarType !== job.shirtType && <span className="text-muted-2">· {job.collarType}</span>}
+                    <span>{job.quantity} ตัว</span>
+                    <span>ชิ้นแพทเทิร์น <span className="font-bold text-accent">{job.patternPieces}</span></span>
+                    {job.status !== "done" && job.cutterName && <span className="text-foreground font-medium">{job.cutterName}</span>}
+                    {job.status !== "done" && job.startedAt && <span>รับงาน {formatDateTime(job.startedAt)}</span>}
+                    {job.note && <span className="text-muted-2 border-l-2 border-accent pl-2">{job.note}</span>}
+                  </div>
                 </div>
-                <StatusBadge status={job.status} />
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => setQrJob(job)}
-                    className="rounded p-1.5 text-muted hover:bg-surface-3 hover:text-foreground transition-colors"
-                    title="แสดง QR"
-                  >
-                    <QrCode className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={() => setEditJob(job)}
-                    className="rounded p-1.5 text-muted hover:bg-surface-3 hover:text-foreground transition-colors"
-                    title="แก้ไขใบงาน"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={() => deleteJob(job)}
-                    disabled={deleting === job.id}
-                    className="rounded p-1.5 text-muted hover:bg-red-500/10 hover:text-red-400 transition-colors disabled:opacity-50"
-                    title="ลบใบงาน"
-                  >
-                    {deleting === job.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                  </button>
+                {/* Right */}
+                <div className="flex shrink-0 items-start gap-2">
+                  <div className="flex items-center gap-2">
+                    {job.completedAt && <span className="text-xs text-green-400">ส่งงาน {formatDateTime(job.completedAt)}</span>}
+                    <StatusBadge status={job.status} />
+                  </div>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => setQrJob(job)} className="rounded p-1.5 text-muted hover:bg-surface-3 hover:text-foreground transition-colors" title="แสดง QR">
+                      <QrCode className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={() => setEditJob(job)} className="rounded p-1.5 text-muted hover:bg-surface-3 hover:text-foreground transition-colors" title="แก้ไขใบงาน">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={() => deleteJob(job)} disabled={deleting === job.id} className="rounded p-1.5 text-muted hover:bg-red-500/10 hover:text-red-400 transition-colors disabled:opacity-50" title="ลบใบงาน">
+                      {deleting === job.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
                 </div>
-              </div>
-              {/* Row 2: ข้อมูลงาน */}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
-                <span>{job.shirtType}</span>
-                {job.collarType !== job.shirtType && <span className="text-muted-2">· {job.collarType}</span>}
-                <span>{job.quantity} ตัว</span>
-                <span>ชิ้นแพทเทิร์น <span className="font-bold text-accent">{job.patternPieces}</span></span>
-                {job.cutterName && <span>ช่าง <span className="text-foreground font-medium">{job.cutterName}</span></span>}
-                {job.startedAt && <span>รับงาน {formatDateTime(job.startedAt)}</span>}
-                {job.note && (
-                  <span className="text-muted-2 border-l-2 border-accent pl-2">{job.note}</span>
-                )}
               </div>
             </div>
           ))}
@@ -755,7 +758,7 @@ function EditJobModal({
       body: JSON.stringify({ shirtType, collarType, quantity, patternPieces, note, cutterNote, status }),
     });
     const data = await res.json();
-    if (data.job) onSave(data.job);
+    if (data.job) { onSave(data.job); notifyOrdersUpdated(); }
     setSaving(false);
   };
 

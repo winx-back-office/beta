@@ -9,6 +9,7 @@ create table if not exists orders (
   type            text not null,               -- design | design_produce | produce
   team_name       text not null,
   start_date      date not null,
+  delivery_date   date,                            -- วันจัดส่งสินค้า (optional)
   access_code     text not null,               -- รหัสให้ลูกค้าเข้าดู/แก้
   -- กลุ่มออกแบบ
   design_package          text,

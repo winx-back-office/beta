@@ -36,5 +36,12 @@ export async function POST(
     .eq("id", id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Move production queue card to "pattern_cut" when cutter claims the job
+  const { data: job } = await supabase.from("cutting_jobs").select("order_id").eq("id", id).single();
+  if (job?.order_id) {
+    await supabase.from("orders").update({ production_status: "pattern_cut" }).eq("id", job.order_id);
+  }
+
   return NextResponse.json({ success: true, cutterName: cutter.name });
 }

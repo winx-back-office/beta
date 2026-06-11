@@ -56,7 +56,12 @@ export default function ProductionQueuePage() {
     setLoading(false);
   };
 
-  useEffect(() => { loadCards(); }, []);
+  useEffect(() => {
+    loadCards();
+    const channel = new BroadcastChannel("winx:orders");
+    channel.onmessage = () => { loadCards(); };
+    return () => channel.close();
+  }, []);
 
   const onColumnsChange = async (cols: QueueColumn[]) => {
     await fetch("/api/production-columns", {
