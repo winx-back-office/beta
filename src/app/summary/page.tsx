@@ -275,7 +275,7 @@ export default function SummaryPage() {
               {collapsed.upcoming ? <ChevronDown className="h-4 w-4 text-orange-400 shrink-0" /> : <ChevronUp className="h-4 w-4 text-orange-400 shrink-0" />}
             </button>
             {!collapsed.upcoming && (
-            <div className="px-5 pb-5 flex gap-3 overflow-x-auto scrollbar-thin" style={{ scrollbarWidth: "thin" }}>
+            <div className="px-5 pb-5 flex gap-3 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
               {upcomingDeliveries.map((o) => {
                 const d = new Date(o.deliveryDate!); d.setHours(0, 0, 0, 0);
                 const daysLeft = Math.round((d.getTime() - today.getTime()) / 86400000);
