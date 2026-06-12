@@ -220,7 +220,7 @@ export default function SummaryPage() {
     .filter((o) => {
       if (!o.deliveryDate) return false;
       const d = new Date(o.deliveryDate); d.setHours(0, 0, 0, 0);
-      return d >= today && d <= in14;
+      return d >= today && d <= in14 && o.productionStatus !== "delivered";
     })
     .sort((a, b) => (a.deliveryDate ?? "").localeCompare(b.deliveryDate ?? ""));
 
@@ -275,34 +275,34 @@ export default function SummaryPage() {
               {collapsed.upcoming ? <ChevronDown className="h-4 w-4 text-orange-400 shrink-0" /> : <ChevronUp className="h-4 w-4 text-orange-400 shrink-0" />}
             </button>
             {!collapsed.upcoming && (
-            <div className="px-5 pb-5 grid grid-cols-1 gap-2 min-[720px]:grid-cols-2">
+            <div className="px-5 pb-5 grid grid-cols-2 gap-3 min-[560px]:grid-cols-3 min-[800px]:grid-cols-4 min-[1100px]:grid-cols-5">
               {upcomingDeliveries.map((o) => {
                 const d = new Date(o.deliveryDate!); d.setHours(0, 0, 0, 0);
                 const daysLeft = Math.round((d.getTime() - today.getTime()) / 86400000);
                 const urgent = daysLeft <= 3;
                 const warn = daysLeft <= 7;
+                const accentText = urgent ? "text-red-400" : warn ? "text-yellow-400" : "text-green-400";
+                const accentBg = urgent ? "bg-red-500/15" : warn ? "bg-yellow-500/15" : "bg-green-500/15";
                 return (
                   <Link key={o.id} href={`/orders/${o.id}`}
-                    className="flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3 hover:bg-surface-2 transition-colors">
-                    <div className={cn("shrink-0 rounded-lg px-2.5 py-1.5 text-center min-w-[48px]",
-                      urgent ? "bg-red-500/15 text-red-400" : warn ? "bg-yellow-500/15 text-yellow-400" : "bg-green-500/15 text-green-400"
-                    )}>
-                      <div className="text-xl font-bold leading-none">{daysLeft}</div>
+                    className="flex flex-col rounded-xl border border-border bg-surface p-4 hover:bg-surface-2 transition-colors gap-3">
+                    <div className={cn("self-start rounded-lg px-3 py-2 text-center min-w-[52px]", accentBg, accentText)}>
+                      <div className="text-2xl font-bold leading-none">{daysLeft}</div>
                       <div className="text-[10px] mt-0.5">วัน</div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{o.teamName}</div>
-                      <div className="text-xs text-muted-2 mt-0.5 flex items-center gap-1.5">
-                        <span className="font-mono">{o.id}</span>
-                        {o.shirtType && <><span>·</span><span>{o.shirtType}</span></>}
-                        {o.quantity && <><span>·</span><span>{o.quantity} ตัว</span></>}
-                      </div>
+                      <div className="font-semibold text-sm leading-snug line-clamp-2">{o.teamName}</div>
+                      <div className="text-[11px] text-muted-2 mt-1 font-mono">{o.id}</div>
+                      {(o.shirtType || o.quantity) && (
+                        <div className="text-[11px] text-muted-2 mt-0.5 flex flex-wrap gap-x-1.5">
+                          {o.shirtType && <span>{o.shirtType}</span>}
+                          {o.quantity && <span>· {o.quantity} ตัว</span>}
+                        </div>
+                      )}
                     </div>
-                    <div className="shrink-0 text-right">
-                      <div className={cn("text-xs font-semibold", urgent ? "text-red-400" : warn ? "text-yellow-400" : "text-green-400")}>
-                        {formatDate(o.deliveryDate!)}
-                      </div>
-                      <div className="text-[10px] text-muted-2 mt-0.5">{TYPE_LABEL[o.type]}</div>
+                    <div className="border-t border-border pt-2 flex items-center justify-between">
+                      <div className={cn("text-xs font-semibold", accentText)}>{formatDate(o.deliveryDate!)}</div>
+                      <div className="text-[10px] text-muted-2">{TYPE_LABEL[o.type]}</div>
                     </div>
                   </Link>
                 );
