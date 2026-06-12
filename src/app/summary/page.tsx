@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
 import { RefreshCw, ClipboardList, Palette, Factory, Scissors, Shirt, ChevronLeft, ChevronRight, CalendarDays, ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
@@ -107,6 +107,17 @@ export default function SummaryPage() {
     upcoming: false, stats: false, queues: false, cutting: false, calendar: false, orders: false,
   });
   const [zoom, setZoom] = useState(100);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [scrollState, setScrollState] = useState({ canLeft: false, canRight: false });
+  const updateScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setScrollState({ canLeft: el.scrollLeft > 4, canRight: el.scrollLeft + el.clientWidth < el.scrollWidth - 4 });
+  };
+  const scrollCards = (dir: "left" | "right") => {
+    scrollRef.current?.scrollBy({ left: dir === "left" ? -220 : 220, behavior: "smooth" });
+  };
+  useEffect(() => { setTimeout(updateScroll, 100); }, [orders, collapsed.upcoming]);
 
   useEffect(() => {
     try {
@@ -276,9 +287,23 @@ export default function SummaryPage() {
             </button>
             {!collapsed.upcoming && (
             <div className="relative">
+              {/* fade edges */}
               <div className="pointer-events-none absolute left-0 top-0 bottom-5 w-10 z-10 bg-gradient-to-r from-background to-transparent" />
               <div className="pointer-events-none absolute right-0 top-0 bottom-5 w-10 z-10 bg-gradient-to-l from-background to-transparent" />
-            <div className="px-5 pb-5 flex gap-3 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+              {/* scroll arrows */}
+              {scrollState.canLeft && (
+                <button onClick={() => scrollCards("left")}
+                  className="absolute left-1 top-1/2 -translate-y-1/2 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-surface border border-border shadow-md hover:bg-surface-2 transition-colors">
+                  <ChevronLeft className="h-4 w-4 text-muted-2" />
+                </button>
+              )}
+              {scrollState.canRight && (
+                <button onClick={() => scrollCards("right")}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-surface border border-border shadow-md hover:bg-surface-2 transition-colors">
+                  <ChevronRight className="h-4 w-4 text-muted-2" />
+                </button>
+              )}
+            <div ref={scrollRef} onScroll={updateScroll} className="px-5 pb-5 flex gap-3 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
               {upcomingDeliveries.map((o) => {
                 const d = new Date(o.deliveryDate!); d.setHours(0, 0, 0, 0);
                 const daysLeft = Math.round((d.getTime() - today.getTime()) / 86400000);
