@@ -15,7 +15,7 @@ const MENU_PATHS: { key: string; path: string }[] = [
 ];
 
 function getDefaultPath(user: AuthUser): string {
-  if (user.role === "admin") return "/";
+  if (user.role === "admin") return "/summary";
   for (const m of MENU_PATHS) {
     if (user.allowedMenus.includes(m.key)) return m.path;
   }
