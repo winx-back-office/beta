@@ -11,7 +11,7 @@ interface CuttingJob {
   id: string;
   orderId: string;
   teamName: string;
-  status: "pending" | "cutting" | "done";
+  status: "pending" | "cutting" | "cut_done" | "sewing" | "done";
 }
 
 // ===== สถานะออกแบบ =====
