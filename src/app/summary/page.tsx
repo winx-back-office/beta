@@ -111,7 +111,7 @@ export default function SummaryPage() {
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 10_000);
+    const interval = setInterval(load, 60_000);
     return () => clearInterval(interval);
   }, []);
 
@@ -183,7 +183,7 @@ export default function SummaryPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="hidden min-[720px]:block text-xs text-muted-2">อัพเดทอัตโนมัติทุก 10 วิ</span>
+            <span className="hidden min-[720px]:block text-xs text-muted-2">อัพเดทอัตโนมัติทุก 1 นาที</span>
           <button
             onClick={load}
             disabled={loading}
