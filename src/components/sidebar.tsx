@@ -166,16 +166,23 @@ export function Sidebar() {
       collapsed ? "w-14 min-[720px]:w-14" : "w-14 min-[720px]:w-64"
     )}>
       {/* Logo */}
-      <div className="flex items-center gap-2 px-3 py-6 min-[720px]:px-3">
+      <div className="flex items-center gap-2 px-3 py-4 min-[720px]:px-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground font-black text-lg">
           W
         </div>
         {!collapsed && (
-          <div className="hidden leading-tight min-[720px]:block">
+          <div className="hidden flex-1 leading-tight min-[720px]:block">
             <div className="font-bold tracking-wide">WINX STUDIO</div>
             <div className="text-[11px] uppercase tracking-[0.18em] text-muted-2">Back Office</div>
           </div>
         )}
+        <button
+          onClick={toggleCollapsed}
+          title={collapsed ? "ขยายเมนู" : "ย่อเมนู"}
+          className="hidden min-[720px]:flex shrink-0 rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-foreground"
+        >
+          {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+        </button>
       </div>
 
       {/* Nav */}
@@ -239,31 +246,17 @@ export function Sidebar() {
 
       {/* Footer: user info + logout + collapse toggle */}
       <div className="border-t border-border px-3 py-3">
-        {!collapsed ? (
-          <div className="hidden min-[720px]:flex items-center justify-between gap-2">
+        <div className="hidden min-[720px]:flex items-center justify-between gap-2">
+          {!collapsed && (
             <div className="min-w-0">
               <div className="truncate text-sm font-medium">{user?.name ?? "—"}</div>
               <div className="text-[11px] text-muted-2">{user?.role === "admin" ? "Admin" : "พนักงาน"}</div>
             </div>
-            <div className="flex items-center gap-1">
-              <button onClick={toggleCollapsed} title="ย่อเมนู" className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-foreground">
-                <PanelLeftClose className="h-4 w-4" />
-              </button>
-              <button onClick={logout} title="ออกจากระบบ" className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-foreground">
-                <LogOut className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="hidden min-[720px]:flex flex-col items-center gap-2">
-            <button onClick={toggleCollapsed} title="ขยายเมนู" className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-foreground">
-              <PanelLeftOpen className="h-4 w-4" />
-            </button>
-            <button onClick={logout} title="ออกจากระบบ" className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-foreground">
-              <LogOut className="h-4 w-4" />
-            </button>
-          </div>
-        )}
+          )}
+          <button onClick={logout} title="ออกจากระบบ" className={cn("rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-foreground", collapsed && "mx-auto")}>
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
         {/* Mobile: icon only */}
         <div className="flex min-[720px]:hidden justify-center">
           <button onClick={logout} title="ออกจากระบบ" className="rounded-lg p-1.5 text-muted hover:bg-surface-2">

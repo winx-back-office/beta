@@ -109,7 +109,11 @@ export default function SummaryPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const interval = setInterval(load, 10_000);
+    return () => clearInterval(interval);
+  }, []);
 
   // ===== Orders =====
   const activeOrders = orders;
@@ -178,6 +182,8 @@ export default function SummaryPage() {
               {lastUpdate && <> · อัพเดทล่าสุด {lastUpdate}</>}
             </p>
           </div>
+          <div className="flex items-center gap-2">
+            <span className="hidden min-[720px]:block text-xs text-muted-2">อัพเดทอัตโนมัติทุก 10 วิ</span>
           <button
             onClick={load}
             disabled={loading}
@@ -186,6 +192,7 @@ export default function SummaryPage() {
             <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
             รีเฟรช
           </button>
+          </div>
         </div>
       </div>
 
