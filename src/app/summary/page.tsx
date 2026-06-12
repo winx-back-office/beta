@@ -275,7 +275,7 @@ export default function SummaryPage() {
               {collapsed.upcoming ? <ChevronDown className="h-4 w-4 text-orange-400 shrink-0" /> : <ChevronUp className="h-4 w-4 text-orange-400 shrink-0" />}
             </button>
             {!collapsed.upcoming && (
-            <div className="px-5 pb-5 grid grid-cols-2 gap-3 min-[560px]:grid-cols-3 min-[800px]:grid-cols-4 min-[1100px]:grid-cols-5">
+            <div className="px-5 pb-5 flex gap-3 overflow-x-auto scrollbar-thin" style={{ scrollbarWidth: "thin" }}>
               {upcomingDeliveries.map((o) => {
                 const d = new Date(o.deliveryDate!); d.setHours(0, 0, 0, 0);
                 const daysLeft = Math.round((d.getTime() - today.getTime()) / 86400000);
@@ -285,7 +285,7 @@ export default function SummaryPage() {
                 const accentBg = urgent ? "bg-red-500/15" : warn ? "bg-yellow-500/15" : "bg-green-500/15";
                 return (
                   <Link key={o.id} href={`/orders/${o.id}`}
-                    className="flex flex-col rounded-xl border border-border bg-surface p-4 hover:bg-surface-2 transition-colors gap-3">
+                    className="flex flex-col rounded-xl border border-border bg-surface p-4 hover:bg-surface-2 transition-colors gap-3 shrink-0 w-52">
                     <div className={cn("self-start rounded-lg px-3 py-2 text-center min-w-[52px]", accentBg, accentText)}>
                       <div className="text-2xl font-bold leading-none">{daysLeft}</div>
                       <div className="text-[10px] mt-0.5">วัน</div>
