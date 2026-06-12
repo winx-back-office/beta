@@ -113,6 +113,10 @@ function CuttersTab() {
   const [cutters, setCutters] = useState<Cutter[]>([]);
   const [editing, setEditing] = useState<Record<string, Cutter>>({});
   const [saving, setSaving] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [addError, setAddError] = useState("");
 
   useEffect(() => {
     fetch("/api/cutters").then((r) => r.json()).then(setCutters).catch(() => {});
@@ -129,10 +133,47 @@ function CuttersTab() {
     setEditing((prev) => { const n = { ...prev }; delete n[id]; return n; });
     setSaving(null);
   };
+  const addCutter = async () => {
+    if (!newName.trim()) return setAddError("กรุณาใส่ชื่อ");
+    if (newPin.length !== 4) return setAddError("PIN ต้องเป็น 4 หลัก");
+    setAddError("");
+    const res = await fetch("/api/cutters", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newName.trim(), pin: newPin }) });
+    const data = await res.json();
+    if (data.error) return setAddError(data.error);
+    setCutters((prev) => [...prev, data]);
+    setNewName(""); setNewPin(""); setAdding(false);
+  };
 
   return (
-    <div className="max-w-2xl">
-      <p className="text-sm text-muted-2 mb-4">ข้อมูลและ PIN ของช่างตัดแพทเทิร์น</p>
+    <div className="max-w-2xl space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-2">ข้อมูลและ PIN ของช่างตัดแพทเทิร์น</p>
+        {!adding && (
+          <button onClick={() => setAdding(true)}
+            className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-accent-foreground hover:opacity-90">
+            <Plus className="h-3.5 w-3.5" /> เพิ่มช่างตัด
+          </button>
+        )}
+      </div>
+      {adding && (
+        <Card className="p-4 space-y-3">
+          <div className="font-semibold text-sm">เพิ่มช่างตัดใหม่</div>
+          <div className="flex gap-3">
+            <input className="field-input flex-1" placeholder="ชื่อ" value={newName} onChange={(e) => setNewName(e.target.value)} />
+            <input className="field-input w-24 font-mono" placeholder="PIN" maxLength={4} value={newPin}
+              onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 4))} />
+          </div>
+          {addError && <div className="text-xs text-red-400">{addError}</div>}
+          <div className="flex gap-2">
+            <button onClick={addCutter} className="flex items-center gap-1 rounded-md bg-accent px-3 py-1.5 text-xs text-accent-foreground">
+              <Check className="h-3 w-3" /> บันทึก
+            </button>
+            <button onClick={() => { setAdding(false); setAddError(""); }} className="flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs text-muted hover:bg-surface-2">
+              <X className="h-3 w-3" /> ยกเลิก
+            </button>
+          </div>
+        </Card>
+      )}
       <Card className="overflow-hidden">
         <table className="w-full text-sm">
           <thead>

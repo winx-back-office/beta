@@ -24,3 +24,14 @@ export async function PUT(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
+
+export async function POST(req: NextRequest) {
+  const body = await req.json();
+  const { data, error } = await getSupabase()
+    .from("cutters")
+    .insert({ name: body.name, pin: body.pin, active: true })
+    .select()
+    .single();
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json(data);
+}
