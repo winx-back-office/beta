@@ -187,6 +187,7 @@ export default async function CutPage({ params }: { params: Promise<{ token: str
               <div className="text-3xl mb-2">🪡</div>
               <div className="text-lg font-bold text-blue-300">รอช่างเย็บรับงาน</div>
               <div className="text-sm text-blue-200/60 mt-1">ตัดเสร็จแล้ว — รอขั้นตอนเย็บ</div>
+
             </div>
             <ClaimForm jobId={job.id} phase="sewing" />
           </div>

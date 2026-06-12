@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useRef } from "react";
 import { PageHeader, Badge, Button, Card } from "@/components/ui";
-import { Loader2, QrCode, ChevronDown, ChevronUp, Check, Pencil, Scissors, Trash2, X } from "lucide-react";
+import { Loader2, QrCode, ChevronDown, ChevronUp, Check, Pencil, Scissors, Trash2, X, Shirt } from "lucide-react";
 import type { CuttingJob } from "@/app/api/cutting-jobs/route";
 import type { Order } from "@/lib/types";
 import QRCode from "qrcode";
 import { notifyOrdersUpdated } from "@/lib/broadcast";
+import { getSession } from "@/lib/auth";
 
 interface Cutter {
   id: string;
@@ -445,13 +446,22 @@ export default function CuttingJobsPage() {
   const [marking, setMarking] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [editJob, setEditJob] = useState<CuttingJob | null>(null);
+  const [editSewingJob, setEditSewingJob] = useState<CuttingJob | null>(null);
+  const [cancelingSewing, setCancelingSewing] = useState<string | null>(null);
+  const isAdmin = getSession()?.role === "admin";
   const [filterStatus, setFilterStatus] = useState<CuttingJob["status"] | "all">("all");
 
-  const ALL_STATUSES: CuttingJob["status"][] = ["pending", "cutting", "done"];
+  const ALL_STATUSES: CuttingJob["status"][] = ["pending", "cutting", "cut_done", "sewing", "done"];
   const LS_CHIP_KEY = "winx-cut-chip-order";
   const [chipOrder, setChipOrder] = useState<CuttingJob["status"][]>(() => {
     if (typeof window === "undefined") return ALL_STATUSES;
-    try { const s = JSON.parse(localStorage.getItem(LS_CHIP_KEY) ?? "[]"); if (s.length) return s; } catch {}
+    try {
+      const s: CuttingJob["status"][] = JSON.parse(localStorage.getItem(LS_CHIP_KEY) ?? "[]");
+      if (s.length) {
+        const merged = [...s, ...ALL_STATUSES.filter(k => !s.includes(k))];
+        return merged;
+      }
+    } catch {}
     return ALL_STATUSES;
   });
   const dragChip = useRef<CuttingJob["status"] | null>(null);
@@ -498,12 +508,33 @@ export default function CuttingJobsPage() {
     setDeleting(null);
   };
 
+  const cancelSewing = async (job: CuttingJob) => {
+    if (!confirm(`ยกเลิกการเย็บ "${job.teamName}" ใช่ไหม?\nสถานะจะกลับเป็น "ตัดเสร็จ"`)) return;
+    setCancelingSewing(job.id);
+    const res = await fetch(`/api/cutting-jobs/${job.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status: "cut_done",
+        sewingStatus: "pending",
+        sewerId: null,
+        sewerName: null,
+        sewingStartedAt: null,
+        sewingCompletedAt: null,
+      }),
+    });
+    const data = await res.json();
+    if (data.job) setJobs((prev) => prev.map((j) => (j.id === job.id ? data.job : j)));
+    notifyOrdersUpdated();
+    setCancelingSewing(null);
+  };
+
   const markDone = async (job: CuttingJob) => {
     setMarking(job.id);
     const res = await fetch(`/api/cutting-jobs/${job.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "done", completedAt: new Date().toISOString() }),
+      body: JSON.stringify({ status: "cut_done", completedAt: new Date().toISOString() }),
     });
     const data = await res.json();
     if (data.job) setJobs((prev) => prev.map((j) => (j.id === job.id ? data.job : j)));
@@ -615,56 +646,50 @@ export default function CuttingJobsPage() {
           const displayed = [...base].sort((a, b) =>
             (statusPriority[a.status] ?? 99) - (statusPriority[b.status] ?? 99)
           );
+
+          // Group by orderId
+          const groups: { orderId: string; teamName: string; jobs: CuttingJob[] }[] = [];
+          displayed.forEach(job => {
+            const g = groups.find(g => g.orderId === job.orderId);
+            if (g) g.jobs.push(job);
+            else groups.push({ orderId: job.orderId, teamName: job.teamName, jobs: [job] });
+          });
+
           return (
-        <div className="flex flex-col gap-2">
-          {displayed.length === 0 ? (
+        <div className="flex flex-col gap-3">
+          {groups.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted">
               ยังไม่มีใบงาน — กดปุ่ม &quot;สร้างใบงานใหม่&quot; เพื่อเริ่ม
             </div>
-          ) : displayed.map((job) => (
-            <div
-              key={job.id}
-              className="group relative rounded-[var(--radius-lg)] border border-border bg-surface px-5 py-4 transition-colors hover:bg-surface-2"
-            >
-              <div className="flex gap-3">
-                {/* Left */}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-mono text-xs text-accent shrink-0">{job.id}</span>
-                    <span className="font-semibold truncate">{job.teamName}</span>
-                    <span className="text-xs text-muted-2 shrink-0">{job.orderId}</span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
-                    <span>{job.shirtType}</span>
-                    {job.collarType !== job.shirtType && <span className="text-muted-2">· {job.collarType}</span>}
-                    <span>{job.quantity} ตัว</span>
-                    <span>ชิ้นแพทเทิร์น <span className="font-bold text-accent">{job.patternPieces}</span></span>
-                    {job.status !== "done" && job.cutterName && <span className="text-foreground font-medium">{job.cutterName}</span>}
-                    {job.status !== "done" && job.startedAt && <span>รับงาน {formatDateTime(job.startedAt)}</span>}
-                    {job.note && <span className="text-muted-2 border-l-2 border-accent pl-2">{job.note}</span>}
-                  </div>
-                </div>
-                {/* Right */}
-                <div className="flex shrink-0 items-start gap-2">
-                  <div className="flex items-center gap-2">
-                    {job.completedAt && <span className="text-xs text-green-400">ส่งงาน {formatDateTime(job.completedAt)}</span>}
-                    <StatusBadge status={job.status} />
-                  </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => setQrJob(job)} className="rounded p-1.5 text-muted hover:bg-surface-3 hover:text-foreground transition-colors" title="แสดง QR">
-                      <QrCode className="h-3.5 w-3.5" />
-                    </button>
-                    <button onClick={() => setEditJob(job)} className="rounded p-1.5 text-muted hover:bg-surface-3 hover:text-foreground transition-colors" title="แก้ไขใบงาน">
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                    <button onClick={() => deleteJob(job)} disabled={deleting === job.id} className="rounded p-1.5 text-muted hover:bg-red-500/10 hover:text-red-400 transition-colors disabled:opacity-50" title="ลบใบงาน">
-                      {deleting === job.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+          ) : groups.map(({ orderId, teamName, jobs: groupJobs }) => {
+            const sewDone = groupJobs.filter(j => j.sewingStatus === "done").length;
+            const sewTotal = groupJobs.length;
+            const allDone = groupJobs.every(j => j.status === "done");
+            const hasAnySewing = groupJobs.some(j => j.status === "sewing" || j.status === "cut_done" || j.status === "done");
+            const defaultExpanded = !allDone && groupJobs.length <= 3;
+            return (
+              <OrderGroup
+                key={orderId}
+                orderId={orderId}
+                teamName={teamName}
+                jobs={groupJobs}
+                sewDone={sewDone}
+                sewTotal={sewTotal}
+                allDone={allDone}
+                hasAnySewing={hasAnySewing}
+                defaultExpanded={defaultExpanded}
+                isAdmin={isAdmin}
+                formatDateTime={formatDateTime}
+                onEditJob={setEditJob}
+                onEditSewingJob={setEditSewingJob}
+                onDeleteJob={deleteJob}
+                onQrJob={setQrJob}
+                onCancelSewing={cancelSewing}
+                deleting={deleting}
+                cancelingSewing={cancelingSewing}
+              />
+            );
+          })}
         </div>
           );
         })()}
@@ -696,6 +721,145 @@ export default function CuttingJobsPage() {
             setEditJob(null);
           }}
         />
+      )}
+
+      {editSewingJob && (
+        <EditSewingModal
+          job={editSewingJob}
+          onClose={() => setEditSewingJob(null)}
+          onSave={(updated) => {
+            setJobs((prev) => prev.map((j) => (j.id === updated.id ? updated : j)));
+            setEditSewingJob(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Order Group ───────────────────────────────────────────
+function OrderGroup({
+  orderId, teamName, jobs, sewDone, sewTotal, allDone, hasAnySewing,
+  defaultExpanded, isAdmin, formatDateTime,
+  onEditJob, onEditSewingJob, onDeleteJob, onQrJob, onCancelSewing,
+  deleting, cancelingSewing,
+}: {
+  orderId: string; teamName: string; jobs: CuttingJob[];
+  sewDone: number; sewTotal: number; allDone: boolean; hasAnySewing: boolean;
+  defaultExpanded: boolean; isAdmin: boolean;
+  formatDateTime: (iso: string | null) => string;
+  onEditJob: (j: CuttingJob) => void;
+  onEditSewingJob: (j: CuttingJob) => void;
+  onDeleteJob: (j: CuttingJob) => void;
+  onQrJob: (j: CuttingJob) => void;
+  onCancelSewing: (j: CuttingJob) => void;
+  deleting: string | null; cancelingSewing: string | null;
+}) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const sewingPct = sewTotal > 0 ? Math.round((sewDone / sewTotal) * 100) : 0;
+
+  return (
+    <div className="rounded-[var(--radius-lg)] border border-border bg-surface overflow-hidden">
+      {/* Summary header */}
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-surface-2 transition-colors text-left"
+      >
+        <ChevronDown className={`h-4 w-4 text-muted shrink-0 transition-transform ${expanded ? "" : "-rotate-90"}`} />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="font-semibold">{teamName}</span>
+            <span className="font-mono text-xs text-muted-2">{orderId}</span>
+            <span className="inline-flex items-center gap-1 text-xs text-muted">
+              <Scissors className="h-3 w-3" /> <span className="font-semibold">{jobs.length}</span> ใบ
+            </span>
+            {hasAnySewing && (
+              <span className="inline-flex items-center gap-1 text-xs text-muted">
+                <Shirt className="h-3 w-3" /> เย็บ <span className={`font-semibold ${sewDone === sewTotal && sewTotal > 0 ? "text-green-400" : "text-purple-400"}`}>{sewDone}/{sewTotal}</span>
+              </span>
+            )}
+            {allDone && (
+              <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium"
+                style={{ color: "#22c55e", borderColor: "#22c55e40", backgroundColor: "#22c55e15" }}>
+                เสร็จสมบูรณ์
+              </span>
+            )}
+          </div>
+          {hasAnySewing && sewTotal > 0 && (
+            <div className="mt-1.5 h-1 w-full max-w-xs rounded-full bg-surface-3 overflow-hidden">
+              <div className="h-full rounded-full transition-all" style={{ width: `${sewingPct}%`, backgroundColor: sewDone === sewTotal ? "#22c55e" : "#a855f7" }} />
+            </div>
+          )}
+        </div>
+        <span className="text-xs text-muted shrink-0">{expanded ? "ซ่อน" : `ดู ${jobs.length} ใบ`}</span>
+      </button>
+
+      {/* Expanded job rows */}
+      {expanded && (
+        <div className="border-t border-border divide-y divide-border/50">
+          {jobs.map(job => (
+            <div key={job.id} className="group relative px-5 py-4 hover:bg-surface-2 transition-colors">
+              <div className="flex gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-mono text-xs text-accent shrink-0">{job.id}</span>
+                    <span className="text-xs text-muted-2 shrink-0">{job.orderId}</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+                    <span>{job.shirtType}</span>
+                    {job.collarType !== job.shirtType && <span className="text-muted-2">· {job.collarType}</span>}
+                    <span>{job.quantity} ตัว</span>
+                    <span>ชิ้นแพทเทิร์น <span className="font-bold text-accent">{job.patternPieces}</span></span>
+                    {job.cutterName && <span className="text-foreground font-medium">{job.cutterName}</span>}
+                    {job.startedAt && <span>รับงาน {formatDateTime(job.startedAt)}</span>}
+                    {job.note && <span className="text-muted-2 border-l-2 border-accent pl-2">{job.note}</span>}
+                  </div>
+                  {(job.status === "cut_done" || job.status === "sewing" || job.status === "done" || job.sewingStatus !== "pending") && (
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs border-t border-border/50 pt-2">
+                      <span className="flex items-center gap-1 text-purple-400 font-medium shrink-0">
+                        <Shirt className="h-3 w-3" /> งานเย็บ
+                      </span>
+                      {job.sewerName ? <span className="text-foreground font-medium">{job.sewerName}</span> : <span className="text-muted-2">ยังไม่มีช่างรับ</span>}
+                      {job.sewingStartedAt && <span className="text-muted">รับงาน {formatDateTime(job.sewingStartedAt)}</span>}
+                      {job.sewingCompletedAt && <span className="text-green-400">ส่งงานเย็บ {formatDateTime(job.sewingCompletedAt)}</span>}
+                      {job.sewingStatus === "pending" && <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium" style={{ color:"#888",borderColor:"#88888840",backgroundColor:"#88888815"}}>รอเย็บ</span>}
+                      {job.sewingStatus === "sewing" && !job.sewingCompletedAt && <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium" style={{ color:"#a855f7",borderColor:"#a855f740",backgroundColor:"#a855f715"}}>กำลังเย็บ</span>}
+                      {job.sewingStatus === "done" && <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium" style={{ color:"#22c55e",borderColor:"#22c55e40",backgroundColor:"#22c55e15"}}>เย็บเสร็จ</span>}
+                      {isAdmin && (
+                        <>
+                          <button onClick={() => onEditSewingJob(job)} className="ml-1 flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-muted border border-border hover:bg-surface-3 hover:text-foreground transition-colors">
+                            <Pencil className="h-2.5 w-2.5" /> แก้ไขงานเย็บ
+                          </button>
+                          {job.sewingStatus !== "pending" && (
+                            <button onClick={() => onCancelSewing(job)} disabled={cancelingSewing === job.id} className="flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-red-400 border border-red-400/30 hover:bg-red-400/10 transition-colors disabled:opacity-50">
+                              {cancelingSewing === job.id ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <X className="h-2.5 w-2.5" />}
+                              ยกเลิกการเย็บ
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="flex shrink-0 items-start gap-2">
+                  <div className="flex items-center gap-2">
+                    {job.completedAt && <span className="text-xs text-green-400">ส่งงานตัด {formatDateTime(job.completedAt)}</span>}
+                    <StatusBadge status={job.status} />
+                  </div>
+                  {isAdmin && (
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => onQrJob(job)} className="rounded p-1.5 text-muted hover:bg-surface-3 hover:text-foreground transition-colors" title="แสดง QR"><QrCode className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => onEditJob(job)} className="rounded p-1.5 text-muted hover:bg-surface-3 hover:text-foreground transition-colors" title="แก้ไขใบงาน"><Pencil className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => onDeleteJob(job)} disabled={deleting === job.id} className="rounded p-1.5 text-muted hover:bg-red-500/10 hover:text-red-400 transition-colors disabled:opacity-50" title="ลบใบงาน">
+                        {deleting === job.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -767,6 +931,25 @@ function EditJobModal({
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ shirtType, collarType, quantity, patternPieces, note, cutterNote, status }),
+    });
+    const data = await res.json();
+    if (data.job) { onSave(data.job); notifyOrdersUpdated(); }
+    setSaving(false);
+  };
+
+  const handleCancelCutting = async () => {
+    if (!confirm(`ยกเลิกงานตัด "${job.teamName}" ใช่ไหม?\nสถานะจะกลับเป็น "รอตัด" และล้างข้อมูลช่างตัด`)) return;
+    setSaving(true);
+    const res = await fetch(`/api/cutting-jobs/${job.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status: "pending",
+        cutterId: null,
+        cutterName: null,
+        startedAt: null,
+        completedAt: null,
+      }),
     });
     const data = await res.json();
     if (data.job) { onSave(data.job); notifyOrdersUpdated(); }
@@ -873,6 +1056,147 @@ function EditJobModal({
             <label className="text-xs text-muted-2 mb-1 block">หมายเหตุจากช่างตัด</label>
             <textarea className={`${fieldCls} resize-none`} rows={2} value={cutterNote}
               onChange={(e) => setCutterNote(e.target.value)} placeholder="หมายเหตุที่ช่างส่งมา..." />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-2 border-t border-border px-6 py-3 shrink-0">
+          <button
+            onClick={handleCancelCutting}
+            disabled={saving}
+            className="flex items-center gap-1.5 rounded-md border border-red-400/30 px-3 py-2 text-sm text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-50"
+          >
+            <X className="h-3.5 w-3.5" /> ยกเลิกงานตัด
+          </button>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="rounded-md border border-border px-4 py-2 text-sm text-muted hover:bg-surface-2">ปิด</button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              บันทึก
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Edit Sewing Modal ──────────────────────────────────────
+interface Sewer { id: string; name: string; pin: string; active: boolean; }
+
+function EditSewingModal({
+  job,
+  onClose,
+  onSave,
+}: {
+  job: CuttingJob;
+  onClose: () => void;
+  onSave: (job: CuttingJob) => void;
+}) {
+  const [sewers, setSewers] = useState<Sewer[]>([]);
+  const [sewerId, setSewerId] = useState(job.sewerId ?? "");
+  const [sewerName, setSewerName] = useState(job.sewerName ?? "");
+  const [sewingStatus, setSewingStatus] = useState<CuttingJob["sewingStatus"]>(job.sewingStatus);
+  const [sewingStartedAt, setSewingStartedAt] = useState(
+    job.sewingStartedAt ? new Date(job.sewingStartedAt).toISOString().slice(0, 16) : ""
+  );
+  const [sewingCompletedAt, setSewingCompletedAt] = useState(
+    job.sewingCompletedAt ? new Date(job.sewingCompletedAt).toISOString().slice(0, 16) : ""
+  );
+  const [saving, setSaving] = useState(false);
+
+  const fieldCls = "w-full rounded-[var(--radius-md)] border border-border bg-surface-2 px-3 py-2 text-sm text-foreground focus:border-accent focus:outline-none";
+
+  useEffect(() => {
+    fetch("/api/sewers").then((r) => r.json()).then(setSewers).catch(() => {});
+  }, []);
+
+  const handleSewerSelect = (id: string) => {
+    setSewerId(id);
+    const s = sewers.find((sw) => sw.id === id);
+    setSewerName(s?.name ?? "");
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    const statusMap: Record<CuttingJob["sewingStatus"], CuttingJob["status"]> = {
+      pending: "cut_done",
+      sewing: "sewing",
+      done: "done",
+    };
+    const body: Record<string, unknown> = {
+      status: statusMap[sewingStatus],
+      sewingStatus,
+      sewerId: sewerId || null,
+      sewerName: sewerName || null,
+      sewingStartedAt: sewingStartedAt ? new Date(sewingStartedAt).toISOString() : null,
+      sewingCompletedAt: sewingCompletedAt ? new Date(sewingCompletedAt).toISOString() : null,
+    };
+    const res = await fetch(`/api/cutting-jobs/${job.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (data.job) { onSave(data.job); notifyOrdersUpdated(); }
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="w-full max-w-md rounded-[var(--radius-lg)] border border-border bg-surface shadow-2xl flex flex-col">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4 shrink-0">
+          <div className="flex items-center gap-2">
+            <Shirt className="h-4 w-4 text-purple-400" />
+            <span className="font-semibold">แก้ไขงานเย็บ — {job.id}</span>
+          </div>
+          <button onClick={onClose} className="text-muted hover:text-foreground"><X className="h-4 w-4" /></button>
+        </div>
+
+        {/* ข้อมูลอ้างอิง */}
+        <div className="mx-6 mt-4 rounded-[var(--radius-md)] border border-border bg-surface-2 px-4 py-2.5 text-xs text-muted flex gap-4">
+          <span><span className="text-muted-2">ทีม:</span> <span className="text-foreground font-medium">{job.teamName}</span></span>
+          <span><span className="text-muted-2">ทรงเสื้อ:</span> {job.shirtType}</span>
+          <span><span className="text-muted-2">จำนวน:</span> {job.quantity} ตัว</span>
+        </div>
+
+        <div className="p-6 space-y-4">
+          {/* สถานะงานเย็บ */}
+          <div>
+            <label className="text-xs text-muted-2 mb-1 block">สถานะงานเย็บ</label>
+            <select className={fieldCls} value={sewingStatus} onChange={(e) => setSewingStatus(e.target.value as CuttingJob["sewingStatus"])}>
+              <option value="pending">รอเย็บ</option>
+              <option value="sewing">กำลังเย็บ</option>
+              <option value="done">เย็บเสร็จ</option>
+            </select>
+          </div>
+
+          {/* ช่างเย็บ */}
+          <div>
+            <label className="text-xs text-muted-2 mb-1 block">ช่างเย็บ</label>
+            {sewers.length > 0 ? (
+              <select className={fieldCls} value={sewerId} onChange={(e) => handleSewerSelect(e.target.value)}>
+                <option value="">— ยังไม่ระบุ —</option>
+                {sewers.filter((s) => s.active).map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            ) : (
+              <input className={fieldCls} value={sewerName} onChange={(e) => setSewerName(e.target.value)} placeholder="ชื่อช่างเย็บ…" />
+            )}
+          </div>
+
+          {/* เวลารับงาน */}
+          <div>
+            <label className="text-xs text-muted-2 mb-1 block">เวลารับงาน</label>
+            <input type="datetime-local" className={fieldCls} value={sewingStartedAt}
+              onChange={(e) => setSewingStartedAt(e.target.value)} />
+          </div>
+
+          {/* เวลาส่งงาน */}
+          <div>
+            <label className="text-xs text-muted-2 mb-1 block">เวลาส่งงาน</label>
+            <input type="datetime-local" className={fieldCls} value={sewingCompletedAt}
+              onChange={(e) => setSewingCompletedAt(e.target.value)} />
           </div>
         </div>
 

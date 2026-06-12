@@ -155,6 +155,17 @@ export default function SummaryPage() {
     design: "ออกแบบ", produce: "ผลิต", design_produce: "ออกแบบ+ผลิต",
   };
 
+  // งานใกล้วันส่ง 14 วัน
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const in14 = new Date(today); in14.setDate(today.getDate() + 14);
+  const upcomingDeliveries = orders
+    .filter((o) => {
+      if (!o.deliveryDate) return false;
+      const d = new Date(o.deliveryDate); d.setHours(0, 0, 0, 0);
+      return d >= today && d <= in14;
+    })
+    .sort((a, b) => (a.deliveryDate ?? "").localeCompare(b.deliveryDate ?? ""));
+
   return (
     <div className="min-h-screen">
       {/* Header */}
@@ -179,6 +190,50 @@ export default function SummaryPage() {
       </div>
 
       <div className="space-y-6 px-4 py-6 min-[720px]:px-8">
+
+        {/* Upcoming deliveries */}
+        {upcomingDeliveries.length > 0 && (
+          <div className="rounded-xl border border-orange-500/30 bg-orange-500/5 p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <CalendarDays className="h-4 w-4 text-orange-400" />
+              <h2 className="font-semibold text-sm text-orange-400">ใกล้วันส่ง — 14 วันข้างหน้า</h2>
+              <span className="ml-auto rounded-full bg-orange-500/20 px-2 py-0.5 text-[11px] font-semibold text-orange-400">{upcomingDeliveries.length} งาน</span>
+            </div>
+            <div className="grid grid-cols-1 gap-2 min-[720px]:grid-cols-2">
+              {upcomingDeliveries.map((o) => {
+                const d = new Date(o.deliveryDate!); d.setHours(0, 0, 0, 0);
+                const daysLeft = Math.round((d.getTime() - today.getTime()) / 86400000);
+                const urgent = daysLeft <= 3;
+                const warn = daysLeft <= 7;
+                return (
+                  <Link key={o.id} href={`/orders/${o.id}`}
+                    className="flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3 hover:bg-surface-2 transition-colors">
+                    <div className={cn("shrink-0 rounded-lg px-2.5 py-1.5 text-center min-w-[48px]",
+                      urgent ? "bg-red-500/15 text-red-400" : warn ? "bg-yellow-500/15 text-yellow-400" : "bg-green-500/15 text-green-400"
+                    )}>
+                      <div className="text-xl font-bold leading-none">{daysLeft}</div>
+                      <div className="text-[10px] mt-0.5">วัน</div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{o.teamName}</div>
+                      <div className="text-xs text-muted-2 mt-0.5 flex items-center gap-1.5">
+                        <span className="font-mono">{o.id}</span>
+                        {o.shirtType && <><span>·</span><span>{o.shirtType}</span></>}
+                        {o.quantity && <><span>·</span><span>{o.quantity} ตัว</span></>}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <div className={cn("text-xs font-semibold", urgent ? "text-red-400" : warn ? "text-yellow-400" : "text-green-400")}>
+                        {formatDate(o.deliveryDate!)}
+                      </div>
+                      <div className="text-[10px] text-muted-2 mt-0.5">{TYPE_LABEL[o.type]}</div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Top stats */}
         <div className="grid grid-cols-2 gap-3 min-[720px]:grid-cols-4">

@@ -1,7 +1,31 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ImageIcon, CalendarDays, GripVertical, X, FileSpreadsheet, Plus } from "lucide-react";
+import { ImageIcon, CalendarDays, GripVertical, X, FileSpreadsheet, Plus, Scissors, Shirt } from "lucide-react";
+
+interface CutJob {
+  id: string;
+  status: string;
+  sewingStatus: string;
+  quantity: number;
+  patternPieces: number;
+  cutterName: string | null;
+  sewerName: string | null;
+  completedAt: string | null;
+  sewingCompletedAt: string | null;
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  pending: "รอตัด", cutting: "กำลังตัด", cut_done: "ตัดเสร็จ",
+  sewing: "กำลังเย็บ", done: "เสร็จสมบูรณ์",
+};
+const SEWING_LABEL: Record<string, string> = {
+  pending: "รอเย็บ", sewing: "กำลังเย็บ", done: "เย็บเสร็จ",
+};
+const STATUS_COLOR: Record<string, string> = {
+  pending: "#888", cutting: "#f97316", cut_done: "#3b82f6",
+  sewing: "#a855f7", done: "#22c55e",
+};
 import { formatDate } from "@/lib/utils";
 import type { QueueCard, QueueColumn } from "@/lib/types";
 import Link from "next/link";
@@ -26,6 +50,17 @@ export function KanbanBoard({
   const [dragColId, setDragColId] = useState<string | null>(null);
   const [overColTarget, setOverColTarget] = useState<string | null>(null);
   const [selected, setSelected] = useState<QueueCard | null>(null);
+  const [cutJobs, setCutJobs] = useState<CutJob[]>([]);
+
+  useEffect(() => {
+    if (!selected) { setCutJobs([]); return; }
+    fetch("/api/cutting-jobs", { cache: "no-store" })
+      .then(r => r.json())
+      .then((jobs: (CutJob & { orderId: string })[]) =>
+        setCutJobs(jobs.filter(j => j.orderId === selected.orderId))
+      )
+      .catch(() => {});
+  }, [selected]);
   const [editingColId, setEditingColId] = useState<string | null>(null);
   const [editingColTitle, setEditingColTitle] = useState("");
   const [colorPickerColId, setColorPickerColId] = useState<string | null>(null);
@@ -201,6 +236,13 @@ export function KanbanBoard({
                         {formatDate(card.dueDate)}
                       </span>
                     </div>
+                    {(card.cuttingJobCount ?? 0) > 0 && (
+                      <div className="mt-1.5 flex items-center gap-1 text-[11px] text-muted-2">
+                        <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5" style={{ color: "#f97316", borderColor: "#f9731640", backgroundColor: "#f9731615" }}>
+                          <Scissors className="h-3 w-3" /> ใบงานตัด {card.cuttingJobCount} ใบ
+                        </span>
+                      </div>
+                    )}
                   </article>
                 ))}
 
@@ -330,6 +372,33 @@ export function KanbanBoard({
                   <dd className="font-medium">{formatDate(selected.dueDate)}</dd>
                 </div>
               </dl>
+
+              {cutJobs.length > 0 && (
+                <div className="mt-4 border-t border-border pt-4">
+                  <div className="flex items-center gap-1.5 mb-2 text-xs font-medium text-muted">
+                    <Scissors className="h-3.5 w-3.5 text-accent" />
+                    ใบงานตัด-เย็บ ({cutJobs.length} ใบ)
+                  </div>
+                  <div className="space-y-2">
+                    {cutJobs.map(j => (
+                      <div key={j.id} className="rounded-[var(--radius-md)] border border-border bg-surface-2 px-3 py-2 text-xs">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-mono font-semibold text-accent">{j.id}</span>
+                          <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium"
+                            style={{ color: STATUS_COLOR[j.status] ?? "#888", borderColor: `${STATUS_COLOR[j.status] ?? "#888"}40`, backgroundColor: `${STATUS_COLOR[j.status] ?? "#888"}15` }}>
+                            {STATUS_LABEL[j.status] ?? j.status}
+                          </span>
+                        </div>
+                        <div className="flex gap-3 text-muted">
+                          <span>{j.quantity} ตัว · <span className="text-accent font-semibold">{j.patternPieces}</span> ชิ้น</span>
+                          {j.cutterName && <span className="inline-flex items-center gap-1"><Scissors className="h-3 w-3 text-accent" /> {j.cutterName}</span>}
+                          {j.sewerName && <span className="inline-flex items-center gap-1"><Shirt className="h-3 w-3 text-purple-400" /> {j.sewerName} · {SEWING_LABEL[j.sewingStatus]}</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="mt-5 flex gap-2">
                 <Link href={`/orders/${selected.orderId}`} className="flex-1">

@@ -14,12 +14,13 @@ interface Employee {
 }
 
 const MENUS = [
-  { key: "overview", label: "ภาพรวม" },
+  { key: "overview", label: "ภาพรวมการเงิน" },
   { key: "summary", label: "สรุปภาพรวมงาน" },
   { key: "orders", label: "รายการออเดอร์" },
   { key: "queue", label: "คิวออกแบบ / คิวผลิต" },
   { key: "production-tables", label: "ตารางสั่งผลิต" },
-  { key: "cutting-jobs", label: "ใบงานตัด" },
+  { key: "cutting-jobs", label: "ใบงานตัด-เย็บ" },
+  { key: "delivery-notes", label: "ใบส่งสินค้า" },
 ];
 
 function PinInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {

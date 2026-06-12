@@ -19,6 +19,8 @@ import {
   Users,
   LogOut,
   BarChart2,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
@@ -58,7 +60,7 @@ const navGroups: NavGroup[] = [
   {
     groupLabel: "ใบงาน",
     items: [
-      { href: "/cutting-jobs", label: "ใบงานตัด", icon: Scissors, badge: null, menuKey: "cutting-jobs", adminOnly: false },
+      { href: "/cutting-jobs", label: "ใบงานตัด-เย็บ", icon: Scissors, badge: null, menuKey: "cutting-jobs", adminOnly: false },
       { href: "/delivery-notes", label: "ใบส่งสินค้า", icon: PackageCheck, badge: null, menuKey: "delivery-notes", adminOnly: false },
     ],
   },
@@ -89,6 +91,14 @@ const navGroups: NavGroup[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("winx-sidebar-collapsed") === "1";
+  });
+  const toggleCollapsed = () => setCollapsed((v) => {
+    localStorage.setItem("winx-sidebar-collapsed", v ? "0" : "1");
+    return !v;
+  });
 
   const [slipCount, setSlipCount] = useState(0);
   const [designWaitCount, setDesignWaitCount] = useState(0);
@@ -150,27 +160,33 @@ export function Sidebar() {
   if (isPublic) return null;
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-14 shrink-0 flex-col border-r border-border bg-surface min-[720px]:flex min-[720px]:w-64 print:hidden">
+    <aside className={cn(
+      "sticky top-0 hidden h-screen shrink-0 flex-col border-r border-border bg-surface print:hidden transition-[width] duration-200",
+      "min-[720px]:flex",
+      collapsed ? "w-14 min-[720px]:w-14" : "w-14 min-[720px]:w-64"
+    )}>
       {/* Logo */}
-      <div className="flex items-center gap-2 px-3 py-6 min-[720px]:px-6">
+      <div className="flex items-center gap-2 px-3 py-6 min-[720px]:px-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground font-black text-lg">
           W
         </div>
-        <div className="hidden leading-tight min-[720px]:block">
-          <div className="font-bold tracking-wide">WINX STUDIO</div>
-          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-2">
-            Back Office
+        {!collapsed && (
+          <div className="hidden leading-tight min-[720px]:block">
+            <div className="font-bold tracking-wide">WINX STUDIO</div>
+            <div className="text-[11px] uppercase tracking-[0.18em] text-muted-2">Back Office</div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-1.5 py-2 min-[720px]:px-3">
         {visibleGroups.map((group, gi) => (
           <div key={group.groupLabel} className={gi > 0 ? "mt-4" : ""}>
-            <div className="hidden min-[720px]:block px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-widest text-muted-2">
-              {group.groupLabel}
-            </div>
+            {!collapsed && (
+              <div className="hidden min-[720px]:block px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-widest text-muted-2">
+                {group.groupLabel}
+              </div>
+            )}
             <div className="space-y-0.5">
               {group.items.map(({ href, label, icon: Icon, badge }) => {
                 const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -178,6 +194,9 @@ export function Sidebar() {
                 const showDesignBadge = badge === "design" && designWaitCount > 0;
                 const showProductionBadge = badge === "production" && productionWaitCount > 0;
                 const showProdTableBadge = badge === "prod-table" && prodTableNewCount > 0;
+                const hasBadge = showBadge || showDesignBadge || showProductionBadge || showProdTableBadge;
+                const badgeCount = showBadge ? slipCount : showDesignBadge ? designWaitCount : showProductionBadge ? productionWaitCount : prodTableNewCount;
+                const badgeColor = showBadge || showProdTableBadge ? "bg-yellow-400 text-black" : "bg-accent text-accent-foreground";
                 return (
                   <Link
                     key={href}
@@ -186,32 +205,19 @@ export function Sidebar() {
                     target={href === "/track" ? "_blank" : undefined}
                     rel={href === "/track" ? "noopener noreferrer" : undefined}
                     className={cn(
-                      "flex items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2.5 text-sm transition-colors min-[720px]:px-3",
-                      active
-                        ? "bg-accent-soft text-accent font-medium"
-                        : "text-muted hover:bg-surface-2 hover:text-foreground"
+                      "relative flex items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2.5 text-sm transition-colors min-[720px]:px-3",
+                      active ? "bg-accent-soft text-accent font-medium" : "text-muted hover:bg-surface-2 hover:text-foreground"
                     )}
                   >
                     <Icon className="h-[18px] w-[18px] shrink-0" />
-                    <span className="hidden min-[720px]:inline flex-1">{label}</span>
-                    {showBadge && (
-                      <span className="hidden min-[720px]:flex ml-auto h-5 min-w-5 items-center justify-center rounded-full bg-yellow-400 px-1.5 text-[10px] font-bold text-black">
-                        {slipCount}
-                      </span>
+                    {/* dot badge when collapsed */}
+                    {collapsed && hasBadge && (
+                      <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-yellow-400" />
                     )}
-                    {showDesignBadge && (
-                      <span className="hidden min-[720px]:flex ml-auto h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[10px] font-bold text-accent-foreground">
-                        {designWaitCount}
-                      </span>
-                    )}
-                    {showProductionBadge && (
-                      <span className="hidden min-[720px]:flex ml-auto h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[10px] font-bold text-accent-foreground">
-                        {productionWaitCount}
-                      </span>
-                    )}
-                    {showProdTableBadge && (
-                      <span className="hidden min-[720px]:flex ml-auto h-5 min-w-5 items-center justify-center rounded-full bg-yellow-400 px-1.5 text-[10px] font-bold text-black">
-                        {prodTableNewCount}
+                    {!collapsed && <span className="hidden min-[720px]:inline flex-1">{label}</span>}
+                    {!collapsed && hasBadge && (
+                      <span className={cn("hidden min-[720px]:flex ml-auto h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold", badgeColor)}>
+                        {badgeCount}
                       </span>
                     )}
                   </Link>
@@ -223,23 +229,41 @@ export function Sidebar() {
       </nav>
 
       {/* Version */}
-      <div className="hidden min-[720px]:block px-6 pb-2 pt-3">
-        <div className="text-[11px] text-muted-2">WINX STUDIO</div>
-        <div className="text-[11px] text-muted-2">Looking good at every stage</div>
-        <div className="mt-0.5 text-[11px] font-medium text-accent">Beta 1.3.2</div>
-      </div>
-
-      {/* Footer: user info + logout */}
-      <div className="border-t border-border px-3 py-3 min-[720px]:px-4">
-        <div className="hidden min-[720px]:flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <div className="truncate text-sm font-medium">{user?.name ?? "—"}</div>
-            <div className="text-[11px] text-muted-2">{user?.role === "admin" ? "Admin" : "พนักงาน"}</div>
-          </div>
-          <button onClick={logout} title="ออกจากระบบ" className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-foreground">
-            <LogOut className="h-4 w-4" />
-          </button>
+      {!collapsed && (
+        <div className="hidden min-[720px]:block px-4 pb-2 pt-3">
+          <div className="text-[11px] text-muted-2">WINX STUDIO</div>
+          <div className="text-[11px] text-muted-2">Looking good at every stage</div>
+          <div className="mt-0.5 text-[11px] font-medium text-accent">Beta 1.3.5</div>
         </div>
+      )}
+
+      {/* Footer: user info + logout + collapse toggle */}
+      <div className="border-t border-border px-3 py-3">
+        {!collapsed ? (
+          <div className="hidden min-[720px]:flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <div className="truncate text-sm font-medium">{user?.name ?? "—"}</div>
+              <div className="text-[11px] text-muted-2">{user?.role === "admin" ? "Admin" : "พนักงาน"}</div>
+            </div>
+            <div className="flex items-center gap-1">
+              <button onClick={toggleCollapsed} title="ย่อเมนู" className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-foreground">
+                <PanelLeftClose className="h-4 w-4" />
+              </button>
+              <button onClick={logout} title="ออกจากระบบ" className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-foreground">
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="hidden min-[720px]:flex flex-col items-center gap-2">
+            <button onClick={toggleCollapsed} title="ขยายเมนู" className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-foreground">
+              <PanelLeftOpen className="h-4 w-4" />
+            </button>
+            <button onClick={logout} title="ออกจากระบบ" className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-foreground">
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        )}
         {/* Mobile: icon only */}
         <div className="flex min-[720px]:hidden justify-center">
           <button onClick={logout} title="ออกจากระบบ" className="rounded-lg p-1.5 text-muted hover:bg-surface-2">

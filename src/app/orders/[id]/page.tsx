@@ -22,6 +22,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useShirtStyleOptions, useShirtStyles, useFabricsData, calcProductionPrice } from "@/lib/use-catalog";
 import { notifyOrdersUpdated } from "@/lib/broadcast";
+import shirtStylesData from "@/data/shirt-styles.json";
 
 interface PaymentRequestLocal {
   token: string;
@@ -758,7 +759,7 @@ function FinanceCard({ order, onSave }: { order: Order; onSave: (p: Partial<Orde
         </div>
       </Card>
 
-      {printOpen && <FinancePrintModal order={liveOrder} onClose={() => setPrintOpen(false)} />}
+      {printOpen && <FinancePrintModal order={liveOrder} fabricExtra={fabricExtra} collarExtra={collarExtra} onClose={() => setPrintOpen(false)} />}
     </>
   );
 }
@@ -792,11 +793,14 @@ function ProfitCard({ order }: { order: Order }) {
 }
 
 // ── Modal แคปส่งลูกค้า ──────────────────────────────────────
-function FinancePrintModal({ order, onClose }: { order: Order; onClose: () => void }) {
+type ShirtStyleEntry = { name: string; fabrics: { name: string; price: number }[]; collars: { name: string; price: number }[] };
+
+function FinancePrintModal({ order, fabricExtra, collarExtra, onClose }: { order: Order; fabricExtra: number; collarExtra: number; onClose: () => void }) {
   const vatAmount = orderVat(order);
   const subtotal = orderSubtotal(order);
   const total = orderTotal(order);
   const balance = orderBalance(order);
+  const basePrice = (order.productionPrice ?? 0) - fabricExtra - collarExtra;
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -805,7 +809,13 @@ function FinancePrintModal({ order, onClose }: { order: Order; onClose: () => vo
     lines.push(`รหัส: ${order.id}`);
     lines.push(`──────────────────`);
     if (order.type !== "design") {
-      lines.push(`ราคาผลิต: ${formatBaht(order.productionPrice ?? 0)}/ตัว x ${order.quantity ?? 1} ตัว = ${formatBaht((order.productionPrice ?? 0) * (order.quantity ?? 1))}`);
+      if (order.shirtType) lines.push(`ทรงเสื้อ: ${order.shirtType}`);
+      if (order.fabricType) lines.push(`ผ้า: ${order.fabricType}${fabricExtra > 0 ? ` (+${formatBaht(fabricExtra)})` : ""}`);
+      if (order.collarType) lines.push(`คอ: ${order.collarType}${collarExtra > 0 ? ` (+${formatBaht(collarExtra)})` : ""}`);
+      const priceBreakdown = (fabricExtra > 0 || collarExtra > 0)
+        ? `(${formatBaht(basePrice)}${fabricExtra > 0 ? `+${formatBaht(fabricExtra)}` : ""}${collarExtra > 0 ? `+${formatBaht(collarExtra)}` : ""}) x ${order.quantity ?? 1} ตัว`
+        : `${formatBaht(order.productionPrice ?? 0)}/ตัว x ${order.quantity ?? 1} ตัว`;
+      lines.push(`ราคาผลิต: ${priceBreakdown} = ${formatBaht((order.productionPrice ?? 0) * (order.quantity ?? 1))}`);
     }
     if (order.designPackage) {
       lines.push(`แพคเกจออกแบบ: ${order.designPackage}`);
@@ -852,11 +862,24 @@ function FinancePrintModal({ order, onClose }: { order: Order; onClose: () => vo
             <p className="text-xs text-muted">{order.id} · {CUSTOMER_TYPE_LABEL[order.type]}</p>
           </div>
 
+          {order.type !== "design" && (order.shirtType || order.fabricType || order.collarType) && (
+            <div className="rounded-[var(--radius-md)] bg-surface-2 px-3 py-2 text-xs text-muted space-y-1">
+              {order.shirtType && <div className="flex justify-between"><span>ทรงเสื้อ</span><span className="text-foreground font-medium">{order.shirtType}</span></div>}
+              {order.fabricType && <div className="flex justify-between"><span>ผ้า</span><span className="text-foreground font-medium">{order.fabricType}{fabricExtra > 0 && <span className="ml-1 text-accent">+{formatBaht(fabricExtra)}</span>}</span></div>}
+              {order.collarType && <div className="flex justify-between"><span>คอ</span><span className="text-foreground font-medium">{order.collarType}{collarExtra > 0 && <span className="ml-1 text-accent">+{formatBaht(collarExtra)}</span>}</span></div>}
+            </div>
+          )}
+
           {order.type !== "design" && (
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div>ราคาผลิต</div>
-                <div className="text-xs text-muted mt-0.5">{formatBaht(order.productionPrice ?? 0)}/ตัว × {order.quantity ?? 1} ตัว</div>
+                <div className="text-xs text-muted mt-0.5">
+                  {(fabricExtra > 0 || collarExtra > 0)
+                    ? `(${formatBaht(basePrice)}${fabricExtra > 0 ? `+${formatBaht(fabricExtra)}` : ""}${collarExtra > 0 ? `+${formatBaht(collarExtra)}` : ""}) × ${order.quantity ?? 1} ตัว`
+                    : `${formatBaht(order.productionPrice ?? 0)}/ตัว × ${order.quantity ?? 1} ตัว`
+                  }
+                </div>
               </div>
               <span className="font-medium">{formatBaht((order.productionPrice ?? 0) * (order.quantity ?? 1))}</span>
             </div>

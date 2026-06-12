@@ -2,7 +2,25 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { setSession, getSession } from "@/lib/auth";
+import { setSession, getSession, type AuthUser } from "@/lib/auth";
+
+const MENU_PATHS: { key: string; path: string }[] = [
+  { key: "overview",          path: "/" },
+  { key: "summary",           path: "/summary" },
+  { key: "orders",            path: "/orders" },
+  { key: "queue",             path: "/queue/production" },
+  { key: "production-tables", path: "/production-tables" },
+  { key: "cutting-jobs",      path: "/cutting-jobs" },
+  { key: "delivery-notes",    path: "/delivery-notes" },
+];
+
+function getDefaultPath(user: AuthUser): string {
+  if (user.role === "admin") return "/";
+  for (const m of MENU_PATHS) {
+    if (user.allowedMenus.includes(m.key)) return m.path;
+  }
+  return "/track";
+}
 import { Delete } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +54,7 @@ export default function LoginPage() {
         setTimeout(() => setShake(false), 500);
       } else {
         setSession(json.user);
-        router.replace("/");
+        router.replace(getDefaultPath(json.user));
       }
     } catch {
       setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
@@ -63,6 +81,15 @@ export default function LoginPage() {
     setError("");
     setPin((prev) => prev.slice(0, -1));
   }, [loading]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key >= "0" && e.key <= "9") press(e.key);
+      else if (e.key === "Backspace") del();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [press, del]);
 
   const keys = ["1","2","3","4","5","6","7","8","9","","0","⌫"];
 

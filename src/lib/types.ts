@@ -141,6 +141,7 @@ export interface QueueCard {
   dueDate: string; // ISO
   image?: string; // url
   columnId: string;
+  cuttingJobCount?: number;
 }
 
 export interface QueueColumn {

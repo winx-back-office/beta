@@ -17,14 +17,18 @@ export default function ProductionQueuePage() {
   const [addTarget, setAddTarget] = useState<string>("summary"); // columnId ที่จะเพิ่มเข้า
 
   const loadCards = async () => {
-    const [colRes, res] = await Promise.all([
+    const [colRes, res, cutRes] = await Promise.all([
       fetch("/api/production-columns", { cache: "no-store" }),
       fetch("/api/orders", { cache: "no-store" }),
+      fetch("/api/cutting-jobs", { cache: "no-store" }),
     ]);
     const cols: QueueColumn[] = await colRes.json();
     setColumns(cols);
     const orders: Order[] = await res.json();
     setAllOrders(orders);
+    const cuttingJobs: { orderId: string }[] = await cutRes.json().catch(() => []);
+    const cutCountMap: Record<string, number> = {};
+    cuttingJobs.forEach((j) => { cutCountMap[j.orderId] = (cutCountMap[j.orderId] ?? 0) + 1; });
 
     const produceOrders = orders.filter(
       (o) => o.type !== "design" && (o.hasProductionTable || o.productionStatus)
@@ -48,6 +52,7 @@ export default function ProductionQueuePage() {
           dueDate: o.startDate,
           image,
           columnId: o.productionStatus ?? "summary",
+          cuttingJobCount: cutCountMap[o.id] ?? 0,
         } satisfies QueueCard;
       })
     );
