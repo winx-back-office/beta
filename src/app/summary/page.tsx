@@ -275,6 +275,9 @@ export default function SummaryPage() {
               {collapsed.upcoming ? <ChevronDown className="h-4 w-4 text-orange-400 shrink-0" /> : <ChevronUp className="h-4 w-4 text-orange-400 shrink-0" />}
             </button>
             {!collapsed.upcoming && (
+            <div className="relative">
+              <div className="pointer-events-none absolute left-0 top-0 bottom-5 w-10 z-10 bg-gradient-to-r from-background to-transparent" />
+              <div className="pointer-events-none absolute right-0 top-0 bottom-5 w-10 z-10 bg-gradient-to-l from-background to-transparent" />
             <div className="px-5 pb-5 flex gap-3 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
               {upcomingDeliveries.map((o) => {
                 const d = new Date(o.deliveryDate!); d.setHours(0, 0, 0, 0);
@@ -315,6 +318,7 @@ export default function SummaryPage() {
                   </Link>
                 );
               })}
+            </div>
             </div>
             )}
           </div>
