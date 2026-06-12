@@ -158,9 +158,9 @@ function CuttersTab() {
       {adding && (
         <Card className="p-4 space-y-3">
           <div className="font-semibold text-sm">เพิ่มช่างตัดใหม่</div>
-          <div className="flex gap-3">
-            <input className="field-input flex-1" placeholder="ชื่อ" value={newName} onChange={(e) => setNewName(e.target.value)} />
-            <input className="field-input w-24 font-mono" placeholder="PIN" maxLength={4} value={newPin}
+          <div className="grid grid-cols-2 gap-3">
+            <input className="field-input w-full" placeholder="ชื่อ" value={newName} onChange={(e) => setNewName(e.target.value)} />
+            <input className="field-input w-full font-mono" placeholder="PIN" maxLength={4} value={newPin}
               onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 4))} />
           </div>
           {addError && <div className="text-xs text-red-400">{addError}</div>}
@@ -286,9 +286,9 @@ function SewersTab() {
       {adding && (
         <Card className="p-4 space-y-3">
           <div className="font-semibold text-sm">เพิ่มช่างเย็บใหม่</div>
-          <div className="flex gap-3">
-            <input className="field-input flex-1" placeholder="ชื่อ" value={newName} onChange={(e) => setNewName(e.target.value)} />
-            <input className="field-input w-24 font-mono" placeholder="PIN" maxLength={4} value={newPin}
+          <div className="grid grid-cols-2 gap-3">
+            <input className="field-input w-full" placeholder="ชื่อ" value={newName} onChange={(e) => setNewName(e.target.value)} />
+            <input className="field-input w-full font-mono" placeholder="PIN" maxLength={4} value={newPin}
               onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 4))} />
           </div>
           {addError && <div className="text-xs text-red-400">{addError}</div>}
