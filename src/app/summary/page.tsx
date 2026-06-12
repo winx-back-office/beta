@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { RefreshCw, ClipboardList, Palette, Factory, Scissors, TableProperties, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import { useAuth } from "@/context/auth-context";
+import { RefreshCw, ClipboardList, Palette, Factory, Scissors, Shirt, ChevronLeft, ChevronRight, CalendarDays, ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import type { Order } from "@/lib/types";
 
@@ -31,6 +32,7 @@ const PROD_COLS = [
   { id: "pattern_cut", label: "ตัดแพทเทิร์น", color: "bg-pink-500" },
   { id: "sew", label: "รอส่ง-เย็บ", color: "bg-indigo-400" },
   { id: "done", label: "แพ็ค/จัดส่ง", color: "bg-green-500" },
+  { id: "delivered", label: "จัดส่งเรียบร้อย", color: "bg-emerald-600" },
 ];
 
 function StatCard({ label, value, sub, tone = "text-foreground", href }: {
@@ -95,6 +97,44 @@ export default function SummaryPage() {
   const [cuts, setCuts] = useState<CuttingJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState("");
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
+  const SECTION_KEYS = ["upcoming", "stats", "queues", "cutting", "calendar", "orders"] as const;
+  type SectionKey = typeof SECTION_KEYS[number];
+  const STORAGE_KEY = "winx-summary-collapsed";
+  const [collapsed, setCollapsed] = useState<Record<SectionKey, boolean>>({
+    upcoming: false, stats: false, queues: false, cutting: false, calendar: false, orders: false,
+  });
+  const [zoom, setZoom] = useState(100);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) setCollapsed(JSON.parse(saved));
+      const savedZoom = localStorage.getItem("winx-summary-zoom");
+      if (savedZoom) setZoom(Number(savedZoom));
+    } catch { /* ignore */ }
+  }, []);
+
+  const changeZoom = (delta: number) => {
+    setZoom(prev => {
+      const next = Math.max(60, Math.min(100, prev + delta));
+      localStorage.setItem("winx-summary-zoom", String(next));
+      return next;
+    });
+  };
+
+  const updateCollapsed = (next: Record<SectionKey, boolean>) => {
+    setCollapsed(next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  };
+  const allCollapsed = SECTION_KEYS.every((k) => collapsed[k]);
+  const toggleAll = () => {
+    const next = !allCollapsed;
+    updateCollapsed({ upcoming: next, stats: next, queues: next, cutting: next, calendar: next, orders: next });
+  };
+  const toggleSection = (k: SectionKey) => updateCollapsed({ ...collapsed, [k]: !collapsed[k] });
 
   const load = async () => {
     setLoading(true);
@@ -136,19 +176,33 @@ export default function SummaryPage() {
     prodCounts[k] = (prodCounts[k] ?? 0) + 1;
   });
 
+  // รอสรุปงาน
+  const waitSummaryOrders = produceOrders.filter((o) => !o.productionStatus || o.productionStatus === "summary");
+
+  // รอออกแบบ
+  const waitDesignOrders = designOrders.filter((o) => !o.designStatus || o.designStatus === "wait_design");
+
   // cutting jobs
   const cutPending = cuts.filter((c) => c.status === "pending").length;
   const cutCutting = cuts.filter((c) => c.status === "cutting").length;
-  const cutDone = cuts.filter((c) => c.status === "done").length;
+  const cutDone = cuts.filter((c) => c.status === "cut_done" || c.status === "sewing" || c.status === "done").length;
   const CUT_COLS = [
-    { id: "pending", label: "รอรับงาน", color: "bg-orange-400" },
-    { id: "cutting", label: "กำลังตัด", color: "bg-accent" },
-    { id: "done", label: "เสร็จสิ้น", color: "bg-green-500" },
+    { id: "pending", label: "รอรับงาน", color: "bg-gray-500" },
+    { id: "cutting", label: "กำลังตัด", color: "bg-orange-400" },
+    { id: "done", label: "ตัดเสร็จ/เย็บแล้ว", color: "bg-green-500" },
   ];
   const cutCounts = { pending: cutPending, cutting: cutCutting, done: cutDone };
 
-  // production tables
-  const hasProdTable = orders.filter((o) => o.hasProductionTable).length;
+  // sewing jobs
+  const sewWaiting = cuts.filter((c) => c.status === "cut_done").length;
+  const sewSewing = cuts.filter((c) => c.status === "sewing").length;
+  const sewDone = cuts.filter((c) => c.status === "done").length;
+  const SEW_COLS = [
+    { id: "cut_done", label: "รอเย็บ", color: "bg-gray-500" },
+    { id: "sewing",   label: "กำลังเย็บ", color: "bg-blue-500" },
+    { id: "done",     label: "เสร็จสมบูรณ์", color: "bg-green-500" },
+  ];
+  const sewCounts = { cut_done: sewWaiting, sewing: sewSewing, done: sewDone };
 
   // Recent active orders (no financial data)
   const recentActive = [...activeOrders]
@@ -184,29 +238,44 @@ export default function SummaryPage() {
           </div>
           <div className="flex items-center gap-2">
             <span className="hidden min-[720px]:block text-xs text-muted-2">อัพเดทอัตโนมัติทุก 1 นาที</span>
-          <button
-            onClick={load}
-            disabled={loading}
-            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs hover:bg-surface-2 disabled:opacity-50"
-          >
-            <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
-            รีเฟรช
-          </button>
+            {/* Zoom controls */}
+            <div className="flex items-center gap-1 rounded-lg border border-border px-1 py-1">
+              <button onClick={() => changeZoom(-10)} disabled={zoom <= 60} className="rounded px-1.5 py-0.5 text-xs text-muted hover:bg-surface-2 disabled:opacity-30">−</button>
+              <span className="min-w-[34px] text-center text-xs text-muted-2">{zoom}%</span>
+              <button onClick={() => changeZoom(10)} disabled={zoom >= 100} className="rounded px-1.5 py-0.5 text-xs text-muted hover:bg-surface-2 disabled:opacity-30">+</button>
+            </div>
+            <button
+              onClick={toggleAll}
+              className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs hover:bg-surface-2"
+            >
+              <ChevronsUpDown className="h-3.5 w-3.5" />
+              {allCollapsed ? "ขยายทั้งหมด" : "ย่อทั้งหมด"}
+            </button>
+            <button
+              onClick={load}
+              disabled={loading}
+              className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs hover:bg-surface-2 disabled:opacity-50"
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+              รีเฟรช
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="space-y-6 px-4 py-6 min-[720px]:px-8">
+      <div className="space-y-6 px-4 py-6 min-[720px]:px-8" style={{ zoom: `${zoom}%` }}>
 
         {/* Upcoming deliveries */}
         {upcomingDeliveries.length > 0 && (
-          <div className="rounded-xl border border-orange-500/30 bg-orange-500/5 p-5 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <CalendarDays className="h-4 w-4 text-orange-400" />
-              <h2 className="font-semibold text-sm text-orange-400">ใกล้วันส่ง — 14 วันข้างหน้า</h2>
-              <span className="ml-auto rounded-full bg-orange-500/20 px-2 py-0.5 text-[11px] font-semibold text-orange-400">{upcomingDeliveries.length} งาน</span>
-            </div>
-            <div className="grid grid-cols-1 gap-2 min-[720px]:grid-cols-2">
+          <div className="rounded-xl border border-orange-500/30 bg-orange-500/5 shadow-sm">
+            <button onClick={() => toggleSection("upcoming")} className="w-full flex items-center gap-2 p-5 text-left">
+              <CalendarDays className="h-4 w-4 text-orange-400 shrink-0" />
+              <h2 className="font-semibold text-sm text-orange-400 flex-1">ใกล้วันส่ง — 14 วันข้างหน้า</h2>
+              <span className="rounded-full bg-orange-500/20 px-2 py-0.5 text-[11px] font-semibold text-orange-400">{upcomingDeliveries.length} งาน</span>
+              {collapsed.upcoming ? <ChevronDown className="h-4 w-4 text-orange-400 shrink-0" /> : <ChevronUp className="h-4 w-4 text-orange-400 shrink-0" />}
+            </button>
+            {!collapsed.upcoming && (
+            <div className="px-5 pb-5 grid grid-cols-1 gap-2 min-[720px]:grid-cols-2">
               {upcomingDeliveries.map((o) => {
                 const d = new Date(o.deliveryDate!); d.setHours(0, 0, 0, 0);
                 const daysLeft = Math.round((d.getTime() - today.getTime()) / 86400000);
@@ -239,93 +308,175 @@ export default function SummaryPage() {
                 );
               })}
             </div>
+            )}
           </div>
         )}
 
         {/* Top stats */}
-        <div className="grid grid-cols-2 gap-3 min-[720px]:grid-cols-4">
-          <StatCard label="ออเดอร์ทั้งหมด" value={orders.length} href="/orders" tone="text-foreground" sub="รายการ" />
-          <StatCard label="กำลังดำเนินการ" value={activeOrders.length} tone="text-accent" sub="รายการ" />
-          <StatCard label="งานออกแบบ" value={designOrders.length} tone="text-blue-500" href="/queue/design" sub="รายการ" />
-          <StatCard label="งานผลิต" value={produceOrders.length} tone="text-purple-500" href="/queue/production" sub="รายการ" />
+        <div className="rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
+          <button onClick={() => toggleSection("stats")} className="w-full flex items-center gap-2 px-5 py-3.5 border-b border-border text-left hover:bg-surface-2 transition-colors">
+            <ClipboardList className="h-4 w-4 text-accent shrink-0" />
+            <span className="font-semibold text-sm flex-1">ภาพรวมออเดอร์</span>
+            <span className="text-xs text-muted-2 mr-2">{orders.length} ออเดอร์</span>
+            {collapsed.stats ? <ChevronDown className="h-4 w-4 text-muted shrink-0" /> : <ChevronUp className="h-4 w-4 text-muted shrink-0" />}
+          </button>
+          {!collapsed.stats && (
+            <div className="grid grid-cols-2 gap-3 min-[720px]:grid-cols-4 p-4">
+              <StatCard label="ออเดอร์ทั้งหมด" value={orders.length} href="/orders" tone="text-foreground" sub="รายการ" />
+              <StatCard label="กำลังดำเนินการ" value={activeOrders.length} tone="text-accent" sub="รายการ" />
+              <StatCard label="งานออกแบบ" value={designOrders.length} tone="text-blue-500" href="/queue/design" sub="รายการ" />
+              <StatCard label="งานผลิต" value={produceOrders.length} tone="text-purple-500" href="/queue/production" sub="รายการ" />
+            </div>
+          )}
         </div>
 
         {/* Design + Production queue */}
         {(designOrders.length > 0 || produceOrders.length > 0) && (
-          <div className="grid grid-cols-1 gap-3 min-[720px]:grid-cols-2">
-            {designOrders.length > 0 && (
-              <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-                <SectionHeader icon={Palette} title="คิวออกแบบ" href="/queue/design" />
-                <ProgressBar cols={DESIGN_COLS} counts={designCounts} />
-              </div>
-            )}
-            {produceOrders.length > 0 && (
-              <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-                <SectionHeader icon={Factory} title="คิวผลิต" href="/queue/production" />
-                <ProgressBar cols={PROD_COLS} counts={prodCounts} />
+          <div className="rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
+            <button onClick={() => toggleSection("queues")} className="w-full flex items-center gap-2 px-5 py-3.5 border-b border-border text-left hover:bg-surface-2 transition-colors">
+              <Palette className="h-4 w-4 text-accent shrink-0" />
+              <span className="font-semibold text-sm flex-1">คิวออกแบบ & ผลิต</span>
+              <span className="text-xs text-muted-2 mr-2">{designOrders.length} ออกแบบ · {produceOrders.length} ผลิต</span>
+              {collapsed.queues ? <ChevronDown className="h-4 w-4 text-muted shrink-0" /> : <ChevronUp className="h-4 w-4 text-muted shrink-0" />}
+            </button>
+            {!collapsed.queues && (
+              <div className="grid grid-cols-1 gap-3 min-[720px]:grid-cols-2 p-4">
+                {designOrders.length > 0 && (
+                  <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+                    <SectionHeader icon={Palette} title="คิวออกแบบ" href="/queue/design" />
+                    <ProgressBar cols={DESIGN_COLS} counts={designCounts} />
+                    {waitDesignOrders.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0" />
+                          <span className="text-xs font-medium text-blue-400">รอออกแบบ {waitDesignOrders.length} รายการ</span>
+                        </div>
+                        <div className="space-y-1">
+                          {waitDesignOrders.map((o) => {
+                            const row = <>
+                              <span className="font-mono text-[11px] text-muted-2 shrink-0 w-24">{o.id}</span>
+                              <span className="text-xs font-medium flex-1 truncate">{o.teamName}</span>
+                              {o.quantity && <span className="text-[11px] text-muted-2 shrink-0">{o.quantity} ตัว</span>}
+                            </>;
+                            return isAdmin
+                              ? <Link key={o.id} href={`/orders/${o.id}`} className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-surface-2 transition-colors">{row}</Link>
+                              : <div key={o.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5">{row}</div>;
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {produceOrders.length > 0 && (
+                  <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+                    <SectionHeader icon={Factory} title="คิวผลิต" href="/queue/production" />
+                    <ProgressBar cols={PROD_COLS} counts={prodCounts} />
+                    {waitSummaryOrders.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <span className="h-2 w-2 rounded-full bg-orange-400 shrink-0" />
+                          <span className="text-xs font-medium text-orange-400">รอสรุปงาน {waitSummaryOrders.length} รายการ</span>
+                        </div>
+                        <div className="space-y-1">
+                          {waitSummaryOrders.map((o) => {
+                            const row = <>
+                              <span className="font-mono text-[11px] text-muted-2 shrink-0 w-24">{o.id}</span>
+                              <span className="text-xs font-medium flex-1 truncate">{o.teamName}</span>
+                              {o.quantity && <span className="text-[11px] text-muted-2 shrink-0">{o.quantity} ตัว</span>}
+                            </>;
+                            return isAdmin
+                              ? <Link key={o.id} href={`/orders/${o.id}`} className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-surface-2 transition-colors">{row}</Link>
+                              : <div key={o.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5">{row}</div>;
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
         )}
 
-        {/* Cutting jobs + production tables */}
-        <div className="grid grid-cols-1 gap-3 min-[720px]:grid-cols-2">
-          <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-            <SectionHeader icon={Scissors} title="ใบงานตัด" href="/cutting-jobs" />
-            {cuts.length === 0
-              ? <div className="text-sm text-muted-2 py-2">ไม่มีข้อมูล</div>
-              : <ProgressBar cols={CUT_COLS} counts={cutCounts} />
-            }
-          </div>
-          <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-            <SectionHeader icon={TableProperties} title="ตารางสั่งผลิต" href="/production-tables" />
-            <div className="flex items-end gap-3 mt-1">
-              <div>
-                <div className="text-3xl font-bold tracking-tight text-accent">{hasProdTable}</div>
-                <div className="text-xs text-muted-2">มีตารางแล้ว</div>
+        {/* Cutting jobs + Calendar side by side */}
+        <div className="grid grid-cols-1 gap-4 min-[1024px]:grid-cols-2">
+          {/* Cutting jobs + production tables */}
+          <div className="rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
+            <button onClick={() => toggleSection("cutting")} className="w-full flex items-center gap-2 px-5 py-3.5 border-b border-border text-left hover:bg-surface-2 transition-colors">
+              <Scissors className="h-4 w-4 text-accent shrink-0" />
+              <span className="font-semibold text-sm flex-1">ใบงานตัด & ตารางสั่งผลิต</span>
+              <span className="text-xs text-muted-2 mr-2">{cuts.length} ใบงานตัด · {sewWaiting + sewSewing + sewDone} ใบงานเย็บ</span>
+              {collapsed.cutting ? <ChevronDown className="h-4 w-4 text-muted shrink-0" /> : <ChevronUp className="h-4 w-4 text-muted shrink-0" />}
+            </button>
+            {!collapsed.cutting && (
+              <div className="grid grid-cols-1 gap-3 p-4">
+                <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+                  <SectionHeader icon={Scissors} title="ใบงานตัด" href="/cutting-jobs" />
+                  {cuts.length === 0
+                    ? <div className="text-sm text-muted-2 py-2">ไม่มีข้อมูล</div>
+                    : <ProgressBar cols={CUT_COLS} counts={cutCounts} />
+                  }
+                </div>
+                <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+                  <SectionHeader icon={Shirt} title="ใบงานเย็บ" href="/cutting-jobs" />
+                  {sewWaiting + sewSewing + sewDone === 0
+                    ? <div className="text-sm text-muted-2 py-2">ไม่มีข้อมูล</div>
+                    : <ProgressBar cols={SEW_COLS} counts={sewCounts} />
+                  }
+                </div>
               </div>
-              <div className="mb-1 text-sm text-muted-2">จาก {produceOrders.length} งานผลิต</div>
-            </div>
+            )}
+          </div>
+
+          {/* Delivery Calendar */}
+          <div className="rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
+            <button onClick={() => toggleSection("calendar")} className="w-full flex items-center gap-2 px-5 py-3.5 border-b border-border text-left hover:bg-surface-2 transition-colors">
+              <CalendarDays className="h-4 w-4 text-accent shrink-0" />
+              <span className="font-semibold text-sm flex-1">ปฏิทินวันจัดส่งสินค้า</span>
+              {collapsed.calendar ? <ChevronDown className="h-4 w-4 text-muted shrink-0" /> : <ChevronUp className="h-4 w-4 text-muted shrink-0" />}
+            </button>
+            {!collapsed.calendar && <DeliveryCalendar orders={orders} embedded />}
           </div>
         </div>
 
-        {/* Delivery Calendar */}
-        <DeliveryCalendar orders={orders} />
-
         {/* Active orders list */}
         <div className="rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
-            <div className="flex items-center gap-2">
-              <ClipboardList className="h-4 w-4 text-accent" />
-              <h2 className="font-semibold text-sm">งานที่กำลังดำเนินการ</h2>
-            </div>
-            <Link href="/orders" className="text-xs text-accent hover:underline">ดูทั้งหมด →</Link>
+          <div className="flex items-center border-b border-border px-5 py-3.5">
+            <button onClick={() => toggleSection("orders")} className="flex items-center gap-2 flex-1 text-left">
+              <ClipboardList className="h-4 w-4 text-accent shrink-0" />
+              <h2 className="font-semibold text-sm flex-1">งานที่กำลังดำเนินการ</h2>
+              <span className="text-xs text-muted-2 mr-2">{recentActive.length} งาน</span>
+              {collapsed.orders ? <ChevronDown className="h-4 w-4 text-muted shrink-0" /> : <ChevronUp className="h-4 w-4 text-muted shrink-0" />}
+            </button>
+            <Link href="/orders" className="text-xs text-accent hover:underline ml-3">ดูทั้งหมด →</Link>
           </div>
-          {recentActive.length === 0 ? (
-            <div className="py-10 text-center text-sm text-muted-2">ไม่มีงานที่กำลังดำเนินการ</div>
-          ) : (
-            <div className="divide-y divide-border">
-              {recentActive.map((o) => (
-                <Link key={o.id} href={`/orders/${o.id}`} className="flex items-center gap-3 px-5 py-3 hover:bg-surface-2 transition-colors">
-                  <span className="font-mono text-xs text-muted-2 shrink-0 w-28">{o.id}</span>
-                  <span className="font-medium flex-1 truncate">{o.teamName}</span>
-                  <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-[11px] text-muted-2">
-                    {TYPE_LABEL[o.type] ?? o.type}
-                  </span>
-                  {o.startDate && (
-                    <span className="shrink-0 text-xs text-muted-2 hidden min-[720px]:block">
-                      {formatDate(o.startDate)}
+          {!collapsed.orders && (
+            recentActive.length === 0 ? (
+              <div className="py-10 text-center text-sm text-muted-2">ไม่มีงานที่กำลังดำเนินการ</div>
+            ) : (
+              <div className="divide-y divide-border">
+                {recentActive.map((o) => (
+                  <Link key={o.id} href={`/orders/${o.id}`} className="flex items-center gap-3 px-5 py-3 hover:bg-surface-2 transition-colors">
+                    <span className="font-mono text-xs text-muted-2 shrink-0 w-28">{o.id}</span>
+                    <span className="font-medium flex-1 truncate">{o.teamName}</span>
+                    <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-[11px] text-muted-2">
+                      {TYPE_LABEL[o.type] ?? o.type}
                     </span>
-                  )}
-                  {o.deliveryDate && (
-                    <span className="shrink-0 text-xs text-muted-2 hidden min-[720px]:flex items-center gap-1">
-                      <span className="text-muted-2">→</span>
-                      <span className="text-foreground font-medium">{formatDate(o.deliveryDate)}</span>
-                    </span>
-                  )}
-                </Link>
-              ))}
-            </div>
+                    {o.startDate && (
+                      <span className="shrink-0 text-xs text-muted-2 hidden min-[720px]:block">
+                        {formatDate(o.startDate)}
+                      </span>
+                    )}
+                    {o.deliveryDate && (
+                      <span className="shrink-0 text-xs text-muted-2 hidden min-[720px]:flex items-center gap-1">
+                        <span className="text-muted-2">→</span>
+                        <span className="text-foreground font-medium">{formatDate(o.deliveryDate)}</span>
+                      </span>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            )
           )}
         </div>
 
@@ -338,7 +489,7 @@ export default function SummaryPage() {
 const TH_MONTHS = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
 const DOW = ["อา","จ","อ","พ","พฤ","ศ","ส"];
 
-function DeliveryCalendar({ orders }: { orders: Order[] }) {
+function DeliveryCalendar({ orders, embedded }: { orders: Order[]; embedded?: boolean }) {
   const today = new Date();
   const [cur, setCur] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -374,13 +525,17 @@ function DeliveryCalendar({ orders }: { orders: Order[] }) {
   };
 
   return (
-    <div className="rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
+    <div className={cn(!embedded && "rounded-xl border border-border bg-surface shadow-sm overflow-hidden")}>
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
-        <div className="flex items-center gap-3">
-          <CalendarDays className="h-4 w-4 text-accent" />
-          <h2 className="font-semibold text-sm">ปฏิทินวันจัดส่งสินค้า</h2>
-          <div className="flex items-center gap-3 ml-1">
+        {!embedded && (
+          <div className="flex items-center gap-3">
+            <CalendarDays className="h-4 w-4 text-accent" />
+            <h2 className="font-semibold text-sm">ปฏิทินวันจัดส่งสินค้า</h2>
+          </div>
+        )}
+        <div className="flex items-center gap-3 flex-1">
+          <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0" />
               <span className="text-[11px] text-muted-2">ออกแบบ</span>
@@ -395,7 +550,7 @@ function DeliveryCalendar({ orders }: { orders: Order[] }) {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ml-2">
           {noDateCount > 0 && (
             <span className="text-[11px] text-muted-2 hidden min-[720px]:inline">
               {noDateCount} งานยังไม่กรอกวันจัดส่ง
@@ -405,7 +560,7 @@ function DeliveryCalendar({ orders }: { orders: Order[] }) {
             <button onClick={() => changeMonth(-1)} className="rounded-lg p-1 text-muted hover:bg-surface-2 transition-colors" aria-label="เดือนก่อน">
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="text-sm font-medium min-w-[120px] text-center">
+            <span className="text-sm font-medium min-w-[100px] text-center">
               {TH_MONTHS[month]} {year + 543}
             </span>
             <button onClick={() => changeMonth(1)} className="rounded-lg p-1 text-muted hover:bg-surface-2 transition-colors" aria-label="เดือนถัดไป">

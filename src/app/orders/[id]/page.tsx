@@ -15,7 +15,7 @@ import {
   type DeliveryAddress,
 } from "@/lib/types";
 import { formatBaht, formatDate } from "@/lib/utils";
-import { ArrowLeft, FileSpreadsheet, Table2, Loader2, Pencil, X, Check, Camera, Link2, Copy, CheckCheck, CreditCard } from "lucide-react";
+import { ArrowLeft, FileSpreadsheet, Table2, Loader2, Pencil, X, Check, Camera, Link2, Copy, CheckCheck, CreditCard, PackageSearch, FileText, AlertCircle } from "lucide-react";
 import { CuttingJobCard } from "@/components/cutting-job-card";
 import { PaymentRequestModal } from "@/components/payment-request-modal";
 import Link from "next/link";
@@ -37,6 +37,202 @@ interface PaymentRequestLocal {
   slipUploadedAt: string | null;
   approvedAt?: string | null;
   approvedAmount?: number | null;
+}
+
+// ── Parcel Matcher ────────────────────────────────────────────
+function normalizeStr(s: string) { return s.replace(/\s+/g, " ").trim().toLowerCase(); }
+function extractTracking(text: string): string[] {
+  // [A-Z]{1,5} รองรับ prefix เช่น EE, TH, SNOR, KERRY ฯลฯ + ตัวเลข 6+ + suffix 0-3 ตัว
+  const re = /[A-Z]{1,5}\d{6,}[A-Z]{0,3}|\d{12,20}/g;
+  return [...new Set(text.match(re) ?? [])];
+}
+interface ParcelResult { name: string; tracking: string; context: string; }
+
+function ParcelMatcher({ names, orderId, onTrackingFound }: { names: string[]; orderId: string; onTrackingFound?: () => void }) {
+  const STORAGE_KEY = `winx:parcel:${orderId}`;
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [results, setResults] = useState<ParcelResult[]>([]);
+  const [unmatched, setUnmatched] = useState<string[]>([]);
+  const [parsing, setParsing] = useState(false);
+  const [error, setError] = useState("");
+  const [fileName, setFileName] = useState("");
+  const [dragging, setDragging] = useState(false);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const { results: r, unmatched: u, savedAt: s } = JSON.parse(raw);
+        if (r) setResults(r);
+        if (u) setUnmatched(u);
+        if (s) setSavedAt(s);
+      }
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const parsePdf = async (file: File) => {
+    setParsing(true); setError(""); setResults([]); setUnmatched([]); setFileName(file.name);
+    try {
+      const pdfjsLib = await import("pdfjs-dist");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      type Block = { x: number; y: number; str: string; page: number };
+      const blocks: Block[] = [];
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p);
+        const tc = await page.getTextContent();
+        for (const item of tc.items) {
+          if ("str" in item && item.str.trim()) {
+            const [, , , , x, y] = item.transform as number[];
+            blocks.push({ x, y: Math.round(y), str: item.str, page: p });
+          }
+        }
+      }
+      const lineMap = new Map<string, string[]>();
+      for (const b of blocks) {
+        const key = `${b.page}:${b.y}`;
+        if (!lineMap.has(key)) lineMap.set(key, []);
+        lineMap.get(key)!.push(b.str);
+      }
+      const lines = [...lineMap.values()].map(ws => ws.join(" "));
+      const found: ParcelResult[] = [];
+      const missed: string[] = [];
+      for (const name of names) {
+        if (!name || name.length < 2) continue;
+        const norm = normalizeStr(name);
+        const matchedLine = lines.find(l => normalizeStr(l).includes(norm));
+        if (matchedLine) {
+          const idx = lines.indexOf(matchedLine);
+          const win = lines.slice(Math.max(0, idx - 3), idx + 4).join(" ");
+          found.push({ name, tracking: extractTracking(win)[0] ?? "—", context: matchedLine.trim() });
+        } else {
+          const words = norm.split(" ").filter(w => w.length >= 3);
+          let fallback: string | undefined;
+          for (const w of words) { fallback = lines.find(l => normalizeStr(l).includes(w)); if (fallback) break; }
+          if (fallback) {
+            const idx = lines.indexOf(fallback);
+            const win = lines.slice(Math.max(0, idx - 3), idx + 4).join(" ");
+            found.push({ name, tracking: extractTracking(win)[0] ?? "—", context: fallback.trim() });
+          } else { missed.push(name); }
+        }
+      }
+      const seen = new Set<string>();
+      const deduped = found.filter(r => { if (r.tracking === "—") return true; if (seen.has(r.tracking)) return false; seen.add(r.tracking); return true; });
+      setResults(deduped); setUnmatched(missed);
+      if (deduped.length === 0 && missed.length === 0) setError("ไม่พบชื่อที่ตรงกันในไฟล์ PDF นี้");
+      if (deduped.length > 0) {
+        const ts = new Date().toLocaleString("th-TH");
+        setSavedAt(ts);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ results: deduped, unmatched: missed, savedAt: ts }));
+        if (deduped.some(r => r.tracking !== "—")) onTrackingFound?.();
+      }
+      if (fileRef.current) fileRef.current.value = "";
+      setFileName("");
+    } catch (e) {
+      setError(`อ่านไฟล์ไม่ได้: ${e}`);
+      if (fileRef.current) fileRef.current.value = "";
+      setFileName("");
+    } finally { setParsing(false); }
+  };
+
+  const onFile = (f: File | undefined) => { if (f && f.type === "application/pdf") parsePdf(f); };
+
+  return (
+    <Card>
+      <div className="px-5 py-4 border-b border-border flex items-center gap-2">
+        <PackageSearch className="h-4 w-4 text-accent shrink-0" />
+        <span className="text-sm font-semibold">เลขพัสดุ</span>
+      </div>
+      <div className="px-5 py-4 space-y-3">
+        {/* Drop zone */}
+        <div
+          onDragOver={e => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={e => { e.preventDefault(); setDragging(false); onFile(e.dataTransfer.files[0]); }}
+          onClick={() => fileRef.current?.click()}
+          className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed py-5 transition-colors ${dragging ? "border-accent bg-accent/5" : "border-border hover:border-accent/50 hover:bg-surface-2"}`}
+        >
+          <input ref={fileRef} type="file" accept="application/pdf" className="hidden" onChange={e => onFile(e.target.files?.[0])} />
+          {parsing ? (
+            <><div className="h-5 w-5 animate-spin rounded-full border-2 border-accent border-t-transparent" /><span className="text-xs text-muted-2">กำลังอ่าน PDF…</span></>
+          ) : (
+            <><FileText className="h-6 w-6 text-muted-2" /><span className="text-xs text-muted-2">{fileName ? `📄 ${fileName}` : "คลิกหรือลากไฟล์ PDF ข้อมูลพัสดุมาวางที่นี่"}</span></>
+          )}
+        </div>
+        {error && (
+          <div className="flex items-center gap-2 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />{error}
+          </div>
+        )}
+        {results.length > 0 && (
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-medium text-muted-2 uppercase tracking-wider">
+                พบ {results.length} รายการ
+                {savedAt && <span className="ml-2 normal-case text-[10px] text-green-500">· บันทึกแล้ว {savedAt}</span>}
+              </span>
+              <button onClick={() => { localStorage.removeItem(STORAGE_KEY); setResults([]); setUnmatched([]); setSavedAt(null); }} className="text-[11px] text-muted-2 hover:text-red-400 transition-colors">
+                ล้างข้อมูล
+              </button>
+            </div>
+            {results.map((r, i) => (
+              <div key={i} className="flex items-center gap-3 rounded-lg border border-border bg-surface-2 px-3 py-2.5">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium truncate">{r.name}</div>
+                  {r.context && r.context !== r.name && <div className="text-[11px] text-muted-2 truncate mt-0.5">{r.context}</div>}
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <div className={`font-mono text-xs font-semibold rounded-lg px-2.5 py-1 ${r.tracking === "—" ? "bg-surface text-muted-2" : "bg-accent/10 text-accent"}`}>
+                    {r.tracking}
+                  </div>
+                  {r.tracking !== "—" && (
+                    <button
+                      onClick={() => {
+                        const copy = (text: string) => {
+                          if (navigator.clipboard) {
+                            navigator.clipboard.writeText(text).catch(() => {
+                              const el = document.createElement("textarea");
+                              el.value = text; document.body.appendChild(el);
+                              el.select(); document.execCommand("copy");
+                              document.body.removeChild(el);
+                            });
+                          } else {
+                            const el = document.createElement("textarea");
+                            el.value = text; document.body.appendChild(el);
+                            el.select(); document.execCommand("copy");
+                            document.body.removeChild(el);
+                          }
+                        };
+                        copy(r.tracking);
+                        setCopiedIdx(i);
+                        setTimeout(() => setCopiedIdx(null), 2000);
+                      }}
+                      className="rounded-lg p-1.5 text-muted-2 hover:bg-surface-3 hover:text-foreground transition-colors"
+                      title="คัดลอกเลขพัสดุ"
+                    >
+                      {copiedIdx === i ? <CheckCheck className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {unmatched.length > 0 && (
+          <div>
+            <div className="text-[11px] font-medium text-muted-2 uppercase tracking-wider mb-1.5">ไม่พบใน PDF ({unmatched.length})</div>
+            <div className="flex flex-wrap gap-1.5">
+              {unmatched.map((n, i) => <span key={i} className="rounded-full border border-border bg-surface-2 px-2.5 py-0.5 text-xs text-muted-2">{n}</span>)}
+            </div>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
 }
 
 export default function OrderDetailPage() {
@@ -263,6 +459,13 @@ export default function OrderDetailPage() {
 
           {isProduce && (
             <CuttingJobCard orderId={order.id} />
+          )}
+          {order.deliveryAddress?.name && (
+            <ParcelMatcher
+              names={[order.deliveryAddress.name]}
+              orderId={order.id}
+              onTrackingFound={() => save({ productionStatus: "delivered" })}
+            />
           )}
         </div>
       </div>

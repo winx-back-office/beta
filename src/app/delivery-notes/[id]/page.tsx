@@ -480,6 +480,7 @@ function AddressModal({ onClose, defaultAddress, orderId }: { onClose: () => voi
   );
 }
 
+
 // ── Main Page ──────────────────────────────────────────────────
 export default function DeliveryNoteDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -563,6 +564,22 @@ export default function DeliveryNoteDetailPage() {
           </span>
         )}
       </div>
+
+      {/* Delivery Address */}
+      {order.deliveryAddress && (order.deliveryAddress.name || order.deliveryAddress.address1) && (
+        <div className="px-4 pt-4 pb-0 min-[720px]:px-8">
+          <div className="rounded-xl border border-border bg-surface px-4 py-3 flex items-start gap-3">
+            <MapPin className="h-4 w-4 text-accent shrink-0 mt-0.5" />
+            <div className="text-sm space-y-0.5">
+              {order.deliveryAddress.name && <div className="font-medium">{order.deliveryAddress.name}</div>}
+              {order.deliveryAddress.phone && <div className="text-muted-2 text-xs">{order.deliveryAddress.phone}</div>}
+              {order.deliveryAddress.address1 && <div className="text-xs text-muted-2">{order.deliveryAddress.address1}</div>}
+              {order.deliveryAddress.address2 && <div className="text-xs text-muted-2">{order.deliveryAddress.address2}</div>}
+              {order.deliveryAddress.postal && <div className="text-xs text-muted-2">{order.deliveryAddress.postal}</div>}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       <div className="px-4 py-5 min-[720px]:px-8">

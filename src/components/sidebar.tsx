@@ -91,10 +91,15 @@ const navGroups: NavGroup[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("winx-sidebar-collapsed") === "1";
-  });
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    setCollapsed(localStorage.getItem("winx-sidebar-collapsed") === "1");
+    const sync = () => setCollapsed(localStorage.getItem("winx-sidebar-collapsed") === "1");
+    window.addEventListener("winx:sidebar-sync", sync);
+    return () => window.removeEventListener("winx:sidebar-sync", sync);
+  }, []);
+
   const toggleCollapsed = () => setCollapsed((v) => {
     localStorage.setItem("winx-sidebar-collapsed", v ? "0" : "1");
     return !v;
@@ -176,13 +181,15 @@ export function Sidebar() {
             <div className="text-[11px] uppercase tracking-[0.18em] text-muted-2">Back Office</div>
           </div>
         )}
-        <button
-          onClick={toggleCollapsed}
-          title={collapsed ? "ขยายเมนู" : "ย่อเมนู"}
-          className="hidden min-[720px]:flex shrink-0 rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-foreground"
-        >
-          {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-        </button>
+        {!collapsed && (
+          <button
+            onClick={toggleCollapsed}
+            title="ย่อเมนู"
+            className="hidden min-[720px]:flex shrink-0 rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-foreground"
+          >
+            <PanelLeftClose className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       {/* Nav */}
@@ -212,7 +219,8 @@ export function Sidebar() {
                     target={href === "/track" ? "_blank" : undefined}
                     rel={href === "/track" ? "noopener noreferrer" : undefined}
                     className={cn(
-                      "relative flex items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2.5 text-sm transition-colors min-[720px]:px-3",
+                      "relative flex items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2.5 text-sm transition-colors",
+                      collapsed ? "min-[720px]:justify-center min-[720px]:px-0" : "min-[720px]:px-3",
                       active ? "bg-accent-soft text-accent font-medium" : "text-muted hover:bg-surface-2 hover:text-foreground"
                     )}
                   >
@@ -233,6 +241,17 @@ export function Sidebar() {
             </div>
           </div>
         ))}
+        {collapsed && (
+          <div className="mt-2 hidden min-[720px]:flex justify-center">
+            <button
+              onClick={toggleCollapsed}
+              title="ขยายเมนู"
+              className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-foreground"
+            >
+              <PanelLeftOpen className="h-4 w-4" />
+            </button>
+          </div>
+        )}
       </nav>
 
       {/* Version */}

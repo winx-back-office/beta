@@ -1040,7 +1040,7 @@ function EditJobModal({
             <select className={fieldCls} value={status} onChange={(e) => setStatus(e.target.value as CuttingJob["status"])}>
               <option value="pending">รอตัด</option>
               <option value="cutting">กำลังตัด</option>
-              <option value="done">เสร็จแล้ว</option>
+              <option value="cut_done">ตัดเสร็จ</option>
             </select>
           </div>
 

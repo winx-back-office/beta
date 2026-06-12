@@ -21,7 +21,7 @@ function getDefaultPath(user: AuthUser): string {
   }
   return "/track";
 }
-import { Delete } from "lucide-react";
+import { Delete, Tv } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const PIN_LENGTH = 6;
@@ -31,6 +31,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [shake, setShake] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [tvLoading, setTvLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -149,6 +150,36 @@ export default function LoginPage() {
       </div>
 
       <p className="mt-10 text-xs text-muted-2">ใส่ PIN 6 หลักเพื่อเข้าใช้งาน</p>
+
+      {/* TV quick login */}
+      <button
+        onClick={async () => {
+          if (tvLoading) return;
+          setTvLoading(true);
+          setError("");
+          try {
+            const res = await fetch("/api/auth/tv-login", { method: "POST" });
+            const json = await res.json();
+            if (!res.ok) {
+              setError(json.error ?? "ไม่สามารถเข้าสู่ระบบ TV ได้");
+            } else {
+              localStorage.setItem("winx-sidebar-collapsed", "1");
+              window.dispatchEvent(new Event("winx:sidebar-sync"));
+              setSession(json.user);
+              router.replace(getDefaultPath(json.user));
+            }
+          } catch {
+            setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
+          } finally {
+            setTvLoading(false);
+          }
+        }}
+        disabled={tvLoading || loading}
+        className="mt-6 flex items-center gap-2 rounded-2xl border border-border bg-surface px-5 py-3 text-sm font-medium text-muted hover:bg-surface-2 hover:text-foreground transition-all disabled:opacity-50"
+      >
+        <Tv className="h-4 w-4" />
+        {tvLoading ? "กำลังเข้าสู่ระบบ…" : "เข้าสู่ระบบ TV"}
+      </button>
     </div>
   );
 }
