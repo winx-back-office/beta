@@ -267,7 +267,7 @@ export default function SummaryPage() {
 
         {/* Upcoming deliveries */}
         {upcomingDeliveries.length > 0 && (
-          <div className="rounded-xl border border-orange-500/30 bg-orange-500/5 shadow-sm">
+          <div>
             <button onClick={() => toggleSection("upcoming")} className="w-full flex items-center gap-2 p-5 text-left">
               <CalendarDays className="h-4 w-4 text-orange-400 shrink-0" />
               <h2 className="font-semibold text-sm text-orange-400 flex-1">ใกล้วันส่ง — 14 วันข้างหน้า</h2>
