@@ -25,14 +25,14 @@ const DESIGN_COLS = [
 
 // ===== สถานะผลิต =====
 const PROD_COLS = [
-  { id: "summary", label: "รอสรุปงาน", color: "bg-orange-400" },
-  { id: "pattern_in", label: "เข้าแพทเทิร์น", color: "bg-cyan-500" },
-  { id: "size", label: "วางไซส์", color: "bg-purple-500" },
-  { id: "print", label: "พิมพ์", color: "bg-yellow-500" },
-  { id: "pattern_cut", label: "ตัดแพทเทิร์น", color: "bg-pink-500" },
-  { id: "sew", label: "รอส่ง-เย็บ", color: "bg-indigo-400" },
-  { id: "done", label: "แพ็ค/จัดส่ง", color: "bg-green-500" },
-  { id: "delivered", label: "จัดส่งเรียบร้อย", color: "bg-emerald-600" },
+  { id: "summary",     label: "รอสรุปงาน",       color: "bg-orange-400",  chip: "bg-orange-400/15 text-orange-400 border-orange-400/30" },
+  { id: "pattern_in", label: "เข้าแพทเทิร์น",    color: "bg-cyan-500",    chip: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30" },
+  { id: "size",        label: "วางไซส์",           color: "bg-purple-500",  chip: "bg-purple-500/15 text-purple-400 border-purple-500/30" },
+  { id: "print",       label: "พิมพ์",             color: "bg-yellow-500",  chip: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" },
+  { id: "pattern_cut", label: "ตัดแพทเทิร์น",    color: "bg-pink-500",    chip: "bg-pink-500/15 text-pink-400 border-pink-500/30" },
+  { id: "sew",         label: "รอส่ง-เย็บ",       color: "bg-indigo-400",  chip: "bg-indigo-400/15 text-indigo-400 border-indigo-400/30" },
+  { id: "done",        label: "แพ็ค/จัดส่ง",      color: "bg-green-500",   chip: "bg-green-500/15 text-green-400 border-green-500/30" },
+  { id: "delivered",   label: "จัดส่งเรียบร้อย",  color: "bg-emerald-600", chip: "bg-emerald-600/15 text-emerald-400 border-emerald-600/30" },
 ];
 
 function StatCard({ label, value, sub, tone = "text-foreground", href }: {
@@ -300,6 +300,14 @@ export default function SummaryPage() {
                         </div>
                       )}
                     </div>
+                    {o.productionStatus && (() => {
+                      const col = PROD_COLS.find(c => c.id === o.productionStatus);
+                      return (
+                        <div className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full border self-start", col?.chip ?? "bg-surface-2 border-border text-muted-2")}>
+                          {col?.label ?? o.productionStatus}
+                        </div>
+                      );
+                    })()}
                     <div className="border-t border-border pt-2 flex items-center justify-between">
                       <div className={cn("text-xs font-semibold", accentText)}>{formatDate(o.deliveryDate!)}</div>
                       <div className="text-[10px] text-muted-2">{TYPE_LABEL[o.type]}</div>
