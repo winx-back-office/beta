@@ -448,75 +448,98 @@ export default function EmployeesPage() {
 
       {/* Tab content */}
       {tab === "employees" && (
-        <>
-          {adding && (
-            <div className="mb-4 rounded-xl border border-border bg-surface p-5 shadow-sm">
-              <h2 className="mb-4 text-sm font-semibold">เพิ่มพนักงานใหม่</h2>
-              <EmployeeForm initial={{ name: "", pin: "", allowedMenus: [] }} onSave={handleAdd} onCancel={() => setAdding(false)} isEdit={false} />
+        <div className="space-y-4">
+          {/* Add / Edit form */}
+          {(adding || editId) && (
+            <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+              <h2 className="mb-4 text-sm font-semibold">{adding ? "เพิ่มพนักงานใหม่" : `แก้ไข ${employees.find(e => e.id === editId)?.name}`}</h2>
+              {adding && <EmployeeForm initial={{ name: "", pin: "", allowedMenus: [] }} onSave={handleAdd} onCancel={() => setAdding(false)} isEdit={false} />}
+              {editId && (() => { const emp = employees.find(e => e.id === editId)!; return (
+                <EmployeeForm initial={{ name: emp.name, pin: "", allowedMenus: emp.allowedMenus }}
+                  onSave={(f) => handleEdit(emp.id, f)} onCancel={() => setEditId(null)} isEdit />
+              ); })()}
             </div>
           )}
-          <div className="mb-4"><AdminPinCard /></div>
+
+          {/* Admin card */}
+          <AdminPinCard />
+
+          {/* Employee table */}
           {loading ? (
             <div className="py-12 text-center text-sm text-muted-2">กำลังโหลด...</div>
-          ) : employees.length === 0 && !adding ? (
-            <div className="py-12 text-center text-sm text-muted-2">ยังไม่มีพนักงาน</div>
           ) : (
-            <div className="flex flex-col gap-3">
-              {employees.map((emp) => (
-                <div key={emp.id} className={cn("rounded-xl border bg-surface p-4 shadow-sm transition-opacity", !emp.isActive && "opacity-50")}>
-                  {editId === emp.id ? (
-                    <>
-                      <h3 className="mb-4 text-sm font-semibold">แก้ไข {emp.name}</h3>
-                      <EmployeeForm initial={{ name: emp.name, pin: "", allowedMenus: emp.allowedMenus }}
-                        onSave={(f) => handleEdit(emp.id, f)} onCancel={() => setEditId(null)} isEdit />
-                    </>
-                  ) : deleteId === emp.id ? (
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm">ลบ <strong>{emp.name}</strong> ออกจากระบบ?</p>
-                      <div className="flex gap-2">
-                        <button onClick={() => handleDelete(emp.id)}
-                          className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-600">ยืนยันลบ</button>
-                        <button onClick={() => setDeleteId(null)} className="rounded-lg border px-3 py-1.5 text-xs hover:bg-surface-2">ยกเลิก</button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{emp.name}</span>
-                          {!emp.isActive && <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10px] text-muted-2">ระงับ</span>}
-                        </div>
-                        <div className="mt-1.5 flex flex-wrap gap-1">
-                          {emp.allowedMenus.length === 0 ? (
-                            <span className="text-xs text-muted-2">ไม่มีสิทธิ์</span>
-                          ) : (
-                            emp.allowedMenus.map((k) => (
-                              <span key={k} className="rounded-full bg-accent-soft px-2 py-0.5 text-[11px] text-accent font-medium">
-                                {MENUS.find((m) => m.key === k)?.label ?? k}
-                              </span>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-1">
-                        <button onClick={() => handleToggle(emp)} title={emp.isActive ? "ระงับ" : "เปิดใช้"}
-                          className="rounded-lg p-1.5 text-muted hover:bg-surface-2">
-                          {emp.isActive ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
-                        </button>
-                        <button onClick={() => setEditId(emp.id)} className="rounded-lg p-1.5 text-muted hover:bg-surface-2">
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button onClick={() => setDeleteId(emp.id)} className="rounded-lg p-1.5 text-red-400 hover:bg-surface-2">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
+            <Card className="overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-surface-2">
+                <p className="text-xs text-muted-2">กำหนด PIN และสิทธิ์การใช้งาน</p>
+              </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-surface-2">
+                    <th className="px-4 py-2.5 text-left text-xs text-muted-2">ชื่อ</th>
+                    <th className="px-4 py-2.5 text-left text-xs text-muted-2">สิทธิ์เมนู</th>
+                    <th className="px-4 py-2.5 text-left text-xs text-muted-2">สถานะ</th>
+                    <th className="px-4 py-2.5 text-right text-xs text-muted-2">จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {employees.length === 0 && (
+                    <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-muted-2">ยังไม่มีพนักงาน</td></tr>
                   )}
-                </div>
-              ))}
-            </div>
+                  {employees.map((emp) => (
+                    deleteId === emp.id ? (
+                      <tr key={emp.id} className="bg-red-500/5">
+                        <td colSpan={4} className="px-4 py-3">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm">ลบ <strong>{emp.name}</strong> ออกจากระบบ?</p>
+                            <div className="flex gap-2">
+                              <button onClick={() => handleDelete(emp.id)}
+                                className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-600">ยืนยันลบ</button>
+                              <button onClick={() => setDeleteId(null)} className="rounded-lg border px-3 py-1.5 text-xs hover:bg-surface-2">ยกเลิก</button>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      <tr key={emp.id} className={cn("hover:bg-surface-2", !emp.isActive && "opacity-50")}>
+                        <td className="px-4 py-3 font-medium">{emp.name}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-1">
+                            {emp.allowedMenus.length === 0 ? (
+                              <span className="text-xs text-muted-2">ไม่มีสิทธิ์</span>
+                            ) : (
+                              emp.allowedMenus.map((k) => (
+                                <span key={k} className="rounded-full bg-accent-soft px-2 py-0.5 text-[10px] text-accent font-medium">
+                                  {MENUS.find((m) => m.key === k)?.label ?? k}
+                                </span>
+                              ))
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge tone={emp.isActive ? "success" : "neutral"}>{emp.isActive ? "ใช้งาน" : "ระงับ"}</Badge>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button onClick={() => handleToggle(emp)} title={emp.isActive ? "ระงับ" : "เปิดใช้"}
+                              className="rounded-lg p-1.5 text-muted hover:bg-surface-2">
+                              {emp.isActive ? <X className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
+                            </button>
+                            <button onClick={() => setEditId(emp.id)} className="rounded-lg p-1.5 text-muted hover:bg-surface-2">
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button onClick={() => setDeleteId(emp.id)} className="rounded-lg p-1.5 text-red-400 hover:bg-surface-2">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  ))}
+                </tbody>
+              </table>
+            </Card>
           )}
-        </>
+        </div>
       )}
 
       {tab === "cutters" && <CuttersTab />}
