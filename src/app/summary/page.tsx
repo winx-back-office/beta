@@ -364,7 +364,7 @@ export default function SummaryPage() {
                             const row = <>
                               <span className="font-mono text-[11px] text-muted-2 shrink-0 w-24">{o.id}</span>
                               <span className="text-xs font-medium flex-1 truncate">{o.teamName}</span>
-                              {o.quantity && <span className="text-[11px] text-muted-2 shrink-0">{o.quantity} ตัว</span>}
+                              {o.quantity && <span className="text-[11px] text-muted-2 shrink-0">{o.quantity} แบบ</span>}
                             </>;
                             return isAdmin
                               ? <Link key={o.id} href={`/orders/${o.id}`} className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-surface-2 transition-colors">{row}</Link>
