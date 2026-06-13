@@ -16,6 +16,7 @@ const DEFAULT_COLUMNS = [
   { id: "print",       title: "พิมพ์",             accent: "#eab308" },
   { id: "pattern_cut", title: "ตัดแพทเทิร์น",    accent: "#ec4899" },
   { id: "sew",         title: "รอส่ง-เย็บ",       accent: "#818cf8" },
+  { id: "sewing",      title: "กำลังเย็บ",         accent: "#a855f7" },
   { id: "done",        title: "แพ็ค/จัดส่ง",      accent: "#22c55e" },
   { id: "delivered",   title: "จัดส่งเรียบร้อย",  accent: "#059669" },
 ];
@@ -25,19 +26,39 @@ export async function GET() {
   if (error) return NextResponse.json(DEFAULT_COLUMNS, { status: 200 });
   let cols: { id: string; title: string; accent: string }[] = data?.data ?? [];
   if (cols.length === 0) return NextResponse.json(DEFAULT_COLUMNS);
-  // deduplicate by id (keep first occurrence)
+  // rename any "กำลังเย็บ" column with wrong id → "sewing", and migrate affected orders
+  const sewingByTitle = cols.find(c => c.title === "กำลังเย็บ" && c.id !== "sewing");
+  if (sewingByTitle) {
+    const oldId = sewingByTitle.id;
+    sewingByTitle.id = "sewing";
+    // migrate orders that still reference the old column id
+    await db().from("orders").update({ production_status: "sewing" }).eq("production_status", oldId);
+  }
+  // deduplicate by id (keep first occurrence), also deduplicate by title for "กำลังเย็บ"
   const seen = new Set<string>();
-  cols = cols.filter(c => { if (seen.has(c.id)) return false; seen.add(c.id); return true; });
-  // append "delivered" if not present yet
+  const seenTitle = new Set<string>();
+  cols = cols.filter(c => {
+    if (seen.has(c.id)) return false;
+    if (c.title === "กำลังเย็บ" && seenTitle.has("กำลังเย็บ")) return false;
+    seen.add(c.id);
+    seenTitle.add(c.title);
+    return true;
+  });
+  // append missing columns if not present
+  let mutated = !!sewingByTitle;
+  if (!cols.find(c => c.id === "sewing")) {
+    const sewIdx = cols.findIndex(c => c.id === "sew");
+    const insert = { id: "sewing", title: "กำลังเย็บ", accent: "#a855f7" };
+    sewIdx >= 0 ? cols.splice(sewIdx + 1, 0, insert) : cols.push(insert);
+    mutated = true;
+  }
   if (!cols.find(c => c.id === "delivered")) {
     cols.push({ id: "delivered", title: "จัดส่งเรียบร้อย", accent: "#059669" });
+    mutated = true;
+  }
+  const orig = data?.data ?? [];
+  if (mutated || orig.length !== cols.length) {
     await db().from("production_columns").upsert({ id: "singleton", data: cols, updated_at: new Date().toISOString() });
-  } else {
-    // save deduplicated list back if changed
-    const orig = data?.data ?? [];
-    if (orig.length !== cols.length) {
-      await db().from("production_columns").upsert({ id: "singleton", data: cols, updated_at: new Date().toISOString() });
-    }
   }
   return NextResponse.json(cols);
 }

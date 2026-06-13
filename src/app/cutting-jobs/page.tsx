@@ -799,21 +799,31 @@ function OrderGroup({
         <div className="border-t border-border divide-y divide-border/50">
           {jobs.map(job => (
             <div key={job.id} className="group relative px-5 py-4 hover:bg-surface-2 transition-colors">
-              <div className="flex gap-3">
+              {/* Admin buttons — absolute so they don't squeeze the info area */}
+              {isAdmin && (
+                <div className="absolute right-3 top-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => onQrJob(job)} className="rounded p-1.5 text-muted hover:bg-surface-3 hover:text-foreground transition-colors" title="แสดง QR"><QrCode className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => onEditJob(job)} className="rounded p-1.5 text-muted hover:bg-surface-3 hover:text-foreground transition-colors" title="แก้ไขใบงาน"><Pencil className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => onDeleteJob(job)} disabled={deleting === job.id} className="rounded p-1.5 text-muted hover:bg-red-500/10 hover:text-red-400 transition-colors disabled:opacity-50" title="ลบใบงาน">
+                    {deleting === job.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
+              )}
+              <div className="flex gap-3 items-start">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-1.5">
                     <span className="font-mono text-xs text-accent shrink-0">{job.id}</span>
                     <span className="text-xs text-muted-2 shrink-0">{job.orderId}</span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
-                    <span>{job.shirtType}</span>
-                    {job.collarType !== job.shirtType && <span className="text-muted-2">· {job.collarType}</span>}
-                    <span>{job.quantity} ตัว</span>
-                    <span>ชิ้นแพทเทิร์น <span className="font-bold text-accent">{job.patternPieces}</span></span>
-                    {job.cutterName && <span className="text-foreground font-medium">{job.cutterName}</span>}
-                    {job.startedAt && <span>รับงาน {formatDateTime(job.startedAt)}</span>}
-                    {job.note && <span className="text-muted-2 border-l-2 border-accent pl-2">{job.note}</span>}
-                  </div>
+                  <p className="text-xs text-muted leading-relaxed">
+                    {job.shirtType}
+                    {job.collarType !== job.shirtType && <span className="text-muted-2"> · {job.collarType}</span>}
+                    {` · ${job.quantity} ตัว · ชิ้นแพทเทิร์น `}<span className="font-bold text-accent">{job.patternPieces}</span>
+                    {job.cutterName && <span className="text-foreground font-medium"> · {job.cutterName}</span>}
+                    {job.startedAt && ` · รับงาน ${formatDateTime(job.startedAt)}`}
+                    {job.completedAt && <span className="text-green-400"> · ส่งงานตัด {formatDateTime(job.completedAt)}</span>}
+                    {job.note && <span className="text-muted-2"> · {job.note}</span>}
+                  </p>
                   {(job.status === "cut_done" || job.status === "sewing" || job.status === "done" || job.sewingStatus !== "pending") && (
                     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs border-t border-border/50 pt-2">
                       <span className="flex items-center gap-1 text-purple-400 font-medium shrink-0">
@@ -841,21 +851,7 @@ function OrderGroup({
                     </div>
                   )}
                 </div>
-                <div className="flex shrink-0 items-start gap-2">
-                  <div className="flex items-center gap-2">
-                    {job.completedAt && <span className="text-xs text-green-400">ส่งงานตัด {formatDateTime(job.completedAt)}</span>}
-                    <StatusBadge status={job.status} />
-                  </div>
-                  {isAdmin && (
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => onQrJob(job)} className="rounded p-1.5 text-muted hover:bg-surface-3 hover:text-foreground transition-colors" title="แสดง QR"><QrCode className="h-3.5 w-3.5" /></button>
-                      <button onClick={() => onEditJob(job)} className="rounded p-1.5 text-muted hover:bg-surface-3 hover:text-foreground transition-colors" title="แก้ไขใบงาน"><Pencil className="h-3.5 w-3.5" /></button>
-                      <button onClick={() => onDeleteJob(job)} disabled={deleting === job.id} className="rounded p-1.5 text-muted hover:bg-red-500/10 hover:text-red-400 transition-colors disabled:opacity-50" title="ลบใบงาน">
-                        {deleting === job.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <StatusBadge status={job.status} />
               </div>
             </div>
           ))}

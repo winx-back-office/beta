@@ -142,6 +142,7 @@ export interface QueueCard {
   image?: string; // url
   columnId: string;
   cuttingJobCount?: number;
+  cuttingJobStatuses?: { status: string; sewingStatus: string }[];
 }
 
 export interface QueueColumn {

@@ -51,7 +51,9 @@ export function CuttingJobCard({ orderId }: { orderId: string }) {
           <div className="flex items-center gap-2">
             {job.status === "pending" && <Badge tone="neutral">✂️ รอตัด</Badge>}
             {job.status === "cutting" && <Badge tone="warn">✂️ กำลังตัด</Badge>}
-            {job.status === "done" && <Badge tone="success">✅ ตัดเสร็จแล้ว</Badge>}
+            {job.status === "cut_done" && <Badge tone="info">✅ ตัดเสร็จ</Badge>}
+            {job.status === "sewing" && <Badge tone="info">🪡 กำลังเย็บ</Badge>}
+            {job.status === "done" && <Badge tone="success">✅ เสร็จสมบูรณ์</Badge>}
             <span className="text-xs text-muted font-mono">{job.id}</span>
           </div>
 

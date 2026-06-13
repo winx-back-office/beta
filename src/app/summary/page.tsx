@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
-import { RefreshCw, ClipboardList, Palette, Factory, Scissors, Shirt, ChevronLeft, ChevronRight, CalendarDays, ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
+import { RefreshCw, ClipboardList, Palette, Factory, Scissors, Shirt, ChevronLeft, ChevronRight, CalendarDays, ChevronDown, ChevronUp, ChevronsUpDown, GripVertical } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import type { Order } from "@/lib/types";
 
@@ -31,6 +31,7 @@ const PROD_COLS = [
   { id: "print",       label: "พิมพ์",             color: "bg-yellow-500",  chip: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" },
   { id: "pattern_cut", label: "ตัดแพทเทิร์น",    color: "bg-pink-500",    chip: "bg-pink-500/15 text-pink-400 border-pink-500/30" },
   { id: "sew",         label: "รอส่ง-เย็บ",       color: "bg-indigo-400",  chip: "bg-indigo-400/15 text-indigo-400 border-indigo-400/30" },
+  { id: "sewing",      label: "กำลังเย็บ",         color: "bg-purple-500",  chip: "bg-purple-500/15 text-purple-400 border-purple-500/30" },
   { id: "done",        label: "แพ็ค/จัดส่ง",      color: "bg-green-500",   chip: "bg-green-500/15 text-green-400 border-green-500/30" },
   { id: "delivered",   label: "จัดส่งเรียบร้อย",  color: "bg-emerald-600", chip: "bg-emerald-600/15 text-emerald-400 border-emerald-600/30" },
 ];
@@ -60,7 +61,19 @@ function SectionHeader({ icon: Icon, title, href }: { icon: React.ElementType; t
   );
 }
 
-function ProgressBar({ cols, counts }: { cols: { id: string; label: string; color: string }[]; counts: Record<string, number> }) {
+function ProgressBar({
+  cols, counts, items, isAdmin, storageKey,
+}: {
+  cols: { id: string; label: string; color: string; accent?: string }[];
+  counts: Record<string, number>;
+  items?: Record<string, { id: string; teamName: string; quantity?: number }[]>;
+  isAdmin?: boolean;
+  storageKey?: string;
+}) {
+  const [openStatuses, setOpenStatuses] = useState<Set<string>>(() => {
+    if (!storageKey) return new Set();
+    try { return new Set(JSON.parse(localStorage.getItem(storageKey) ?? "[]")); } catch { return new Set(); }
+  });
   const total = cols.reduce((s, c) => s + (counts[c.id] ?? 0), 0);
   if (total === 0) return <div className="text-sm text-muted-2 py-2">ไม่มีข้อมูล</div>;
 
@@ -72,22 +85,57 @@ function ProgressBar({ cols, counts }: { cols: { id: string; label: string; colo
           const count = counts[c.id] ?? 0;
           const pct = (count / total) * 100;
           if (pct === 0) return null;
-          return <div key={c.id} className={cn("h-full transition-all", c.color)} style={{ width: `${pct}%` }} title={`${c.label}: ${count}`} />;
+          return <div key={c.id} className={cn("h-full transition-all", !c.accent && c.color)} style={{ width: `${pct}%`, ...(c.accent ? { backgroundColor: c.accent } : {}) }} title={`${c.label}: ${count}`} />;
         })}
       </div>
       {/* Legend */}
-      <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+      <div className="flex flex-wrap gap-x-3 gap-y-1.5">
         {cols.map((c) => {
           const count = counts[c.id] ?? 0;
+          const hasItems = items && (items[c.id]?.length ?? 0) > 0;
+          const isOpen = openStatuses.has(c.id);
           return (
-            <div key={c.id} className="flex items-center gap-1.5">
-              <span className={cn("h-2 w-2 rounded-full shrink-0", c.color)} />
-              <span className="text-xs text-muted-2">{c.label}</span>
+            <button
+              key={c.id}
+              onClick={() => {
+                if (!hasItems) return;
+                setOpenStatuses(prev => {
+                  const s = new Set(prev);
+                  s.has(c.id) ? s.delete(c.id) : s.add(c.id);
+                  if (storageKey) localStorage.setItem(storageKey, JSON.stringify([...s]));
+                  return s;
+                });
+              }}
+              className={cn(
+                "flex items-center gap-1.5 rounded-md px-1.5 py-0.5 -mx-1.5 transition-all",
+                hasItems ? "cursor-pointer" : "cursor-default",
+                isOpen
+                  ? "ring-1 ring-inset ring-white/15 bg-white/8"
+                  : hasItems ? "hover:bg-surface-2" : ""
+              )}
+            >
+              <span className={cn("h-2 w-2 rounded-full shrink-0", !c.accent && c.color)} style={c.accent ? { backgroundColor: c.accent } : {}} />
+              <span className={cn("text-xs transition-colors", isOpen ? "text-foreground font-medium" : "text-muted-2")}>{c.label}</span>
               <span className={cn("text-xs font-semibold", count > 0 ? "text-foreground" : "text-muted-2")}>{count}</span>
-            </div>
+            </button>
           );
         })}
       </div>
+      {/* Expanded order lists */}
+      {cols.filter(c => openStatuses.has(c.id) && (items?.[c.id]?.length ?? 0) > 0).map(c => (
+        <div key={c.id} className="mt-1 rounded-lg border border-border bg-surface-2 divide-y divide-border overflow-hidden">
+          {items![c.id].map((o) => {
+            const row = <>
+              <span className="font-mono text-[11px] text-muted-2 shrink-0 w-24">{o.id}</span>
+              <span className="text-xs font-medium flex-1 truncate">{o.teamName}</span>
+              {o.quantity != null && <span className="text-[11px] text-muted-2 shrink-0">{o.quantity} ตัว</span>}
+            </>;
+            return isAdmin
+              ? <Link key={o.id} href={`/orders/${o.id}`} className="flex items-center gap-2 px-3 py-2 hover:bg-surface-3 transition-colors">{row}</Link>
+              : <div key={o.id} className="flex items-center gap-2 px-3 py-2">{row}</div>;
+          })}
+        </div>
+      ))}
     </div>
   );
 }
@@ -95,6 +143,7 @@ function ProgressBar({ cols, counts }: { cols: { id: string; label: string; colo
 export default function SummaryPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [cuts, setCuts] = useState<CuttingJob[]>([]);
+  const [prodCols, setProdCols] = useState<{ id: string; title: string; accent: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState("");
   const { user } = useAuth();
@@ -107,6 +156,43 @@ export default function SummaryPage() {
     upcoming: false, stats: false, queues: false, cutting: false, calendar: false, orders: false,
   });
   const [zoom, setZoom] = useState(100);
+  const DEFAULT_ORDER = ["upcoming", "stats", "queues", "cutting_calendar", "orders"];
+  const [sectionOrder, setSectionOrder] = useState<string[]>(DEFAULT_ORDER);
+  const dragItem = useRef<string | null>(null);
+  const [dragOver, setDragOver] = useState<string | null>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("winx-summary-order");
+    if (saved) {
+      try {
+        const parsed: string[] = JSON.parse(saved);
+        // merge: keep all keys, respect saved order
+        const merged = [...parsed.filter(k => DEFAULT_ORDER.includes(k)), ...DEFAULT_ORDER.filter(k => !parsed.includes(k))];
+        setSectionOrder(merged);
+      } catch {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const onDragStart = (key: string) => { dragItem.current = key; };
+  const onDragOver = (e: React.DragEvent, key: string) => { e.preventDefault(); setDragOver(key); };
+  const onDrop = (targetKey: string) => {
+    const from = dragItem.current;
+    if (!from || from === targetKey) { setDragOver(null); return; }
+    setSectionOrder(prev => {
+      const next = [...prev];
+      const fi = next.indexOf(from);
+      const ti = next.indexOf(targetKey);
+      next.splice(fi, 1);
+      next.splice(ti, 0, from);
+      localStorage.setItem("winx-summary-order", JSON.stringify(next));
+      return next;
+    });
+    dragItem.current = null;
+    setDragOver(null);
+  };
+  const onDragEnd = () => { dragItem.current = null; setDragOver(null); };
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollState, setScrollState] = useState({ canLeft: false, canRight: false });
   const updateScroll = () => {
@@ -149,13 +235,15 @@ export default function SummaryPage() {
 
   const load = async () => {
     setLoading(true);
-    const [oRes, cRes] = await Promise.all([
+    const [oRes, cRes, pRes] = await Promise.all([
       fetch("/api/orders", { cache: "no-store" }),
       fetch("/api/cutting-jobs", { cache: "no-store" }),
+      fetch("/api/production-columns", { cache: "no-store" }),
     ]);
-    const [oData, cData] = await Promise.all([oRes.json(), cRes.json()]);
+    const [oData, cData, pData] = await Promise.all([oRes.json(), cRes.json(), pRes.json()]);
     setOrders(oData ?? []);
     setCuts(cData ?? []);
+    setProdCols(pData ?? []);
     setLastUpdate(new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }));
     setLoading(false);
   };
@@ -163,7 +251,11 @@ export default function SummaryPage() {
   useEffect(() => {
     load();
     const interval = setInterval(load, 60_000);
-    return () => clearInterval(interval);
+    const channel = new BroadcastChannel("winx:orders");
+    channel.onmessage = () => load();
+    const onVisible = () => { if (document.visibilityState === "visible") load(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { clearInterval(interval); channel.close(); document.removeEventListener("visibilitychange", onVisible); };
   }, []);
 
   // ===== Orders =====
@@ -180,8 +272,13 @@ export default function SummaryPage() {
   });
 
   // production status counts
+  // build dynamic prod cols from API data (falls back to PROD_COLS if not loaded yet)
+  const activeProdCols = prodCols.length > 0
+    ? prodCols.map(c => ({ id: c.id, label: c.title, color: "", accent: c.accent }))
+    : PROD_COLS;
+
   const prodCounts: Record<string, number> = {};
-  PROD_COLS.forEach((c) => { prodCounts[c.id] = 0; });
+  activeProdCols.forEach((c) => { prodCounts[c.id] = 0; });
   produceOrders.forEach((o) => {
     const k = o.productionStatus ?? "summary";
     prodCounts[k] = (prodCounts[k] ?? 0) + 1;
@@ -189,6 +286,21 @@ export default function SummaryPage() {
 
   // รอสรุปงาน
   const waitSummaryOrders = produceOrders.filter((o) => !o.productionStatus || o.productionStatus === "summary");
+
+  // items maps for clickable progress bar chips
+  const designItems: Record<string, { id: string; teamName: string; quantity?: number }[]> = {};
+  DESIGN_COLS.forEach((c) => { designItems[c.id] = []; });
+  designOrders.forEach((o) => {
+    const k = o.designStatus ?? "wait_design";
+    if (designItems[k]) designItems[k].push({ id: o.id, teamName: o.teamName, quantity: o.quantity });
+  });
+
+  const prodItems: Record<string, { id: string; teamName: string; quantity?: number }[]> = {};
+  activeProdCols.forEach((c) => { prodItems[c.id] = []; });
+  produceOrders.forEach((o) => {
+    const k = o.productionStatus ?? "summary";
+    if (prodItems[k]) prodItems[k].push({ id: o.id, teamName: o.teamName, quantity: o.quantity });
+  });
 
   // รอออกแบบ
   const waitDesignOrders = designOrders.filter((o) => !o.designStatus || o.designStatus === "wait_design");
@@ -276,17 +388,35 @@ export default function SummaryPage() {
 
       <div className="space-y-6 px-4 py-6 min-[720px]:px-8" style={{ zoom: `${zoom}%` }}>
 
-        {/* Upcoming deliveries */}
-        {upcomingDeliveries.length > 0 && (
+        {sectionOrder.map((skey) => {
+        const dragHandle = (
+          <div draggable onDragStart={() => onDragStart(skey)} onDragEnd={onDragEnd}
+            className="cursor-grab active:cursor-grabbing p-1 -ml-1 text-muted-2 hover:text-muted shrink-0 touch-none">
+            <GripVertical className="h-4 w-4" />
+          </div>
+        );
+        const wrapSection = (content: React.ReactNode, visible = true) => visible ? (
+          <div key={skey}
+            onDragOver={(e) => onDragOver(e, skey)} onDrop={() => onDrop(skey)}
+            className={cn("transition-opacity", dragOver === skey && dragItem.current !== skey && "opacity-40")}>
+            {content}
+          </div>
+        ) : null;
+
+        if (skey === "upcoming") return wrapSection(
+        upcomingDeliveries.length > 0 && (
           <div>
-            <button onClick={() => toggleSection("upcoming")} className="w-full flex items-center gap-2 p-5 text-left">
-              <CalendarDays className="h-4 w-4 text-orange-400 shrink-0" />
-              <h2 className="font-semibold text-sm text-orange-400 flex-1">ใกล้วันส่ง — 14 วันข้างหน้า</h2>
-              <span className="rounded-full bg-orange-500/20 px-2 py-0.5 text-[11px] font-semibold text-orange-400">{upcomingDeliveries.length} งาน</span>
-              {collapsed.upcoming ? <ChevronDown className="h-4 w-4 text-orange-400 shrink-0" /> : <ChevronUp className="h-4 w-4 text-orange-400 shrink-0" />}
-            </button>
+            <div className="flex items-center gap-1 px-4 pt-4">
+              {dragHandle}
+              <button onClick={() => toggleSection("upcoming")} className="flex items-center gap-2 flex-1 text-left pb-1">
+                <CalendarDays className="h-4 w-4 text-orange-400 shrink-0" />
+                <h2 className="font-semibold text-sm text-orange-400 flex-1">ใกล้วันส่ง — 14 วันข้างหน้า</h2>
+                <span className="rounded-full bg-orange-500/20 px-2 py-0.5 text-[11px] font-semibold text-orange-400">{upcomingDeliveries.length} งาน</span>
+                {collapsed.upcoming ? <ChevronDown className="h-4 w-4 text-orange-400 shrink-0" /> : <ChevronUp className="h-4 w-4 text-orange-400 shrink-0" />}
+              </button>
+            </div>
             {!collapsed.upcoming && (
-            <div className="relative">
+            <div className="relative mt-3">
               {/* fade edges */}
               <div className="pointer-events-none absolute left-0 top-0 bottom-5 w-10 z-10 bg-gradient-to-r from-background to-transparent" />
               <div className="pointer-events-none absolute right-0 top-0 bottom-5 w-10 z-10 bg-gradient-to-l from-background to-transparent" />
@@ -311,9 +441,9 @@ export default function SummaryPage() {
                 const warn = daysLeft <= 7;
                 const accentText = urgent ? "text-red-400" : warn ? "text-yellow-400" : "text-green-400";
                 const accentBg = urgent ? "bg-red-500/15" : warn ? "bg-yellow-500/15" : "bg-green-500/15";
-                return (
-                  <Link key={o.id} href={`/orders/${o.id}`}
-                    className="flex flex-col rounded-xl border border-border bg-surface p-4 hover:bg-surface-2 transition-colors gap-3 shrink-0 w-52">
+                const cardClass = "flex flex-col rounded-xl border border-border bg-surface p-4 gap-3 shrink-0 w-52";
+                const cardContent = (
+                  <>
                     <div className={cn("self-start rounded-lg px-3 py-2 text-center min-w-[52px]", accentBg, accentText)}>
                       <div className="text-2xl font-bold leading-none">{daysLeft}</div>
                       <div className="text-[10px] mt-0.5">วัน</div>
@@ -329,9 +459,14 @@ export default function SummaryPage() {
                       )}
                     </div>
                     {o.productionStatus && (() => {
-                      const col = PROD_COLS.find(c => c.id === o.productionStatus);
+                      const col = activeProdCols.find(c => c.id === o.productionStatus);
                       return (
-                        <div className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full border self-start", col?.chip ?? "bg-surface-2 border-border text-muted-2")}>
+                        <div
+                          className="text-[10px] font-medium px-2 py-0.5 rounded-full border self-start"
+                          style={col?.accent
+                            ? { borderColor: col.accent + "55", backgroundColor: col.accent + "22", color: col.accent }
+                            : undefined}
+                        >
                           {col?.label ?? o.productionStatus}
                         </div>
                       );
@@ -340,23 +475,33 @@ export default function SummaryPage() {
                       <div className={cn("text-xs font-semibold", accentText)}>{formatDate(o.deliveryDate!)}</div>
                       <div className="text-[10px] text-muted-2">{TYPE_LABEL[o.type]}</div>
                     </div>
-                  </Link>
+                  </>
+                );
+                return isAdmin ? (
+                  <Link key={o.id} href={`/orders/${o.id}`}
+                    className={cn(cardClass, "hover:bg-surface-2 transition-colors")}>{cardContent}</Link>
+                ) : (
+                  <div key={o.id} className={cardClass}>{cardContent}</div>
                 );
               })}
             </div>
             </div>
             )}
           </div>
-        )}
+        )
+        );
 
-        {/* Top stats */}
+        if (skey === "stats") return wrapSection(
         <div className="rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
-          <button onClick={() => toggleSection("stats")} className="w-full flex items-center gap-2 px-5 py-3.5 border-b border-border text-left hover:bg-surface-2 transition-colors">
-            <ClipboardList className="h-4 w-4 text-accent shrink-0" />
-            <span className="font-semibold text-sm flex-1">ภาพรวมออเดอร์</span>
-            <span className="text-xs text-muted-2 mr-2">{orders.length} ออเดอร์</span>
-            {collapsed.stats ? <ChevronDown className="h-4 w-4 text-muted shrink-0" /> : <ChevronUp className="h-4 w-4 text-muted shrink-0" />}
-          </button>
+          <div className="flex items-center gap-1 px-4 border-b border-border hover:bg-surface-2 transition-colors">
+            {dragHandle}
+            <button onClick={() => toggleSection("stats")} className="flex items-center gap-2 flex-1 text-left py-3.5">
+              <ClipboardList className="h-4 w-4 text-accent shrink-0" />
+              <span className="font-semibold text-sm flex-1">ภาพรวมออเดอร์</span>
+              <span className="text-xs text-muted-2 mr-2">{orders.length} ออเดอร์</span>
+              {collapsed.stats ? <ChevronDown className="h-4 w-4 text-muted shrink-0" /> : <ChevronUp className="h-4 w-4 text-muted shrink-0" />}
+            </button>
+          </div>
           {!collapsed.stats && (
             <div className="grid grid-cols-2 gap-3 min-[720px]:grid-cols-4 p-4">
               <StatCard label="ออเดอร์ทั้งหมด" value={orders.length} href="/orders" tone="text-foreground" sub="รายการ" />
@@ -366,156 +511,126 @@ export default function SummaryPage() {
             </div>
           )}
         </div>
+        );
 
-        {/* Design + Production queue */}
-        {(designOrders.length > 0 || produceOrders.length > 0) && (
-          <div className="rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
-            <button onClick={() => toggleSection("queues")} className="w-full flex items-center gap-2 px-5 py-3.5 border-b border-border text-left hover:bg-surface-2 transition-colors">
-              <Palette className="h-4 w-4 text-accent shrink-0" />
-              <span className="font-semibold text-sm flex-1">คิวออกแบบ & ผลิต</span>
-              <span className="text-xs text-muted-2 mr-2">{designOrders.length} ออกแบบ · {produceOrders.length} ผลิต</span>
-              {collapsed.queues ? <ChevronDown className="h-4 w-4 text-muted shrink-0" /> : <ChevronUp className="h-4 w-4 text-muted shrink-0" />}
-            </button>
+        if (skey === "queues") return wrapSection(
+          <div>
+            <div className="flex items-center gap-1 mb-3">
+              {dragHandle}
+              <button onClick={() => toggleSection("queues")} className="flex items-center gap-2 flex-1 text-left">
+                <Palette className="h-4 w-4 text-accent shrink-0" />
+                <span className="font-semibold text-sm flex-1">คิวออกแบบ & ผลิต</span>
+                <span className="text-xs text-muted-2 mr-2">{designOrders.length} ออกแบบ · {produceOrders.length} ผลิต</span>
+                {collapsed.queues ? <ChevronDown className="h-4 w-4 text-muted shrink-0" /> : <ChevronUp className="h-4 w-4 text-muted shrink-0" />}
+              </button>
+            </div>
             {!collapsed.queues && (
-              <div className="grid grid-cols-1 gap-3 min-[720px]:grid-cols-2 p-4">
+              <div className="grid grid-cols-1 gap-3 min-[720px]:grid-cols-2">
                 {designOrders.length > 0 && (
                   <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
                     <SectionHeader icon={Palette} title="คิวออกแบบ" href="/queue/design" />
-                    <ProgressBar cols={DESIGN_COLS} counts={designCounts} />
-                    {waitDesignOrders.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-border">
-                        <div className="flex items-center gap-1.5 mb-2">
-                          <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0" />
-                          <span className="text-xs font-medium text-blue-400">รอออกแบบ {waitDesignOrders.length} รายการ</span>
-                        </div>
-                        <div className="space-y-1">
-                          {waitDesignOrders.map((o) => {
-                            const row = <>
-                              <span className="font-mono text-[11px] text-muted-2 shrink-0 w-24">{o.id}</span>
-                              <span className="text-xs font-medium flex-1 truncate">{o.teamName}</span>
-                              {o.quantity && <span className="text-[11px] text-muted-2 shrink-0">{o.quantity} แบบ</span>}
-                            </>;
-                            return isAdmin
-                              ? <Link key={o.id} href={`/orders/${o.id}`} className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-surface-2 transition-colors">{row}</Link>
-                              : <div key={o.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5">{row}</div>;
-                          })}
-                        </div>
-                      </div>
-                    )}
+                    <ProgressBar cols={DESIGN_COLS} counts={designCounts} items={designItems} isAdmin={isAdmin} storageKey="winx-summary-design-open" />
                   </div>
                 )}
                 {produceOrders.length > 0 && (
                   <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
                     <SectionHeader icon={Factory} title="คิวผลิต" href="/queue/production" />
-                    <ProgressBar cols={PROD_COLS} counts={prodCounts} />
-                    {waitSummaryOrders.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-border">
-                        <div className="flex items-center gap-1.5 mb-2">
-                          <span className="h-2 w-2 rounded-full bg-orange-400 shrink-0" />
-                          <span className="text-xs font-medium text-orange-400">รอสรุปงาน {waitSummaryOrders.length} รายการ</span>
-                        </div>
-                        <div className="space-y-1">
-                          {waitSummaryOrders.map((o) => {
-                            const row = <>
-                              <span className="font-mono text-[11px] text-muted-2 shrink-0 w-24">{o.id}</span>
-                              <span className="text-xs font-medium flex-1 truncate">{o.teamName}</span>
-                              {o.quantity && <span className="text-[11px] text-muted-2 shrink-0">{o.quantity} ตัว</span>}
-                            </>;
-                            return isAdmin
-                              ? <Link key={o.id} href={`/orders/${o.id}`} className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-surface-2 transition-colors">{row}</Link>
-                              : <div key={o.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5">{row}</div>;
-                          })}
-                        </div>
-                      </div>
-                    )}
+                    <ProgressBar cols={activeProdCols} counts={prodCounts} items={prodItems} isAdmin={isAdmin} storageKey="winx-summary-prod-open" />
                   </div>
                 )}
               </div>
             )}
-          </div>
-        )}
+          </div>,
+          designOrders.length > 0 || produceOrders.length > 0
+        );
 
-        {/* Cutting jobs + Calendar side by side */}
-        <div className="grid grid-cols-1 gap-4 min-[1024px]:grid-cols-2">
-          {/* Cutting jobs + production tables */}
-          <div className="rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
-            <button onClick={() => toggleSection("cutting")} className="w-full flex items-center gap-2 px-5 py-3.5 border-b border-border text-left hover:bg-surface-2 transition-colors">
-              <Scissors className="h-4 w-4 text-accent shrink-0" />
-              <span className="font-semibold text-sm flex-1">ใบงานตัด & ตารางสั่งผลิต</span>
-              <span className="text-xs text-muted-2 mr-2">{cuts.length} ใบงานตัด · {sewWaiting + sewSewing + sewDone} ใบงานเย็บ</span>
-              {collapsed.cutting ? <ChevronDown className="h-4 w-4 text-muted shrink-0" /> : <ChevronUp className="h-4 w-4 text-muted shrink-0" />}
-            </button>
-            {!collapsed.cutting && (
-              <div className="grid grid-cols-1 gap-3 p-4">
-                <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-                  <SectionHeader icon={Scissors} title="ใบงานตัด" href="/cutting-jobs" />
-                  {cuts.length === 0
-                    ? <div className="text-sm text-muted-2 py-2">ไม่มีข้อมูล</div>
-                    : <ProgressBar cols={CUT_COLS} counts={cutCounts} />
-                  }
-                </div>
-                <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-                  <SectionHeader icon={Shirt} title="ใบงานเย็บ" href="/cutting-jobs" />
-                  {sewWaiting + sewSewing + sewDone === 0
-                    ? <div className="text-sm text-muted-2 py-2">ไม่มีข้อมูล</div>
-                    : <ProgressBar cols={SEW_COLS} counts={sewCounts} />
-                  }
-                </div>
+        if (skey === "cutting_calendar") return wrapSection(
+          <div className="grid grid-cols-1 gap-4 min-[1024px]:grid-cols-2">
+            <div className="rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
+              <div className="flex items-center gap-1 px-4 border-b border-border hover:bg-surface-2 transition-colors">
+                {dragHandle}
+                <button onClick={() => toggleSection("cutting")} className="flex items-center gap-2 flex-1 text-left py-3.5">
+                  <Scissors className="h-4 w-4 text-accent shrink-0" />
+                  <span className="font-semibold text-sm flex-1">ใบงานตัด & ตารางสั่งผลิต</span>
+                  <span className="text-xs text-muted-2 mr-2">{cuts.length} ใบงานตัด · {sewWaiting + sewSewing + sewDone} ใบงานเย็บ</span>
+                  {collapsed.cutting ? <ChevronDown className="h-4 w-4 text-muted shrink-0" /> : <ChevronUp className="h-4 w-4 text-muted shrink-0" />}
+                </button>
               </div>
+              {!collapsed.cutting && (
+                <div className="grid grid-cols-1 gap-3 p-4">
+                  <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+                    <SectionHeader icon={Scissors} title="ใบงานตัด" href="/cutting-jobs" />
+                    {cuts.length === 0
+                      ? <div className="text-sm text-muted-2 py-2">ไม่มีข้อมูล</div>
+                      : <ProgressBar cols={CUT_COLS} counts={cutCounts} />
+                    }
+                  </div>
+                  <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+                    <SectionHeader icon={Shirt} title="ใบงานเย็บ" href="/cutting-jobs" />
+                    {sewWaiting + sewSewing + sewDone === 0
+                      ? <div className="text-sm text-muted-2 py-2">ไม่มีข้อมูล</div>
+                      : <ProgressBar cols={SEW_COLS} counts={sewCounts} />
+                    }
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
+              <button onClick={() => toggleSection("calendar")} className="w-full flex items-center gap-2 px-5 py-3.5 border-b border-border text-left hover:bg-surface-2 transition-colors">
+                <CalendarDays className="h-4 w-4 text-accent shrink-0" />
+                <span className="font-semibold text-sm flex-1">ปฏิทินวันจัดส่งสินค้า</span>
+                {collapsed.calendar ? <ChevronDown className="h-4 w-4 text-muted shrink-0" /> : <ChevronUp className="h-4 w-4 text-muted shrink-0" />}
+              </button>
+              {!collapsed.calendar && <DeliveryCalendar orders={orders} embedded isAdmin={isAdmin} />}
+            </div>
+          </div>
+        );
+
+        if (skey === "orders") return wrapSection(
+          <div className="rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
+            <div className="flex items-center border-b border-border px-4 py-3.5">
+              {dragHandle}
+              <button onClick={() => toggleSection("orders")} className="flex items-center gap-2 flex-1 text-left">
+                <ClipboardList className="h-4 w-4 text-accent shrink-0" />
+                <h2 className="font-semibold text-sm flex-1">งานที่กำลังดำเนินการ</h2>
+                <span className="text-xs text-muted-2 mr-2">{recentActive.length} งาน</span>
+                {collapsed.orders ? <ChevronDown className="h-4 w-4 text-muted shrink-0" /> : <ChevronUp className="h-4 w-4 text-muted shrink-0" />}
+              </button>
+              <Link href="/orders" className="text-xs text-accent hover:underline ml-3">ดูทั้งหมด →</Link>
+            </div>
+            {!collapsed.orders && (
+              recentActive.length === 0 ? (
+                <div className="py-10 text-center text-sm text-muted-2">ไม่มีงานที่กำลังดำเนินการ</div>
+              ) : (
+                <div className="divide-y divide-border">
+                  {recentActive.map((o) => (
+                    <Link key={o.id} href={`/orders/${o.id}`} className="flex items-center gap-3 px-5 py-3 hover:bg-surface-2 transition-colors">
+                      <span className="font-mono text-xs text-muted-2 shrink-0 w-28">{o.id}</span>
+                      <span className="font-medium flex-1 truncate">{o.teamName}</span>
+                      <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-[11px] text-muted-2">
+                        {TYPE_LABEL[o.type] ?? o.type}
+                      </span>
+                      {o.startDate && (
+                        <span className="shrink-0 text-xs text-muted-2 hidden min-[720px]:block">
+                          {formatDate(o.startDate)}
+                        </span>
+                      )}
+                      {o.deliveryDate && (
+                        <span className="shrink-0 text-xs text-muted-2 hidden min-[720px]:flex items-center gap-1">
+                          <span className="text-muted-2">→</span>
+                          <span className="text-foreground font-medium">{formatDate(o.deliveryDate)}</span>
+                        </span>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              )
             )}
           </div>
+        );
 
-          {/* Delivery Calendar */}
-          <div className="rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
-            <button onClick={() => toggleSection("calendar")} className="w-full flex items-center gap-2 px-5 py-3.5 border-b border-border text-left hover:bg-surface-2 transition-colors">
-              <CalendarDays className="h-4 w-4 text-accent shrink-0" />
-              <span className="font-semibold text-sm flex-1">ปฏิทินวันจัดส่งสินค้า</span>
-              {collapsed.calendar ? <ChevronDown className="h-4 w-4 text-muted shrink-0" /> : <ChevronUp className="h-4 w-4 text-muted shrink-0" />}
-            </button>
-            {!collapsed.calendar && <DeliveryCalendar orders={orders} embedded />}
-          </div>
-        </div>
-
-        {/* Active orders list */}
-        <div className="rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
-          <div className="flex items-center border-b border-border px-5 py-3.5">
-            <button onClick={() => toggleSection("orders")} className="flex items-center gap-2 flex-1 text-left">
-              <ClipboardList className="h-4 w-4 text-accent shrink-0" />
-              <h2 className="font-semibold text-sm flex-1">งานที่กำลังดำเนินการ</h2>
-              <span className="text-xs text-muted-2 mr-2">{recentActive.length} งาน</span>
-              {collapsed.orders ? <ChevronDown className="h-4 w-4 text-muted shrink-0" /> : <ChevronUp className="h-4 w-4 text-muted shrink-0" />}
-            </button>
-            <Link href="/orders" className="text-xs text-accent hover:underline ml-3">ดูทั้งหมด →</Link>
-          </div>
-          {!collapsed.orders && (
-            recentActive.length === 0 ? (
-              <div className="py-10 text-center text-sm text-muted-2">ไม่มีงานที่กำลังดำเนินการ</div>
-            ) : (
-              <div className="divide-y divide-border">
-                {recentActive.map((o) => (
-                  <Link key={o.id} href={`/orders/${o.id}`} className="flex items-center gap-3 px-5 py-3 hover:bg-surface-2 transition-colors">
-                    <span className="font-mono text-xs text-muted-2 shrink-0 w-28">{o.id}</span>
-                    <span className="font-medium flex-1 truncate">{o.teamName}</span>
-                    <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-[11px] text-muted-2">
-                      {TYPE_LABEL[o.type] ?? o.type}
-                    </span>
-                    {o.startDate && (
-                      <span className="shrink-0 text-xs text-muted-2 hidden min-[720px]:block">
-                        {formatDate(o.startDate)}
-                      </span>
-                    )}
-                    {o.deliveryDate && (
-                      <span className="shrink-0 text-xs text-muted-2 hidden min-[720px]:flex items-center gap-1">
-                        <span className="text-muted-2">→</span>
-                        <span className="text-foreground font-medium">{formatDate(o.deliveryDate)}</span>
-                      </span>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            )
-          )}
-        </div>
+        return null;
+        })}
 
       </div>
     </div>
@@ -526,7 +641,7 @@ export default function SummaryPage() {
 const TH_MONTHS = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
 const DOW = ["อา","จ","อ","พ","พฤ","ศ","ส"];
 
-function DeliveryCalendar({ orders, embedded }: { orders: Order[]; embedded?: boolean }) {
+function DeliveryCalendar({ orders, embedded, isAdmin }: { orders: Order[]; embedded?: boolean; isAdmin?: boolean }) {
   const today = new Date();
   const [cur, setCur] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -694,8 +809,8 @@ function DeliveryCalendar({ orders, embedded }: { orders: Order[]; embedded?: bo
               <div className="py-8 text-center text-sm text-muted-2">ไม่มีงานจัดส่งในวันนี้</div>
             ) : (
               <div className="divide-y divide-border">
-                {selectedOrders.map((o) => (
-                  <Link key={o.id} href={`/orders/${o.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2 transition-colors">
+                {selectedOrders.map((o) => {
+                  const row = <>
                     <span className="font-mono text-[11px] text-muted-2 shrink-0 w-28">{o.id}</span>
                     <span className="font-medium text-sm flex-1 truncate">{o.teamName}</span>
                     <span className={cn(
@@ -706,8 +821,11 @@ function DeliveryCalendar({ orders, embedded }: { orders: Order[]; embedded?: bo
                     )}>
                       {o.type === "design" ? "ออกแบบ" : "ผลิต"}
                     </span>
-                  </Link>
-                ))}
+                  </>;
+                  return isAdmin
+                    ? <Link key={o.id} href={`/orders/${o.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2 transition-colors">{row}</Link>
+                    : <div key={o.id} className="flex items-center gap-3 px-4 py-3">{row}</div>;
+                })}
               </div>
             )}
           </div>

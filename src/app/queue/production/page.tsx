@@ -26,9 +26,13 @@ export default function ProductionQueuePage() {
     setColumns(cols);
     const orders: Order[] = await res.json();
     setAllOrders(orders);
-    const cuttingJobs: { orderId: string }[] = await cutRes.json().catch(() => []);
+    const cuttingJobs: { orderId: string; status: string; sewingStatus: string }[] = await cutRes.json().catch(() => []);
     const cutCountMap: Record<string, number> = {};
-    cuttingJobs.forEach((j) => { cutCountMap[j.orderId] = (cutCountMap[j.orderId] ?? 0) + 1; });
+    const cutStatusMap: Record<string, { status: string; sewingStatus: string }[]> = {};
+    cuttingJobs.forEach((j) => {
+      cutCountMap[j.orderId] = (cutCountMap[j.orderId] ?? 0) + 1;
+      cutStatusMap[j.orderId] = [...(cutStatusMap[j.orderId] ?? []), { status: j.status, sewingStatus: j.sewingStatus }];
+    });
 
     const produceOrders = orders.filter(
       (o) => o.type !== "design" && (o.hasProductionTable || o.productionStatus)
@@ -53,6 +57,7 @@ export default function ProductionQueuePage() {
           image,
           columnId: o.productionStatus ?? "summary",
           cuttingJobCount: cutCountMap[o.id] ?? 0,
+          cuttingJobStatuses: cutStatusMap[o.id] ?? [],
         } satisfies QueueCard;
       })
     );

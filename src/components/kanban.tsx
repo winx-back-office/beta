@@ -132,7 +132,7 @@ export function KanbanBoard({
                 else setOverCol(col.id);
               }}
               onDrop={() => onDrop(col.id)}
-              className={`flex w-72 shrink-0 flex-col rounded-[var(--radius-lg)] border bg-surface transition-all ${
+              className={`group/col flex w-72 shrink-0 flex-col rounded-[var(--radius-lg)] border bg-surface transition-all ${
                 overColTarget === col.id && dragColId ? "border-accent scale-[1.02]" :
                 overCol === col.id ? "border-accent" : "border-border"
               }`}
@@ -192,9 +192,25 @@ export function KanbanBoard({
                     </span>
                   )}
                 </div>
-                <span className="rounded-full bg-surface-3 px-2 py-0.5 text-xs text-muted shrink-0">
-                  {colCards.length}
-                </span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="rounded-full bg-surface-3 px-2 py-0.5 text-xs text-muted">
+                    {colCards.length}
+                  </span>
+                  <button
+                    onMouseDown={e => e.stopPropagation()}
+                    onClick={e => {
+                      e.stopPropagation();
+                      if (colCards.length > 0) { alert("ไม่สามารถลบคอลัมน์ที่มีงานอยู่ได้"); return; }
+                      if (confirm(`ลบคอลัมน์ "${col.title}" ใช่ไหม?`)) {
+                        updateCols(cs => cs.filter(c => c.id !== col.id));
+                      }
+                    }}
+                    className="rounded p-0.5 text-muted-2 opacity-0 group-hover/col:opacity-100 hover:bg-surface-3 hover:text-red-400 transition-all"
+                    title="ลบคอลัมน์"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
 
               {/* Cards */}
@@ -237,10 +253,29 @@ export function KanbanBoard({
                       </span>
                     </div>
                     {(card.cuttingJobCount ?? 0) > 0 && (
-                      <div className="mt-1.5 flex items-center gap-1 text-[11px] text-muted-2">
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1 text-[11px]">
                         <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5" style={{ color: "#f97316", borderColor: "#f9731640", backgroundColor: "#f9731615" }}>
-                          <Scissors className="h-3 w-3" /> ใบงานตัด {card.cuttingJobCount} ใบ
+                          <Scissors className="h-3 w-3" /> {card.cuttingJobCount} ใบ
                         </span>
+                        {(() => {
+                          const jobs = card.cuttingJobStatuses ?? [];
+                          // count effective status: sewing/done jobs show sewing/done, cut_done shows cut_done, else cutting/pending
+                          const counts: Record<string, number> = {};
+                          jobs.forEach(j => {
+                            const s = j.status === "done" ? "done"
+                              : j.status === "sewing" ? "sewing"
+                              : j.status === "cut_done" ? "cut_done"
+                              : j.status === "cutting" ? "cutting"
+                              : "pending";
+                            counts[s] = (counts[s] ?? 0) + 1;
+                          });
+                          return Object.entries(counts).map(([s, n]) => (
+                            <span key={s} className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5"
+                              style={{ color: STATUS_COLOR[s] ?? "#888", borderColor: `${STATUS_COLOR[s] ?? "#888"}40`, backgroundColor: `${STATUS_COLOR[s] ?? "#888"}15` }}>
+                              {STATUS_LABEL[s] ?? s}{n > 1 ? ` ${n}` : ""}
+                            </span>
+                          ));
+                        })()}
                       </div>
                     )}
                   </article>
