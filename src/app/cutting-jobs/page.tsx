@@ -797,66 +797,183 @@ function OrderGroup({
       {/* Expanded job rows */}
       {expanded && (
         <div className="border-t border-border divide-y divide-border/50">
-          {jobs.map(job => (
-            <div key={job.id} className="group relative px-5 py-4 hover:bg-surface-2 transition-colors">
-              {/* Admin buttons — absolute so they don't squeeze the info area */}
-              {isAdmin && (
-                <div className="absolute right-3 top-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => onQrJob(job)} className="rounded p-1.5 text-muted hover:bg-surface-3 hover:text-foreground transition-colors" title="แสดง QR"><QrCode className="h-3.5 w-3.5" /></button>
-                  <button onClick={() => onEditJob(job)} className="rounded p-1.5 text-muted hover:bg-surface-3 hover:text-foreground transition-colors" title="แก้ไขใบงาน"><Pencil className="h-3.5 w-3.5" /></button>
-                  <button onClick={() => onDeleteJob(job)} disabled={deleting === job.id} className="rounded p-1.5 text-muted hover:bg-red-500/10 hover:text-red-400 transition-colors disabled:opacity-50" title="ลบใบงาน">
-                    {deleting === job.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                  </button>
+          {jobs.map(job => {
+            const rowInner = (
+            <>
+              {/* Header row: job ID + status badge */}
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="font-mono text-xs text-accent shrink-0">{job.id}</span>
+                <span className="text-xs text-muted-2 shrink-0 truncate">{job.orderId}</span>
+                <div className="ml-auto shrink-0">
+                  <StatusBadge status={job.status} />
                 </div>
+              </div>
+
+              {/* Product + key stats */}
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                <span className="font-medium text-foreground">{job.shirtType}</span>
+                {job.collarType !== job.shirtType && <span className="text-muted-2">{job.collarType}</span>}
+                <span className="rounded bg-surface-3 px-1.5 py-0.5 text-[11px] text-muted">{job.quantity} ตัว</span>
+                <span className="rounded bg-accent/10 px-1.5 py-0.5 text-[11px] font-semibold text-accent">{job.patternPieces} ชิ้น</span>
+              </div>
+
+              {/* Cutting meta — cutter, timestamps, note */}
+              {(job.cutterName || job.startedAt || job.completedAt || job.note) && (
+                <p className="mt-1 text-[11px] text-muted-2 leading-relaxed">
+                  {job.cutterName && <span className="inline-flex items-center gap-1 text-muted"><Scissors className="h-2.5 w-2.5" />{job.cutterName}</span>}
+                  {job.startedAt && <span> · รับงาน {formatDateTime(job.startedAt)}</span>}
+                  {job.completedAt && <span className="text-green-500"> · ส่งงานตัด {formatDateTime(job.completedAt)}</span>}
+                  {job.note && <span> · {job.note}</span>}
+                </p>
               )}
-              <div className="flex gap-3 items-start">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="font-mono text-xs text-accent shrink-0">{job.id}</span>
-                    <span className="text-xs text-muted-2 shrink-0">{job.orderId}</span>
+
+              {/* Sewing section */}
+              {(job.status === "cut_done" || job.status === "sewing" || job.status === "done" || job.sewingStatus !== "pending") && (
+                <div className="mt-2 pt-2 border-t border-border/50">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                    <span className="inline-flex items-center gap-1 text-purple-400 font-medium"><Shirt className="h-3 w-3" />งานเย็บ</span>
+                    {job.sewerName ? <span className="font-medium text-foreground">{job.sewerName}</span> : <span className="text-muted-2">ยังไม่มีช่างรับ</span>}
+                    {job.sewingStatus === "pending" && <span className="rounded-full border px-2 py-0.5 text-[11px] font-medium" style={{ color:"#888",borderColor:"#88888840",backgroundColor:"#88888815"}}>รอเย็บ</span>}
+                    {job.sewingStatus === "sewing" && !job.sewingCompletedAt && <span className="rounded-full border px-2 py-0.5 text-[11px] font-medium" style={{ color:"#a855f7",borderColor:"#a855f740",backgroundColor:"#a855f715"}}>กำลังเย็บ</span>}
+                    {job.sewingStatus === "done" && <span className="rounded-full border px-2 py-0.5 text-[11px] font-medium" style={{ color:"#22c55e",borderColor:"#22c55e40",backgroundColor:"#22c55e15"}}>เย็บเสร็จ</span>}
                   </div>
-                  <p className="text-xs text-muted leading-relaxed">
-                    {job.shirtType}
-                    {job.collarType !== job.shirtType && <span className="text-muted-2"> · {job.collarType}</span>}
-                    {` · ${job.quantity} ตัว · ชิ้นแพทเทิร์น `}<span className="font-bold text-accent">{job.patternPieces}</span>
-                    {job.cutterName && <span className="text-foreground font-medium"> · {job.cutterName}</span>}
-                    {job.startedAt && ` · รับงาน ${formatDateTime(job.startedAt)}`}
-                    {job.completedAt && <span className="text-green-400"> · ส่งงานตัด {formatDateTime(job.completedAt)}</span>}
-                    {job.note && <span className="text-muted-2"> · {job.note}</span>}
-                  </p>
-                  {(job.status === "cut_done" || job.status === "sewing" || job.status === "done" || job.sewingStatus !== "pending") && (
-                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs border-t border-border/50 pt-2">
-                      <span className="flex items-center gap-1 text-purple-400 font-medium shrink-0">
-                        <Shirt className="h-3 w-3" /> งานเย็บ
-                      </span>
-                      {job.sewerName ? <span className="text-foreground font-medium">{job.sewerName}</span> : <span className="text-muted-2">ยังไม่มีช่างรับ</span>}
-                      {job.sewingStartedAt && <span className="text-muted">รับงาน {formatDateTime(job.sewingStartedAt)}</span>}
-                      {job.sewingCompletedAt && <span className="text-green-400">ส่งงานเย็บ {formatDateTime(job.sewingCompletedAt)}</span>}
-                      {job.sewingStatus === "pending" && <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium" style={{ color:"#888",borderColor:"#88888840",backgroundColor:"#88888815"}}>รอเย็บ</span>}
-                      {job.sewingStatus === "sewing" && !job.sewingCompletedAt && <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium" style={{ color:"#a855f7",borderColor:"#a855f740",backgroundColor:"#a855f715"}}>กำลังเย็บ</span>}
-                      {job.sewingStatus === "done" && <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium" style={{ color:"#22c55e",borderColor:"#22c55e40",backgroundColor:"#22c55e15"}}>เย็บเสร็จ</span>}
-                      {isAdmin && (
-                        <>
-                          <button onClick={() => onEditSewingJob(job)} className="ml-1 flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-muted border border-border hover:bg-surface-3 hover:text-foreground transition-colors">
-                            <Pencil className="h-2.5 w-2.5" /> แก้ไขงานเย็บ
-                          </button>
-                          {job.sewingStatus !== "pending" && (
-                            <button onClick={() => onCancelSewing(job)} disabled={cancelingSewing === job.id} className="flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-red-400 border border-red-400/30 hover:bg-red-400/10 transition-colors disabled:opacity-50">
-                              {cancelingSewing === job.id ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <X className="h-2.5 w-2.5" />}
-                              ยกเลิกการเย็บ
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
+                  {(job.sewingStartedAt || job.sewingCompletedAt) && (
+                    <p className="mt-1 text-[11px] text-muted-2 leading-relaxed">
+                      {job.sewingStartedAt && <span>รับงาน {formatDateTime(job.sewingStartedAt)}</span>}
+                      {job.sewingCompletedAt && <span className="text-green-500">{job.sewingStartedAt ? " · " : ""}ส่งงานเย็บ {formatDateTime(job.sewingCompletedAt)}</span>}
+                    </p>
                   )}
                 </div>
-                <StatusBadge status={job.status} />
-              </div>
-            </div>
-          ))}
+              )}
+            </>
+            );
+
+            if (!isAdmin) {
+              return (
+                <div key={job.id} className="px-4 py-3 hover:bg-surface-2 transition-colors">
+                  {rowInner}
+                </div>
+              );
+            }
+
+            const sewingActive = job.status === "cut_done" || job.status === "sewing" || job.status === "done" || job.sewingStatus !== "pending";
+            const showCancelSewing = sewingActive && job.sewingStatus !== "pending";
+            const actionWidth = (3 + (sewingActive ? 1 : 0) + (showCancelSewing ? 1 : 0)) * 44;
+
+            return (
+              <SwipeRow
+                key={job.id}
+                actionWidth={actionWidth}
+                actions={
+                  <>
+                    <button onClick={() => onQrJob(job)} className="flex h-full flex-1 items-center justify-center bg-surface-3 text-muted active:bg-surface-2 transition-colors" title="แสดง QR"><QrCode className="h-4 w-4" /></button>
+                    <button onClick={() => onEditJob(job)} className="flex h-full flex-1 items-center justify-center bg-surface-3 text-muted active:bg-surface-2 transition-colors" title="แก้ไขใบงาน"><Pencil className="h-4 w-4" /></button>
+                    {sewingActive && (
+                      <button onClick={() => onEditSewingJob(job)} className="flex h-full flex-1 items-center justify-center bg-purple-500/85 text-white active:bg-purple-600 transition-colors" title="แก้ไขงานเย็บ"><Shirt className="h-4 w-4" /></button>
+                    )}
+                    {showCancelSewing && (
+                      <button onClick={() => onCancelSewing(job)} disabled={cancelingSewing === job.id} className="flex h-full flex-1 items-center justify-center bg-amber-500/85 text-white active:bg-amber-600 transition-colors disabled:opacity-50" title="ยกเลิกการเย็บ">
+                        {cancelingSewing === job.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+                      </button>
+                    )}
+                    <button onClick={() => onDeleteJob(job)} disabled={deleting === job.id} className="flex h-full flex-1 items-center justify-center bg-red-500 text-white active:bg-red-600 transition-colors disabled:opacity-50" title="ลบใบงาน">
+                      {deleting === job.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    </button>
+                  </>
+                }
+              >
+                {rowInner}
+              </SwipeRow>
+            );
+          })}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Swipe Row — เลื่อนการ์ดไปทางซ้ายเพื่อเผยปุ่มจัดการ ───────
+function SwipeRow({
+  actions,
+  actionWidth = 132,
+  children,
+}: {
+  actions: React.ReactNode;
+  actionWidth?: number;
+  children: React.ReactNode;
+}) {
+  const [offset, setOffset] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const active = useRef(false);
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const startOffset = useRef(0);
+  const axis = useRef<null | "h" | "v">(null);
+  const moved = useRef(false);
+
+  const begin = (x: number, y: number) => {
+    active.current = true;
+    startX.current = x;
+    startY.current = y;
+    startOffset.current = offset;
+    axis.current = null;
+    moved.current = false;
+    setDragging(true);
+  };
+  const move = (x: number, y: number) => {
+    if (!active.current) return;
+    const dx = x - startX.current;
+    const dy = y - startY.current;
+    if (axis.current === null) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      axis.current = Math.abs(dx) > Math.abs(dy) ? "h" : "v";
+    }
+    if (axis.current !== "h") return; // ปล่อยให้ scroll แนวตั้งทำงาน
+    moved.current = true;
+    let next = startOffset.current + dx;
+    if (next > 0) next = 0;
+    if (next < -actionWidth) next = -actionWidth;
+    setOffset(next);
+  };
+  const end = () => {
+    if (!active.current) return;
+    active.current = false;
+    setDragging(false);
+    setOffset((o) => (o < -actionWidth / 2 ? -actionWidth : 0));
+  };
+
+  return (
+    <div className="relative overflow-hidden">
+      {/* ปุ่มจัดการด้านหลัง — เผยเมื่อเลื่อนการ์ดไปซ้าย */}
+      <div className="absolute inset-y-0 right-0 flex" style={{ width: actionWidth }}>
+        {actions}
+      </div>
+      {/* เนื้อหาการ์ด — เลื่อนได้ */}
+      <div
+        className="relative bg-surface px-4 py-3 select-none"
+        style={{
+          transform: `translateX(${offset}px)`,
+          transition: dragging ? "none" : "transform 0.2s ease",
+          touchAction: "pan-y",
+        }}
+        onTouchStart={(e) => begin(e.touches[0].clientX, e.touches[0].clientY)}
+        onTouchMove={(e) => move(e.touches[0].clientX, e.touches[0].clientY)}
+        onTouchEnd={end}
+        onMouseDown={(e) => begin(e.clientX, e.clientY)}
+        onMouseMove={(e) => move(e.clientX, e.clientY)}
+        onMouseUp={end}
+        onMouseLeave={end}
+        onClickCapture={(e) => {
+          // ถ้าเปิดอยู่และเป็นการแตะ (ไม่ใช่ลาก) ให้ปิดแทนการกดเนื้อหา
+          if (offset !== 0 && !moved.current) {
+            e.stopPropagation();
+            e.preventDefault();
+            setOffset(0);
+          }
+        }}
+      >
+        {children}
+      </div>
     </div>
   );
 }
