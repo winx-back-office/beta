@@ -274,8 +274,8 @@ export default function SummaryPage() {
   // production status counts
   // build dynamic prod cols from API data (falls back to PROD_COLS if not loaded yet)
   const activeProdCols = prodCols.length > 0
-    ? prodCols.map(c => ({ id: c.id, label: c.title, color: "", accent: c.accent }))
-    : PROD_COLS;
+    ? prodCols.map(c => ({ id: c.id, label: c.title, color: "", accent: c.accent as string | undefined }))
+    : PROD_COLS.map(c => ({ id: c.id, label: c.label, color: c.color, accent: undefined as string | undefined }));
 
   const prodCounts: Record<string, number> = {};
   activeProdCols.forEach((c) => { prodCounts[c.id] = 0; });
