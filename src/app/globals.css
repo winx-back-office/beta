@@ -153,3 +153,11 @@ body {
   80% { transform: translateX(6px); }
 }
 .animate-shake { animation: shake 0.45s ease-in-out; }
+
+
+/* Presentation / fullscreen mode — hide sidebar, bottom-nav & viewport badge */
+body.presentation-mode aside,
+body.presentation-mode nav.fixed,
+body.presentation-mode .viewport-badge {
+  display: none !important;
+}

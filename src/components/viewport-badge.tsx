@@ -31,7 +31,7 @@ export function ViewportBadge() {
   };
 
   return (
-    <div className="fixed top-2 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-1 text-[10px] font-mono text-muted-2" style={{ pointerEvents: "none" }}>
+    <div className="viewport-badge fixed top-2 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-1 text-[10px] font-mono text-muted-2" style={{ pointerEvents: "none" }}>
       <span>{width}px</span>
       <span className="text-accent font-semibold">{breakpoint}</span>
       {PRESETS.map((p) => (

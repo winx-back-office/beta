@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
-import { RefreshCw, ClipboardList, Palette, Factory, Scissors, Shirt, ChevronLeft, ChevronRight, CalendarDays, ChevronDown, ChevronUp, ChevronsUpDown, GripVertical } from "lucide-react";
+import { RefreshCw, ClipboardList, Palette, Factory, Scissors, Shirt, ChevronLeft, ChevronRight, CalendarDays, ChevronDown, ChevronUp, ChevronsUpDown, GripVertical, Maximize, Minimize } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import type { Order } from "@/lib/types";
 
@@ -12,6 +12,9 @@ interface CuttingJob {
   orderId: string;
   teamName: string;
   status: "pending" | "cutting" | "cut_done" | "sewing" | "done";
+  cutterName: string | null;
+  sewerName: string | null;
+  sewingStatus: "pending" | "sewing" | "done";
 }
 
 // ===== สถานะออกแบบ =====
@@ -140,6 +143,7 @@ function ProgressBar({
   );
 }
 
+
 export default function SummaryPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [cuts, setCuts] = useState<CuttingJob[]>([]);
@@ -148,6 +152,30 @@ export default function SummaryPage() {
   const [lastUpdate, setLastUpdate] = useState("");
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
+  const isTV = user?.name === "TV";
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = () => {
+    if (!isFullscreen) {
+      document.documentElement.requestFullscreen?.();
+      document.body.classList.add("presentation-mode");
+    } else {
+      document.exitFullscreen?.();
+      document.body.classList.remove("presentation-mode");
+    }
+    setIsFullscreen(!isFullscreen);
+  };
+
+  useEffect(() => {
+    const handler = () => {
+      if (!document.fullscreenElement) {
+        document.body.classList.remove("presentation-mode");
+        setIsFullscreen(false);
+      }
+    };
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, []);
 
   const SECTION_KEYS = ["upcoming", "stats", "queues", "cutting", "calendar", "orders"] as const;
   type SectionKey = typeof SECTION_KEYS[number];
@@ -350,6 +378,14 @@ export default function SummaryPage() {
   return (
     <div className="min-h-screen">
       {/* Header */}
+      {isFullscreen ? (
+        <button
+          onClick={toggleFullscreen}
+          className="fixed top-3 right-3 z-50 flex items-center gap-1.5 rounded-lg border border-border bg-surface/80 backdrop-blur-sm px-2.5 py-1.5 text-xs hover:bg-surface-2"
+        >
+          <Minimize className="h-3.5 w-3.5" />
+        </button>
+      ) : (
       <div className="border-b border-border bg-surface px-4 py-4 min-[720px]:px-8">
         <div className="flex items-center justify-between">
           <div>
@@ -361,65 +397,72 @@ export default function SummaryPage() {
           </div>
           <div className="flex items-center gap-2">
             <span className="hidden min-[720px]:block text-xs text-muted-2">อัพเดทอัตโนมัติทุก 1 นาที</span>
-            {/* Zoom controls */}
-            <div className="flex items-center gap-1 rounded-lg border border-border px-1 py-1">
+            {/* Zoom controls — hidden on mobile */}
+            <div className="hidden min-[720px]:flex items-center gap-1 rounded-lg border border-border px-1 py-1">
               <button onClick={() => changeZoom(-10)} disabled={zoom <= 60} className="rounded px-1.5 py-0.5 text-xs text-muted hover:bg-surface-2 disabled:opacity-30">−</button>
               <span className="min-w-[34px] text-center text-xs text-muted-2">{zoom}%</span>
               <button onClick={() => changeZoom(10)} disabled={zoom >= 100} className="rounded px-1.5 py-0.5 text-xs text-muted hover:bg-surface-2 disabled:opacity-30">+</button>
             </div>
             <button
               onClick={toggleAll}
-              className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs hover:bg-surface-2"
+              className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs hover:bg-surface-2"
             >
               <ChevronsUpDown className="h-3.5 w-3.5" />
-              {allCollapsed ? "ขยายทั้งหมด" : "ย่อทั้งหมด"}
+              <span className="hidden min-[720px]:inline">{allCollapsed ? "ขยายทั้งหมด" : "ย่อทั้งหมด"}</span>
             </button>
             <button
               onClick={load}
               disabled={loading}
-              className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs hover:bg-surface-2 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs hover:bg-surface-2 disabled:opacity-50"
             >
               <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
-              รีเฟรช
+              <span className="hidden min-[720px]:inline">รีเฟรช</span>
+            </button>
+            <button
+              onClick={toggleFullscreen}
+              className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs hover:bg-surface-2"
+            >
+              <Maximize className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
       </div>
+      )}
 
       <div className="space-y-6 px-4 py-6 min-[720px]:px-8" style={{ zoom: `${zoom}%` }}>
 
         {sectionOrder.map((skey) => {
         const dragHandle = (
           <div draggable onDragStart={() => onDragStart(skey)} onDragEnd={onDragEnd}
-            className="cursor-grab active:cursor-grabbing p-1 -ml-1 text-muted-2 hover:text-muted shrink-0 touch-none">
+            className="cursor-grab active:cursor-grabbing p-1 -ml-1 text-muted-2 shrink-0 touch-none opacity-0 group-hover:opacity-100 transition-opacity">
             <GripVertical className="h-4 w-4" />
           </div>
         );
         const wrapSection = (content: React.ReactNode, visible = true) => visible ? (
           <div key={skey}
             onDragOver={(e) => onDragOver(e, skey)} onDrop={() => onDrop(skey)}
-            className={cn("transition-opacity", dragOver === skey && dragItem.current !== skey && "opacity-40")}>
+            className={cn("transition-opacity group", dragOver === skey && dragItem.current !== skey && "opacity-40")}>
             {content}
           </div>
         ) : null;
 
         if (skey === "upcoming") return wrapSection(
         upcomingDeliveries.length > 0 && (
-          <div>
-            <div className="flex items-center gap-1 px-4 pt-4">
+          <div className="rounded-xl overflow-hidden">
+            <div className="flex items-center gap-1 px-4 hover:bg-surface-2 hover:rounded-xl transition-all">
               {dragHandle}
-              <button onClick={() => toggleSection("upcoming")} className="flex items-center gap-2 flex-1 text-left pb-1">
+              <button onClick={() => toggleSection("upcoming")} className="flex items-center gap-2 flex-1 text-left py-3.5">
                 <CalendarDays className="h-4 w-4 text-orange-400 shrink-0" />
-                <h2 className="font-semibold text-sm text-orange-400 flex-1">ใกล้วันส่ง — 14 วันข้างหน้า</h2>
+                <h2 className="font-semibold text-sm text-orange-400 flex-1">ใกล้วันส่ง</h2>
                 <span className="rounded-full bg-orange-500/20 px-2 py-0.5 text-[11px] font-semibold text-orange-400">{upcomingDeliveries.length} งาน</span>
                 {collapsed.upcoming ? <ChevronDown className="h-4 w-4 text-orange-400 shrink-0" /> : <ChevronUp className="h-4 w-4 text-orange-400 shrink-0" />}
               </button>
             </div>
             {!collapsed.upcoming && (
-            <div className="relative mt-3">
+            <div className="relative py-4">
               {/* fade edges */}
-              <div className="pointer-events-none absolute left-0 top-0 bottom-5 w-10 z-10 bg-gradient-to-r from-background to-transparent" />
-              <div className="pointer-events-none absolute right-0 top-0 bottom-5 w-10 z-10 bg-gradient-to-l from-background to-transparent" />
+              {scrollState.canLeft && <div className="pointer-events-none absolute left-0 top-0 bottom-5 w-10 z-10 bg-gradient-to-r from-background to-transparent" />}
+              {scrollState.canRight && <div className="pointer-events-none absolute right-0 top-0 bottom-5 w-10 z-10 bg-gradient-to-l from-background to-transparent" />}
               {/* scroll arrows */}
               {scrollState.canLeft && (
                 <button onClick={() => scrollCards("left")}
@@ -441,7 +484,7 @@ export default function SummaryPage() {
                 const warn = daysLeft <= 7;
                 const accentText = urgent ? "text-red-400" : warn ? "text-yellow-400" : "text-green-400";
                 const accentBg = urgent ? "bg-red-500/15" : warn ? "bg-yellow-500/15" : "bg-green-500/15";
-                const cardClass = "flex flex-col rounded-xl border border-border bg-surface p-4 gap-3 shrink-0 w-52";
+                const cardClass = "flex flex-col rounded-xl bg-surface-2 p-3 gap-2.5 shrink-0 w-44";
                 const cardContent = (
                   <>
                     <div className={cn("self-start rounded-lg px-3 py-2 text-center min-w-[52px]", accentBg, accentText)}>
@@ -471,6 +514,23 @@ export default function SummaryPage() {
                         </div>
                       );
                     })()}
+                    {(() => {
+                      const job = cuts.find(c => c.orderId === o.id);
+                      if (!job) return null;
+                      if (job.status === "cutting" && job.cutterName) return (
+                        <div className="text-[11px] text-orange-400 flex items-center gap-1">
+                          <Scissors className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{job.cutterName}</span>
+                        </div>
+                      );
+                      if (job.sewingStatus === "sewing" && job.sewerName) return (
+                        <div className="text-[11px] text-blue-400 flex items-center gap-1">
+                          <Shirt className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{job.sewerName}</span>
+                        </div>
+                      );
+                      return null;
+                    })()}
                     <div className="border-t border-border pt-2 flex items-center justify-between">
                       <div className={cn("text-xs font-semibold", accentText)}>{formatDate(o.deliveryDate!)}</div>
                       <div className="text-[10px] text-muted-2">{TYPE_LABEL[o.type]}</div>
@@ -492,8 +552,8 @@ export default function SummaryPage() {
         );
 
         if (skey === "stats") return wrapSection(
-        <div className="rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
-          <div className="flex items-center gap-1 px-4 border-b border-border hover:bg-surface-2 transition-colors">
+        <div className="rounded-xl overflow-hidden">
+          <div className="flex items-center gap-1 px-4 hover:bg-surface-2 hover:rounded-xl transition-all">
             {dragHandle}
             <button onClick={() => toggleSection("stats")} className="flex items-center gap-2 flex-1 text-left py-3.5">
               <ClipboardList className="h-4 w-4 text-accent shrink-0" />
@@ -514,26 +574,26 @@ export default function SummaryPage() {
         );
 
         if (skey === "queues") return wrapSection(
-          <div>
-            <div className="flex items-center gap-1 mb-3">
+          <div className="rounded-xl overflow-hidden">
+            <div className="flex items-center gap-1 px-4 hover:bg-surface-2 hover:rounded-xl transition-all">
               {dragHandle}
-              <button onClick={() => toggleSection("queues")} className="flex items-center gap-2 flex-1 text-left">
+              <button onClick={() => !isTV && toggleSection("queues")} className="flex items-center gap-2 flex-1 text-left py-3.5">
                 <Palette className="h-4 w-4 text-accent shrink-0" />
                 <span className="font-semibold text-sm flex-1">คิวออกแบบ & ผลิต</span>
                 <span className="text-xs text-muted-2 mr-2">{designOrders.length} ออกแบบ · {produceOrders.length} ผลิต</span>
-                {collapsed.queues ? <ChevronDown className="h-4 w-4 text-muted shrink-0" /> : <ChevronUp className="h-4 w-4 text-muted shrink-0" />}
+                {!isTV && (collapsed.queues ? <ChevronDown className="h-4 w-4 text-muted shrink-0" /> : <ChevronUp className="h-4 w-4 text-muted shrink-0" />)}
               </button>
             </div>
-            {!collapsed.queues && (
-              <div className="grid grid-cols-1 gap-3 min-[720px]:grid-cols-2">
+            {(!collapsed.queues || isTV) && (
+              <div className="p-4 grid grid-cols-1 gap-3 min-[720px]:grid-cols-2">
                 {designOrders.length > 0 && (
-                  <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+                  <div className="rounded-xl border border-border bg-surface-2 p-5">
                     <SectionHeader icon={Palette} title="คิวออกแบบ" href="/queue/design" />
                     <ProgressBar cols={DESIGN_COLS} counts={designCounts} items={designItems} isAdmin={isAdmin} storageKey="winx-summary-design-open" />
                   </div>
                 )}
                 {produceOrders.length > 0 && (
-                  <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+                  <div className="rounded-xl border border-border bg-surface-2 p-5">
                     <SectionHeader icon={Factory} title="คิวผลิต" href="/queue/production" />
                     <ProgressBar cols={activeProdCols} counts={prodCounts} items={prodItems} isAdmin={isAdmin} storageKey="winx-summary-prod-open" />
                   </div>
@@ -545,9 +605,9 @@ export default function SummaryPage() {
         );
 
         if (skey === "cutting_calendar") return wrapSection(
-          <div className="grid grid-cols-1 gap-4 min-[1024px]:grid-cols-2">
-            <div className="rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
-              <div className="flex items-center gap-1 px-4 border-b border-border hover:bg-surface-2 transition-colors">
+          <div className="grid grid-cols-1 gap-4 min-[1024px]:grid-cols-2 min-[1024px]:items-stretch">
+            <div className="rounded-xl overflow-hidden flex flex-col">
+              <div className="flex items-center gap-1 px-4 hover:bg-surface-2 hover:rounded-xl transition-all shrink-0">
                 {dragHandle}
                 <button onClick={() => toggleSection("cutting")} className="flex items-center gap-2 flex-1 text-left py-3.5">
                   <Scissors className="h-4 w-4 text-accent shrink-0" />
@@ -557,31 +617,66 @@ export default function SummaryPage() {
                 </button>
               </div>
               {!collapsed.cutting && (
-                <div className="grid grid-cols-1 gap-3 p-4">
-                  <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+                <div className="flex flex-col gap-3 p-4 flex-1 pb-0">
+                  <div className={cn("rounded-xl border border-border bg-surface p-5 shadow-sm", "flex flex-col flex-1 min-h-0")}>
                     <SectionHeader icon={Scissors} title="ใบงานตัด" href="/cutting-jobs" />
                     {cuts.length === 0
                       ? <div className="text-sm text-muted-2 py-2">ไม่มีข้อมูล</div>
                       : <ProgressBar cols={CUT_COLS} counts={cutCounts} />
                     }
+                    {(() => {
+                      const active = cuts.filter((c) => c.status === "cutting" && c.cutterName);
+                      return active.length > 0 ? (
+                        <div className="mt-3 flex flex-col gap-2 overflow-y-auto min-h-0">
+                          {active.map((c) => (
+                            <div key={c.id} className="flex items-center gap-2 text-sm shrink-0">
+                              <span className="font-medium text-foreground">{c.cutterName}</span>
+                              <span className="text-muted-2">กำลังตัด</span>
+                              <span className="font-medium text-orange-400">{c.teamName}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
-                  <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+                  <div className={cn("rounded-xl border border-border bg-surface p-5 shadow-sm", "flex flex-col flex-1 min-h-0")}>
                     <SectionHeader icon={Shirt} title="ใบงานเย็บ" href="/cutting-jobs" />
                     {sewWaiting + sewSewing + sewDone === 0
                       ? <div className="text-sm text-muted-2 py-2">ไม่มีข้อมูล</div>
                       : <ProgressBar cols={SEW_COLS} counts={sewCounts} />
                     }
+                    {(() => {
+                      const active = cuts.filter((c) => c.sewingStatus === "sewing" && c.sewerName);
+                      return active.length > 0 ? (
+                        <div className="mt-3 flex flex-col gap-2 overflow-y-auto min-h-0">
+                          {active.map((c) => (
+                            <div key={c.id} className="flex items-center gap-2 text-sm shrink-0">
+                              <span className="font-medium text-foreground">{c.sewerName}</span>
+                              <span className="text-muted-2">กำลังเย็บ</span>
+                              <span className="font-medium text-blue-400">{c.teamName}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
                 </div>
               )}
             </div>
-            <div className="rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
-              <button onClick={() => toggleSection("calendar")} className="w-full flex items-center gap-2 px-5 py-3.5 border-b border-border text-left hover:bg-surface-2 transition-colors">
-                <CalendarDays className="h-4 w-4 text-accent shrink-0" />
-                <span className="font-semibold text-sm flex-1">ปฏิทินวันจัดส่งสินค้า</span>
-                {collapsed.calendar ? <ChevronDown className="h-4 w-4 text-muted shrink-0" /> : <ChevronUp className="h-4 w-4 text-muted shrink-0" />}
-              </button>
-              {!collapsed.calendar && <DeliveryCalendar orders={orders} embedded isAdmin={isAdmin} />}
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1 px-4 hover:bg-surface-2 hover:rounded-xl transition-all shrink-0">
+                <span className="w-5 shrink-0" />
+                <button onClick={() => toggleSection("calendar")} className="flex items-center gap-2 flex-1 text-left py-3.5">
+                  <CalendarDays className="h-4 w-4 text-accent shrink-0" />
+                  <span className="font-semibold text-sm flex-1">ปฏิทินวันจัดส่งสินค้า</span>
+                  {collapsed.calendar ? <ChevronDown className="h-4 w-4 text-muted shrink-0" /> : <ChevronUp className="h-4 w-4 text-muted shrink-0" />}
+                </button>
+              </div>
+              {!collapsed.calendar && (
+                <div className="rounded-xl border border-border bg-surface overflow-hidden mt-4 flex-1">
+                  <DeliveryCalendar orders={orders} embedded isAdmin={isAdmin} />
+                </div>
+              )}
             </div>
           </div>
         );

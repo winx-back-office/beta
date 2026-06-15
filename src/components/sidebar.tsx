@@ -54,7 +54,7 @@ const navGroups: NavGroup[] = [
       { href: "/orders", label: "รายการออเดอร์", icon: ClipboardList, badge: "orders", menuKey: "orders", adminOnly: false },
       { href: "/queue/design", label: "คิวออกแบบ", icon: Palette, badge: "design", menuKey: "queue", adminOnly: false },
       { href: "/queue/production", label: "คิวผลิต", icon: Factory, badge: "production", menuKey: "queue", adminOnly: false },
-      { href: "/production-tables", label: "ตารางสั่งผลิต", icon: TableProperties, badge: "prod-table", menuKey: "production-tables", adminOnly: false },
+      { href: "/production-tables", label: "ตารางผลิต", icon: TableProperties, badge: "prod-table", menuKey: "production-tables", adminOnly: false },
     ],
   },
   {

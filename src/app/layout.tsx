@@ -3,7 +3,6 @@ import { Geist_Mono, Noto_Sans_Thai } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
 import { BottomNav } from "@/components/bottom-nav";
-import { ViewportBadge } from "@/components/viewport-badge";
 import { AuthProvider } from "@/context/auth-context";
 
 const notoThai = Noto_Sans_Thai({
@@ -40,7 +39,6 @@ export default function RootLayout({
           </div>
           <BottomNav />
         </AuthProvider>
-        <ViewportBadge />
       </body>
     </html>
   );

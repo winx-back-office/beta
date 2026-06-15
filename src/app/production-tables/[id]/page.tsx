@@ -82,23 +82,28 @@ export default function ProductionTablePage() {
 
   return (
     <div>
-      <PageHeader
-        title="ตารางสั่งผลิต"
-        subtitle={`${order.id} · ${order.teamName}`}
-        action={
-          <div className="flex gap-2">
+      {/* Header — custom layout for mobile */}
+      <div className="border-b border-border px-4 py-3.5 min-[720px]:px-8 min-[720px]:py-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-lg font-bold tracking-tight min-[720px]:text-2xl">ตารางผลิต</h1>
+            <p className="mt-0.5 text-xs text-muted truncate max-w-[220px] min-[720px]:max-w-none min-[720px]:text-sm">
+              {order.id} · {order.teamName}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
             <Button variant="outline" onClick={() => navigate(`/orders/${order.id}`)}>
               <ArrowLeft className="h-4 w-4" />
-              ไปออเดอร์
+              <span className="hidden min-[720px]:inline">ไปออเดอร์</span>
             </Button>
             <Button variant="outline" onClick={() => navigate("/production-tables")}>
               <ArrowLeft className="h-4 w-4" />
-              กลับรายการตาราง
+              <span className="hidden min-[720px]:inline">รายการตาราง</span>
             </Button>
           </div>
-        }
-      />
-      <div className="p-8">
+        </div>
+      </div>
+      <div className="px-4 py-4 min-[720px]:p-8">
         <ProductionTable
           orderId={order.id}
           teamName={order.teamName}

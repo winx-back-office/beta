@@ -26,7 +26,7 @@ const nav = [
   { href: "/orders", label: "ออเดอร์", icon: ClipboardList, menuKey: "orders", adminOnly: false },
   { href: "/queue/design", label: "ออกแบบ", icon: Palette, menuKey: "queue", adminOnly: false },
   { href: "/queue/production", label: "ผลิต", icon: Factory, menuKey: "queue", adminOnly: false },
-  { href: "/production-tables", label: "ตารางผลิต", icon: TableProperties, menuKey: "production-tables", adminOnly: false },
+  { href: "/production-tables", label: "ตาราง", icon: TableProperties, menuKey: "production-tables", adminOnly: false },
   { href: "/cutting-jobs", label: "ใบตัด", icon: Scissors, menuKey: "cutting-jobs", adminOnly: false },
   { href: "/shirt-styles", label: "ทรงเสื้อ", icon: Shirt, menuKey: null, adminOnly: true },
   { href: "/fabrics", label: "เนื้อผ้า", icon: Layers, menuKey: null, adminOnly: true },

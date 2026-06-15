@@ -116,6 +116,13 @@ function QRModal({ job, onClose }: { job: CuttingJob; onClose: () => void }) {
                   .team { font-size: 15px; font-weight: 600; margin-top: 14px; text-align: center; }
                   .shirt { font-size: 12px; color: #666; margin-top: 3px; text-align: center; }
                   .note-box { font-size: 12px; color: #555; margin-top: 8px; background: #f5f5f5; border-radius: 6px; padding: 5px 12px; text-align: center; max-width: 260px; }
+                  .stats { display: flex; gap: 24px; justify-content: center; align-items: center; margin-top: 14px; }
+                  .stat { display: flex; flex-direction: column; align-items: center; }
+                  .stat-label { font-size: 10px; color: #888; margin-bottom: 2px; }
+                  .stat-value { font-size: 24px; font-weight: 800; color: #111; }
+                  .stat-value.accent { color: #4f46e5; }
+                  .stat-unit { font-size: 10px; color: #888; margin-top: 1px; }
+                  .stat-divider { width: 1px; height: 36px; background: #ddd; }
                   .printed-at { font-size: 10px; color: #aaa; margin-top: 10px; text-align: center; }
                   .steps { margin-top: 28px; border-top: 1px dashed #ddd; padding-top: 20px; width: 100%; max-width: 300px; }
                   .steps-title { font-size: 11px; font-weight: 700; color: #888; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; text-align: center; }
@@ -133,6 +140,19 @@ function QRModal({ job, onClose }: { job: CuttingJob; onClose: () => void }) {
                 <div class="url">${cutUrl}</div>
                 <div class="team">${job.teamName}</div>
                 <div class="shirt">${job.shirtType} · ${job.collarType}</div>
+                <div class="stats">
+                  <div class="stat">
+                    <div class="stat-label">จำนวนตัว</div>
+                    <div class="stat-value">${job.quantity}</div>
+                    <div class="stat-unit">ตัว</div>
+                  </div>
+                  <div class="stat-divider"></div>
+                  <div class="stat">
+                    <div class="stat-label">ชิ้นแพทเทิร์น</div>
+                    <div class="stat-value accent">${job.patternPieces}</div>
+                    <div class="stat-unit">ชิ้น</div>
+                  </div>
+                </div>
                 ${job.note ? `<div class="note-box">📝 ${job.note}</div>` : ""}
                 <div class="printed-at">พิมพ์เมื่อ: ${printedDate}</div>
                 <div class="steps">
@@ -211,6 +231,7 @@ function CreateJobModal({
           shirtType: selectedOrder.shirtType,
           collarType: selectedOrder.collarType,
           quantity,
+          patternPieces: totalPieces,
           note,
         }),
       });
@@ -731,6 +752,7 @@ export default function CuttingJobsPage() {
             setJobs((prev) => prev.map((j) => (j.id === updated.id ? updated : j)));
             setEditSewingJob(null);
           }}
+          onCancel={editSewingJob.sewingStatus !== "pending" ? async () => { await cancelSewing(editSewingJob); setEditSewingJob(null); } : undefined}
         />
       )}
     </div>
@@ -798,10 +820,11 @@ function OrderGroup({
       {expanded && (
         <div className="border-t border-border divide-y divide-border/50">
           {jobs.map(job => {
+            const hasSewing = job.status === "cut_done" || job.status === "sewing" || job.status === "done" || job.sewingStatus !== "pending";
             const rowInner = (
             <>
-              {/* Header row: job ID + status badge */}
-              <div className="flex items-center gap-2 mb-1.5">
+              {/* Job ID + status */}
+              <div className="flex items-center gap-2 mb-2">
                 <span className="font-mono text-xs text-accent shrink-0">{job.id}</span>
                 <span className="text-xs text-muted-2 shrink-0 truncate">{job.orderId}</span>
                 <div className="ml-auto shrink-0">
@@ -809,42 +832,50 @@ function OrderGroup({
                 </div>
               </div>
 
-              {/* Product + key stats */}
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                <span className="font-medium text-foreground">{job.shirtType}</span>
-                {job.collarType !== job.shirtType && <span className="text-muted-2">{job.collarType}</span>}
-                <span className="rounded bg-surface-3 px-1.5 py-0.5 text-[11px] text-muted">{job.quantity} ตัว</span>
-                <span className="rounded bg-accent/10 px-1.5 py-0.5 text-[11px] font-semibold text-accent">{job.patternPieces} ชิ้น</span>
+              {/* ช่างตัด */}
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent">
+                  <Scissors className="h-3.5 w-3.5" />
+                </div>
+                <div className="min-w-0">
+                  {job.cutterName
+                    ? <span className="text-sm font-medium text-foreground">{job.cutterName}</span>
+                    : <span className="text-sm text-muted-2">ยังไม่มีช่างรับ</span>
+                  }
+                  <span className="ml-1.5 text-[11px] text-muted-2">ช่างตัด</span>
+                </div>
+                {job.startedAt && <span className="ml-auto text-[11px] text-muted-2 shrink-0">รับ {formatDateTime(job.startedAt)}</span>}
               </div>
 
-              {/* Cutting meta — cutter, timestamps, note */}
-              {(job.cutterName || job.startedAt || job.completedAt || job.note) && (
-                <p className="mt-1 text-[11px] text-muted-2 leading-relaxed">
-                  {job.cutterName && <span className="inline-flex items-center gap-1 text-muted"><Scissors className="h-2.5 w-2.5" />{job.cutterName}</span>}
-                  {job.startedAt && <span> · รับงาน {formatDateTime(job.startedAt)}</span>}
-                  {job.completedAt && <span className="text-green-500"> · ส่งงานตัด {formatDateTime(job.completedAt)}</span>}
-                  {job.note && <span> · {job.note}</span>}
-                </p>
-              )}
-
-              {/* Sewing section */}
-              {(job.status === "cut_done" || job.status === "sewing" || job.status === "done" || job.sewingStatus !== "pending") && (
-                <div className="mt-2 pt-2 border-t border-border/50">
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                    <span className="inline-flex items-center gap-1 text-purple-400 font-medium"><Shirt className="h-3 w-3" />งานเย็บ</span>
-                    {job.sewerName ? <span className="font-medium text-foreground">{job.sewerName}</span> : <span className="text-muted-2">ยังไม่มีช่างรับ</span>}
-                    {job.sewingStatus === "pending" && <span className="rounded-full border px-2 py-0.5 text-[11px] font-medium" style={{ color:"#888",borderColor:"#88888840",backgroundColor:"#88888815"}}>รอเย็บ</span>}
-                    {job.sewingStatus === "sewing" && !job.sewingCompletedAt && <span className="rounded-full border px-2 py-0.5 text-[11px] font-medium" style={{ color:"#a855f7",borderColor:"#a855f740",backgroundColor:"#a855f715"}}>กำลังเย็บ</span>}
-                    {job.sewingStatus === "done" && <span className="rounded-full border px-2 py-0.5 text-[11px] font-medium" style={{ color:"#22c55e",borderColor:"#22c55e40",backgroundColor:"#22c55e15"}}>เย็บเสร็จ</span>}
+              {/* ช่างเย็บ */}
+              {hasSewing && (
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-500/10 text-purple-400">
+                    <Shirt className="h-3.5 w-3.5" />
                   </div>
-                  {(job.sewingStartedAt || job.sewingCompletedAt) && (
-                    <p className="mt-1 text-[11px] text-muted-2 leading-relaxed">
-                      {job.sewingStartedAt && <span>รับงาน {formatDateTime(job.sewingStartedAt)}</span>}
-                      {job.sewingCompletedAt && <span className="text-green-500">{job.sewingStartedAt ? " · " : ""}ส่งงานเย็บ {formatDateTime(job.sewingCompletedAt)}</span>}
-                    </p>
-                  )}
+                  <div className="min-w-0">
+                    {job.sewerName
+                      ? <span className="text-sm font-medium text-foreground">{job.sewerName}</span>
+                      : <span className="text-sm text-muted-2">ยังไม่มีช่างรับ</span>
+                    }
+                    <span className="ml-1.5 text-[11px] text-muted-2">ช่างเย็บ</span>
+                    {job.sewingStatus === "sewing" && !job.sewingCompletedAt && <span className="ml-2 rounded-full border px-2 py-0.5 text-[11px] font-medium" style={{ color:"#a855f7",borderColor:"#a855f740",backgroundColor:"#a855f715"}}>กำลังเย็บ</span>}
+                    {job.sewingStatus === "done" && <span className="ml-2 rounded-full border px-2 py-0.5 text-[11px] font-medium" style={{ color:"#22c55e",borderColor:"#22c55e40",backgroundColor:"#22c55e15"}}>เย็บเสร็จ</span>}
+                  </div>
+                  {job.sewingCompletedAt && <span className="ml-auto text-[11px] text-green-500 shrink-0">ส่ง {formatDateTime(job.sewingCompletedAt)}</span>}
                 </div>
               )}
+
+              {/* รายละเอียดเสื้อ — chip เล็กรองลงมา */}
+              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                <span className="rounded bg-surface-3 px-1.5 py-0.5 text-[11px] text-muted">{job.shirtType}</span>
+                {job.collarType !== job.shirtType && <span className="rounded bg-surface-3 px-1.5 py-0.5 text-[11px] text-muted">{job.collarType}</span>}
+                <span className="rounded bg-surface-3 px-1.5 py-0.5 text-[11px] text-muted">{job.quantity} ตัว</span>
+                {job.quantity > 0 && <span className="rounded bg-surface-3 px-1.5 py-0.5 text-[11px] text-muted">{Math.round(job.patternPieces / job.quantity)} ชิ้น/ตัว</span>}
+                <span className="rounded bg-accent/10 px-1.5 py-0.5 text-[11px] font-semibold text-accent">{job.patternPieces} ชิ้น</span>
+                {job.completedAt && <span className="text-[11px] text-green-500 ml-1">ส่งตัด {formatDateTime(job.completedAt)}</span>}
+                {job.note && <span className="text-[11px] text-muted-2">· {job.note}</span>}
+              </div>
             </>
             );
 
@@ -857,33 +888,49 @@ function OrderGroup({
             }
 
             const sewingActive = job.status === "cut_done" || job.status === "sewing" || job.status === "done" || job.sewingStatus !== "pending";
-            const showCancelSewing = sewingActive && job.sewingStatus !== "pending";
-            const actionWidth = (3 + (sewingActive ? 1 : 0) + (showCancelSewing ? 1 : 0)) * 44;
+            const actionWidth = (3 + (sewingActive ? 1 : 0)) * 44;
+
+            const inlineActions = (
+              <div className="flex items-center gap-0.5 shrink-0">
+                <button onClick={() => onQrJob(job)} className="rounded-lg p-1.5 text-muted hover:bg-surface-3 hover:text-foreground transition-colors" title="แสดง QR"><QrCode className="h-4 w-4" /></button>
+                <button onClick={() => onEditJob(job)} className="rounded-lg p-1.5 text-muted hover:bg-surface-3 hover:text-foreground transition-colors" title="แก้ไขใบงาน"><Pencil className="h-4 w-4" /></button>
+                {sewingActive && (
+                  <button onClick={() => onEditSewingJob(job)} className="rounded-lg p-1.5 text-purple-400 hover:bg-purple-500/15 transition-colors" title="แก้ไขงานเย็บ"><Shirt className="h-4 w-4" /></button>
+                )}
+                <button onClick={() => onDeleteJob(job)} disabled={deleting === job.id} className="rounded-lg p-1.5 text-red-400 hover:bg-red-500/15 transition-colors disabled:opacity-50" title="ลบใบงาน">
+                  {deleting === job.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                </button>
+              </div>
+            );
 
             return (
-              <SwipeRow
-                key={job.id}
-                actionWidth={actionWidth}
-                actions={
-                  <>
-                    <button onClick={() => onQrJob(job)} className="flex h-full flex-1 items-center justify-center bg-surface-3 text-muted active:bg-surface-2 transition-colors" title="แสดง QR"><QrCode className="h-4 w-4" /></button>
-                    <button onClick={() => onEditJob(job)} className="flex h-full flex-1 items-center justify-center bg-surface-3 text-muted active:bg-surface-2 transition-colors" title="แก้ไขใบงาน"><Pencil className="h-4 w-4" /></button>
-                    {sewingActive && (
-                      <button onClick={() => onEditSewingJob(job)} className="flex h-full flex-1 items-center justify-center bg-purple-500/85 text-white active:bg-purple-600 transition-colors" title="แก้ไขงานเย็บ"><Shirt className="h-4 w-4" /></button>
-                    )}
-                    {showCancelSewing && (
-                      <button onClick={() => onCancelSewing(job)} disabled={cancelingSewing === job.id} className="flex h-full flex-1 items-center justify-center bg-amber-500/85 text-white active:bg-amber-600 transition-colors disabled:opacity-50" title="ยกเลิกการเย็บ">
-                        {cancelingSewing === job.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
-                      </button>
-                    )}
-                    <button onClick={() => onDeleteJob(job)} disabled={deleting === job.id} className="flex h-full flex-1 items-center justify-center bg-red-500 text-white active:bg-red-600 transition-colors disabled:opacity-50" title="ลบใบงาน">
-                      {deleting === job.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                    </button>
-                  </>
-                }
-              >
-                {rowInner}
-              </SwipeRow>
+              <div key={job.id}>
+                {/* Desktop: inline actions */}
+                <div className="hidden min-[720px]:flex items-start gap-2 px-4 py-3 hover:bg-surface-2 transition-colors">
+                  <div className="flex-1 min-w-0">{rowInner}</div>
+                  {inlineActions}
+                </div>
+                {/* Mobile: swipe to reveal */}
+                <div className="min-[720px]:hidden">
+                  <SwipeRow
+                    actionWidth={actionWidth}
+                    actions={
+                      <>
+                        <button onClick={() => onQrJob(job)} className="flex h-full flex-1 items-center justify-center bg-surface-3 text-muted active:bg-surface-2 transition-colors" title="แสดง QR"><QrCode className="h-4 w-4" /></button>
+                        <button onClick={() => onEditJob(job)} className="flex h-full flex-1 items-center justify-center bg-surface-3 text-muted active:bg-surface-2 transition-colors" title="แก้ไขใบงาน"><Pencil className="h-4 w-4" /></button>
+                        {sewingActive && (
+                          <button onClick={() => onEditSewingJob(job)} className="flex h-full flex-1 items-center justify-center bg-purple-500/85 text-white active:bg-purple-600 transition-colors" title="แก้ไขงานเย็บ"><Shirt className="h-4 w-4" /></button>
+                        )}
+                        <button onClick={() => onDeleteJob(job)} disabled={deleting === job.id} className="flex h-full flex-1 items-center justify-center bg-red-500 text-white active:bg-red-600 transition-colors disabled:opacity-50" title="ลบใบงาน">
+                          {deleting === job.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </button>
+                      </>
+                    }
+                  >
+                    {rowInner}
+                  </SwipeRow>
+                </div>
+              </div>
             );
           })}
         </div>
@@ -993,7 +1040,6 @@ function EditJobModal({
   const [shirtType, setShirtType] = useState(job.shirtType);
   const [collarType, setCollarType] = useState(job.collarType);
   const [quantity, setQuantity] = useState(job.quantity);
-  const [patternPieces, setPatternPieces] = useState(job.patternPieces);
   const [note, setNote] = useState(job.note ?? "");
   const [cutterNote, setCutterNote] = useState(job.cutterNote ?? "");
   const [status, setStatus] = useState<CuttingJob["status"]>(job.status);
@@ -1006,37 +1052,40 @@ function EditJobModal({
     (s) => s.name.trim().toLowerCase() === shirtType.trim().toLowerCase()
   );
   const collarOptions = selectedStyle?.collars ?? [];
-  const selectedCollar = collarOptions.find(
-    (c) => c.name.trim().toLowerCase() === collarType.trim().toLowerCase()
-  );
-  const piecesPerUnit = selectedCollar?.patternPieces ?? 0;
-  const calculatedPieces = quantity * piecesPerUnit;
-  const mismatch = calculatedPieces > 0 && patternPieces !== calculatedPieces;
 
-  // เมื่อเปลี่ยนทรงเสื้อ ให้รีเซ็ตปกและคำนวณชิ้นใหม่
+  // ชิ้น/ตัว — ใช้ค่าที่บันทึกไว้ก่อน fallback ไป catalog เฉพาะเมื่อยังไม่มีข้อมูล
+  const getInitialPiecesPerUnit = () => {
+    if (job.quantity > 0 && job.patternPieces > 0) return Math.round(job.patternPieces / job.quantity);
+    const style = shirtStyles.find((s) => s.name.trim().toLowerCase() === job.shirtType.trim().toLowerCase());
+    const collar = style?.collars.find((c) => c.name.trim().toLowerCase() === job.collarType.trim().toLowerCase());
+    if (collar?.patternPieces) return collar.patternPieces;
+    return 0;
+  };
+  const [piecesPerUnit, setPiecesPerUnit] = useState(getInitialPiecesPerUnit);
+
+  // ยอดรวมชิ้น (derive อัตโนมัติ)
+  const patternPieces = quantity * piecesPerUnit;
+
+  // เมื่อเปลี่ยนทรงเสื้อ ให้รีเซ็ตปกและชิ้น/ตัว
   const handleShirtChange = (name: string) => {
     setShirtType(name);
     const style = shirtStyles.find((s) => s.name.trim().toLowerCase() === name.trim().toLowerCase());
     const firstCollar = style?.collars[0];
     if (firstCollar) {
       setCollarType(firstCollar.name);
-      setPatternPieces(quantity * firstCollar.patternPieces);
+      setPiecesPerUnit(firstCollar.patternPieces);
     }
   };
 
-  // เมื่อเปลี่ยนปก คำนวณชิ้นใหม่
+  // เมื่อเปลี่ยนปก อัปเดตชิ้น/ตัว
   const handleCollarChange = (name: string) => {
     setCollarType(name);
     const style = shirtStyles.find((s) => s.name.trim().toLowerCase() === shirtType.trim().toLowerCase());
     const collar = style?.collars.find((c) => c.name.trim().toLowerCase() === name.trim().toLowerCase());
-    if (collar) setPatternPieces(quantity * collar.patternPieces);
+    if (collar) setPiecesPerUnit(collar.patternPieces);
   };
 
-  // เมื่อเปลี่ยนจำนวนตัว คำนวณชิ้นใหม่
-  const handleQtyChange = (q: number) => {
-    setQuantity(q);
-    if (piecesPerUnit > 0) setPatternPieces(q * piecesPerUnit);
-  };
+  const handleQtyChange = (q: number) => setQuantity(q);
 
   const handleSave = async () => {
     setSaving(true);
@@ -1115,7 +1164,7 @@ function EditJobModal({
             )}
           </div>
 
-          {/* จำนวนตัว + ชิ้นแพทเทิร์น */}
+          {/* จำนวนตัว + ชิ้น/ตัว */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-muted-2 mb-1 block">จำนวนตัว</label>
@@ -1127,24 +1176,17 @@ function EditJobModal({
               />
             </div>
             <div>
-              <label className="text-xs text-muted-2 mb-1 block">
-                ชิ้นแพทเทิร์น
-                {piecesPerUnit > 0 && <span className="ml-1 text-muted-2">({piecesPerUnit}/ตัว)</span>}
-              </label>
+              <label className="text-xs text-muted-2 mb-1 block">ชิ้นแพทเทิร์น (ชิ้น/ตัว)</label>
               <input
                 type="number" min={0}
-                className={`${fieldCls} ${mismatch ? "border-warn" : ""}`}
-                value={patternPieces}
-                onChange={(e) => setPatternPieces(Number(e.target.value))}
+                className={fieldCls}
+                value={piecesPerUnit}
+                onChange={(e) => setPiecesPerUnit(Number(e.target.value))}
               />
             </div>
           </div>
-
-          {/* คำเตือนถ้าชิ้นไม่ตรงกับที่คำนวณได้ */}
-          {mismatch && (
-            <div className="rounded-[var(--radius-md)] border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">
-              ⚠️ ชิ้นแพทเทิร์นไม่ตรงกับที่คำนวณได้ ({calculatedPieces} ชิ้น) — กดบันทึกจะใช้ค่าที่กรอกไว้
-            </div>
+          {patternPieces > 0 && (
+            <p className="text-xs text-muted-2">รวม {patternPieces} ชิ้น ({quantity} ตัว × {piecesPerUnit} ชิ้น/ตัว)</p>
           )}
 
           {/* Status */}
@@ -1200,10 +1242,12 @@ function EditSewingModal({
   job,
   onClose,
   onSave,
+  onCancel,
 }: {
   job: CuttingJob;
   onClose: () => void;
   onSave: (job: CuttingJob) => void;
+  onCancel?: () => void;
 }) {
   const [sewers, setSewers] = useState<Sewer[]>([]);
   const [sewerId, setSewerId] = useState(job.sewerId ?? "");
@@ -1313,12 +1357,21 @@ function EditSewingModal({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-border px-6 py-3 shrink-0">
-          <button onClick={onClose} className="rounded-md border border-border px-4 py-2 text-sm text-muted hover:bg-surface-2">ยกเลิก</button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            บันทึก
-          </Button>
+        <div className="flex items-center justify-between border-t border-border px-6 py-3 shrink-0">
+          {onCancel ? (
+            <button onClick={onCancel} disabled={saving}
+              className="flex items-center gap-1.5 rounded-md border border-red-500/40 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 disabled:opacity-50 transition-colors">
+              <X className="h-3.5 w-3.5" />
+              ยกเลิกงานเย็บ
+            </button>
+          ) : <span />}
+          <div className="flex gap-2">
+            <button onClick={onClose} className="rounded-md border border-border px-4 py-2 text-sm text-muted hover:bg-surface-2">ปิด</button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              บันทึก
+            </Button>
+          </div>
         </div>
       </div>
     </div>

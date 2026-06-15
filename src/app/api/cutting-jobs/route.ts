@@ -97,7 +97,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { orderId, teamName, shirtType, collarType, quantity, note } = body;
+  const { orderId, teamName, shirtType, collarType, quantity, patternPieces: bodyPieces, note } = body;
 
   const { data: existing } = await getSupabase()
     .from("cutting_jobs")
@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
   const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
   const id = `CUT-${String(next).padStart(3, "0")}`;
 
-  const patternPieces = (quantity ?? 1) * getPatternPieces(shirtType, collarType);
+  const patternPieces = bodyPieces ?? (quantity ?? 1) * getPatternPieces(shirtType, collarType);
 
   const newRow = {
     id,
