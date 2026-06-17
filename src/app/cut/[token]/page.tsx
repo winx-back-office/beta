@@ -134,7 +134,7 @@ export default async function CutPage({ params }: { params: Promise<{ token: str
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 border-t border-white/10 pt-4">
+          <div className="grid grid-cols-3 gap-3 border-t border-white/10 pt-4">
             <div className="text-center rounded-xl bg-white/10 p-4">
               <div className="text-xs text-white/40 mb-1">จำนวนตัว</div>
               <div className="text-4xl font-black">{job.quantity}</div>
@@ -144,6 +144,13 @@ export default async function CutPage({ params }: { params: Promise<{ token: str
               <div className="text-xs text-[#a5b4fc] mb-1">ชิ้นแพทเทิร์น</div>
               <div className="text-4xl font-black text-[#818cf8]">{job.patternPieces}</div>
               <div className="text-xs text-[#a5b4fc] mt-1">ชิ้น</div>
+            </div>
+            <div className="text-center rounded-xl bg-emerald-500/15 border border-emerald-500/25 p-4">
+              <div className="text-xs text-emerald-300/70 mb-1">ชิ้นต่อตัว</div>
+              <div className="text-4xl font-black text-emerald-300">
+                {job.quantity > 0 ? Math.round((job.patternPieces / job.quantity) * 10) / 10 : "-"}
+              </div>
+              <div className="text-xs text-emerald-300/70 mt-1">ชิ้น/ตัว</div>
             </div>
           </div>
 

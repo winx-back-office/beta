@@ -86,6 +86,11 @@ function QRModal({ job, onClose }: { job: CuttingJob; onClose: () => void }) {
               <span className="text-[10px] text-muted">ชิ้นแพทเทิร์น</span>
               <span className="text-lg font-bold text-accent">{job.patternPieces}</span>
             </div>
+            <div className="w-px bg-border" />
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] text-muted">ชิ้นต่อตัว</span>
+              <span className="text-lg font-bold text-green-400">{job.quantity > 0 ? Math.round(job.patternPieces / job.quantity) : "-"}</span>
+            </div>
           </div>
         </div>
         <div className="flex gap-2 border-t border-border px-5 py-3">
@@ -152,8 +157,14 @@ function QRModal({ job, onClose }: { job: CuttingJob; onClose: () => void }) {
                     <div class="stat-value accent">${job.patternPieces}</div>
                     <div class="stat-unit">ชิ้น</div>
                   </div>
+                  <div class="stat-divider"></div>
+                  <div class="stat">
+                    <div class="stat-label">ชิ้นต่อตัว</div>
+                    <div class="stat-value" style="color:#16a34a">${job.quantity > 0 ? Math.round(job.patternPieces / job.quantity) : "-"}</div>
+                    <div class="stat-unit">ชิ้น/ตัว</div>
+                  </div>
                 </div>
-                ${job.note ? `<div class="note-box">📝 ${job.note}</div>` : ""}
+                ${job.note ? `<div class="note-box"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px;margin-bottom:1px"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>${job.note}</div>` : ""}
                 <div class="printed-at">พิมพ์เมื่อ: ${printedDate}</div>
                 <div class="steps">
                   <div class="steps-title">วิธีการใช้งาน</div>
