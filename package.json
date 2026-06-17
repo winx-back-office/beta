@@ -1,6 +1,6 @@
 {
   "name": "winx-backoffice",
-  "version": "1.3.9",
+  "version": "1.4.0",
   "private": true,
   "scripts": {
     "dev": "next dev",

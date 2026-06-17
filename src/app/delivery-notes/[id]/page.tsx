@@ -39,17 +39,26 @@ function PrintSlipModal({ order, players, onClose }: {
     style.textContent = `
       @media print {
         @page { margin: 12mm; size: A4; }
+        html, body {
+          background: #fff !important;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
         body * { visibility: hidden; }
         #winx-print-slip, #winx-print-slip * { visibility: visible; }
         #winx-print-slip {
-          position: fixed; inset: 0;
-          width: 100%; height: auto;
-          background: #fff;
-          padding: 28px 36px;
+          position: static;
+          width: 100%;
+          background: #fff !important;
+          padding: 0;
           font-family: 'Sarabun','Helvetica Neue',sans-serif;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
+        #winx-print-slip table { background: #fff !important; }
+        #winx-print-slip tr { page-break-inside: avoid; background: #fff !important; }
+        #winx-print-slip thead { display: table-header-group; }
+        #winx-print-slip tfoot { display: table-footer-group; }
       }
     `;
     document.head.appendChild(style);
@@ -59,14 +68,6 @@ function PrintSlipModal({ order, players, onClose }: {
 
   return (
     <>
-      {/* Print-only styles injected into the document */}
-      <style>{`
-        @media print {
-          body > * { display: none !important; }
-          #winx-print-slip { display: block !important; }
-          @page { margin: 12mm; size: A4; }
-        }
-      `}</style>
 
       {/* Hidden print content rendered directly in body via portal */}
       {createPortal(<div id="winx-print-slip" style={{ display: "none", fontFamily: "'Sarabun','Helvetica Neue',sans-serif", fontSize: 13, color: "#111", background: "#fff", padding: "0 0 24px" }}>
@@ -506,7 +507,7 @@ export default function DeliveryNoteDetailPage() {
   if (loading) return <div className="py-32 text-center text-sm text-muted-2">กำลังโหลด…</div>;
   if (!order) return <div className="py-32 text-center text-sm text-muted-2">ไม่พบออเดอร์</div>;
 
-  const players = production?.players ?? [];
+  const players = (production?.players ?? []).filter(p => p.size && p.name);
 
   return (
     <div className="min-h-screen">

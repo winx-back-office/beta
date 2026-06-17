@@ -155,6 +155,13 @@ export default function SummaryPage() {
   const isTV = user?.name === "TV";
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  const [layoutSaved, setLayoutSaved] = useState(false);
+  const saveLayout = () => {
+    localStorage.setItem("winx-summary-order", JSON.stringify(sectionOrder));
+    setLayoutSaved(true);
+    setTimeout(() => setLayoutSaved(false), 2000);
+  };
+
   const toggleFullscreen = () => {
     if (!isFullscreen) {
       document.documentElement.requestFullscreen?.();
@@ -330,6 +337,10 @@ export default function SummaryPage() {
     if (prodItems[k]) prodItems[k].push({ id: o.id, teamName: o.teamName, quantity: o.quantity });
   });
 
+  // IDs ของสถานะ "จัดส่งเรียบร้อย" (อาจมีหลาย ID จาก dynamic columns)
+  const deliveredStatusIds = new Set(activeProdCols.filter(c => c.label === "จัดส่งเรียบร้อย").map(c => c.id));
+  const isDelivered = (o: Order) => deliveredStatusIds.has(o.productionStatus ?? "") || o.productionStatus === "delivered";
+
   // รอออกแบบ
   const waitDesignOrders = designOrders.filter((o) => !o.designStatus || o.designStatus === "wait_design");
 
@@ -403,6 +414,19 @@ export default function SummaryPage() {
               <span className="min-w-[34px] text-center text-xs text-muted-2">{zoom}%</span>
               <button onClick={() => changeZoom(10)} disabled={zoom >= 100} className="rounded px-1.5 py-0.5 text-xs text-muted hover:bg-surface-2 disabled:opacity-30">+</button>
             </div>
+            {isTV && (
+              <button
+                onClick={saveLayout}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors",
+                  layoutSaved
+                    ? "border-accent bg-accent/10 text-accent"
+                    : "border-border hover:bg-surface-2"
+                )}
+              >
+                {layoutSaved ? "✓ บันทึกแล้ว" : "บันทึกลำดับ"}
+              </button>
+            )}
             <button
               onClick={toggleAll}
               className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs hover:bg-surface-2"
@@ -447,14 +471,14 @@ export default function SummaryPage() {
         ) : null;
 
         if (skey === "upcoming") return wrapSection(
-        upcomingDeliveries.length > 0 && (
+        (upcomingDeliveries.length > 0 || designOrders.length > 0 || produceOrders.length > 0) && (
           <div className="rounded-xl overflow-hidden">
             <div className="flex items-center gap-1 px-4 hover:bg-surface-2 hover:rounded-xl transition-all">
               {dragHandle}
               <button onClick={() => toggleSection("upcoming")} className="flex items-center gap-2 flex-1 text-left py-3.5">
                 <CalendarDays className="h-4 w-4 text-orange-400 shrink-0" />
                 <h2 className="font-semibold text-sm text-orange-400 flex-1">ใกล้วันส่ง</h2>
-                <span className="rounded-full bg-orange-500/20 px-2 py-0.5 text-[11px] font-semibold text-orange-400">{upcomingDeliveries.length} งาน</span>
+                {upcomingDeliveries.length > 0 && <span className="rounded-full bg-orange-500/20 px-2 py-0.5 text-[11px] font-semibold text-orange-400">{upcomingDeliveries.length} งาน</span>}
                 {collapsed.upcoming ? <ChevronDown className="h-4 w-4 text-orange-400 shrink-0" /> : <ChevronUp className="h-4 w-4 text-orange-400 shrink-0" />}
               </button>
             </div>
@@ -546,6 +570,61 @@ export default function SummaryPage() {
               })}
             </div>
             </div>
+            )}
+            {/* Queue cards — ผลิต & ออกแบบ */}
+            {!collapsed.upcoming && (designOrders.length > 0 || produceOrders.length > 0) && (
+              <div className="px-5 pb-5 space-y-5">
+                {produceOrders.filter(o => !isDelivered(o)).length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Factory className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                      <span className="text-sm font-semibold text-purple-400">ผลิต</span>
+                      <span className="text-xs text-muted-2">{produceOrders.filter(o => !isDelivered(o)).length} งาน</span>
+                    </div>
+                    <div className="grid grid-cols-2 min-[480px]:grid-cols-3 min-[720px]:grid-cols-4 min-[1024px]:grid-cols-5 gap-2">
+                      {produceOrders.filter(o => !isDelivered(o)).map((o) => {
+                        const col = activeProdCols.find((c) => c.id === o.productionStatus);
+                        const inner = (
+                          <>
+                            <div className="font-medium text-sm truncate">{o.teamName}</div>
+                            {col && (
+                              <div className="mt-1.5 text-[10px] font-medium truncate" style={col.accent ? { color: col.accent } : { color: "var(--muted)" }}>
+                                {col.label}
+                              </div>
+                            )}
+                          </>
+                        );
+                        return isAdmin
+                          ? <Link key={o.id} href={`/orders/${o.id}`} className="rounded-lg border border-border bg-surface-2 p-3 hover:bg-surface-3 transition-colors block">{inner}</Link>
+                          : <div key={o.id} className="rounded-lg border border-border bg-surface-2 p-3">{inner}</div>;
+                      })}
+                    </div>
+                  </div>
+                )}
+                {designOrders.filter(o => o.designStatus !== "done" && !isDelivered(o)).length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Palette className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                      <span className="text-sm font-semibold text-blue-400">ออกแบบ</span>
+                      <span className="text-xs text-muted-2">{designOrders.filter(o => o.designStatus !== "done" && !isDelivered(o)).length} งาน</span>
+                    </div>
+                    <div className="grid grid-cols-2 min-[480px]:grid-cols-3 min-[720px]:grid-cols-4 min-[1024px]:grid-cols-5 gap-2">
+                      {designOrders.filter(o => o.designStatus !== "done" && !isDelivered(o)).map((o) => {
+                        const statusLabel = DESIGN_COLS.find((c) => c.id === (o.designStatus ?? "wait_design"))?.label;
+                        const inner = (
+                          <>
+                            <div className="font-medium text-sm truncate">{o.teamName}</div>
+                            {statusLabel && <div className="mt-1.5 text-[10px] text-blue-400 font-medium">{statusLabel}</div>}
+                          </>
+                        );
+                        return isAdmin
+                          ? <Link key={o.id} href={`/orders/${o.id}`} className="rounded-lg border border-border bg-surface-2 p-3 hover:bg-surface-3 transition-colors block">{inner}</Link>
+                          : <div key={o.id} className="rounded-lg border border-border bg-surface-2 p-3">{inner}</div>;
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )
