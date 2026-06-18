@@ -2,13 +2,95 @@
 
 import { useEffect, useState } from "react";
 import { PageHeader, Badge, Card } from "@/components/ui";
-import { Check, Pencil, Plus, X } from "lucide-react";
+import { Check, Pencil, Plus, X, Building2 } from "lucide-react";
 
 interface Sewer {
   id: string;
   name: string;
   pin: string;
   active: boolean;
+}
+
+interface BankInfo {
+  accountNumber: string;
+  bankName: string;
+  accountName: string;
+}
+
+function bankKey(id: string) { return `winx-bank-sewer-${id}`; }
+
+function getBankInfo(id: string): BankInfo {
+  if (typeof window === "undefined") return { accountNumber: "", bankName: "", accountName: "" };
+  const v = localStorage.getItem(bankKey(id));
+  return v ? JSON.parse(v) : { accountNumber: "", bankName: "", accountName: "" };
+}
+
+function saveBankInfo(id: string, info: BankInfo) {
+  localStorage.setItem(bankKey(id), JSON.stringify(info));
+}
+
+const BANKS = [
+  "กรุงเทพ (BBL)", "กสิกรไทย (KBANK)", "ไทยพาณิชย์ (SCB)",
+  "กรุงไทย (KTB)", "กรุงศรี (BAY)", "ทหารไทยธนชาต (TTB)",
+  "ออมสิน", "ธ.ก.ส.", "ซิตี้แบงก์", "ยูโอบี (UOB)",
+];
+
+function BankInfoRow({ id, editing }: { id: string; editing: boolean }) {
+  const [info, setInfo] = useState<BankInfo>(() => getBankInfo(id));
+
+  if (!editing) {
+    const hasBank = info.accountNumber || info.bankName;
+    return (
+      <div className="flex items-center gap-1.5 text-xs text-muted-2">
+        <Building2 className="h-3 w-3 shrink-0" />
+        {hasBank ? (
+          <span>{info.bankName} {info.accountNumber}</span>
+        ) : (
+          <span className="italic">ยังไม่กำหนด</span>
+        )}
+      </div>
+    );
+  }
+
+  const update = (field: keyof BankInfo, val: string) => {
+    const next = { ...info, [field]: val };
+    setInfo(next);
+    saveBankInfo(id, next);
+  };
+
+  return (
+    <div className="mt-2 grid grid-cols-3 gap-2">
+      <div>
+        <div className="mb-1 text-[10px] text-muted-2">เลขบัญชี</div>
+        <input
+          className="field-input font-mono"
+          placeholder="xxx-x-xxxxx-x"
+          value={info.accountNumber}
+          onChange={(e) => update("accountNumber", e.target.value)}
+        />
+      </div>
+      <div>
+        <div className="mb-1 text-[10px] text-muted-2">ธนาคาร</div>
+        <select
+          className="field-input"
+          value={info.bankName}
+          onChange={(e) => update("bankName", e.target.value)}
+        >
+          <option value="">— เลือกธนาคาร —</option>
+          {BANKS.map((b) => <option key={b} value={b}>{b}</option>)}
+        </select>
+      </div>
+      <div>
+        <div className="mb-1 text-[10px] text-muted-2">ชื่อ-นามสกุล (บัญชี)</div>
+        <input
+          className="field-input"
+          placeholder="ชื่อเจ้าของบัญชี"
+          value={info.accountName}
+          onChange={(e) => update("accountName", e.target.value)}
+        />
+      </div>
+    </div>
+  );
 }
 
 export default function SewersPage() {
@@ -69,7 +151,7 @@ export default function SewersPage() {
           </button>
         }
       />
-      <div className="px-6 py-6 max-w-2xl space-y-4">
+      <div className="px-6 py-6 max-w-3xl space-y-4">
         {adding && (
           <Card className="p-4 space-y-3">
             <div className="font-semibold text-sm">เพิ่มช่างเย็บใหม่</div>
@@ -93,7 +175,7 @@ export default function SewersPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-surface-2">
-                <th className="px-4 py-2.5 text-left text-xs text-muted-2">ชื่อ</th>
+                <th className="px-4 py-2.5 text-left text-xs text-muted-2">ชื่อ / ข้อมูลบัญชี</th>
                 <th className="px-4 py-2.5 text-left text-xs text-muted-2">PIN</th>
                 <th className="px-4 py-2.5 text-left text-xs text-muted-2">สถานะ</th>
                 <th className="px-4 py-2.5 text-right text-xs text-muted-2">แก้ไข</th>
@@ -107,20 +189,31 @@ export default function SewersPage() {
                 const isEditing = !!editing[s.id];
                 const draft = editing[s.id] ?? s;
                 return (
-                  <tr key={s.id} className="hover:bg-surface-2">
+                  <tr key={s.id} className={isEditing ? "bg-surface-2" : "hover:bg-surface-2"}>
                     <td className="px-4 py-3">
                       {isEditing ? (
-                        <input className="field-input w-40" value={draft.name}
-                          onChange={(e) => setEditing((prev) => ({ ...prev, [s.id]: { ...draft, name: e.target.value } }))} />
-                      ) : s.name}
+                        <>
+                          <input
+                            className="field-input w-48"
+                            value={draft.name}
+                            onChange={(e) => setEditing((prev) => ({ ...prev, [s.id]: { ...draft, name: e.target.value } }))}
+                          />
+                          <BankInfoRow id={s.id} editing={true} />
+                        </>
+                      ) : (
+                        <>
+                          <div className="font-medium">{s.name}</div>
+                          <BankInfoRow id={s.id} editing={false} />
+                        </>
+                      )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 align-top pt-4">
                       {isEditing ? (
                         <input className="field-input w-20 font-mono" value={draft.pin} maxLength={4}
                           onChange={(e) => setEditing((prev) => ({ ...prev, [s.id]: { ...draft, pin: e.target.value } }))} />
                       ) : <span className="font-mono">{s.pin}</span>}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 align-top pt-4">
                       {isEditing ? (
                         <button
                           onClick={() => setEditing((prev) => ({ ...prev, [s.id]: { ...draft, active: !draft.active } }))}
@@ -130,7 +223,7 @@ export default function SewersPage() {
                         </button>
                       ) : <Badge tone={s.active ? "success" : "neutral"}>{s.active ? "ใช้งาน" : "ไม่ใช้งาน"}</Badge>}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right align-top pt-4">
                       {isEditing ? (
                         <button onClick={() => saveOne(s.id)} disabled={saving === s.id}
                           className="inline-flex items-center gap-1 rounded-md bg-accent px-2.5 py-1 text-xs text-accent-foreground disabled:opacity-60">

@@ -1,9 +1,137 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PageHeader, Button } from "@/components/ui";
 import { Plus, X, Loader2, Pencil, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// ────────────────────────────────────────────────────────────
+// Fabrics section
+// ────────────────────────────────────────────────────────────
+
+interface FabricVariant { name: string }
+interface Fabric { id: string; name: string; variants: FabricVariant[] }
+
+function FabricChip({ name, onRemove }: { name: string; onRemove: () => void }) {
+  return (
+    <div className="group flex items-center gap-1.5 rounded-[var(--radius-md)] border border-border bg-surface-2 pl-3 pr-2 py-2 text-sm font-medium">
+      {name}
+      <button onClick={onRemove} className="text-muted-2 hover:text-danger transition-colors opacity-0 group-hover:opacity-100">
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
+function FabricCard({ fabric, index, onAdd, onRemove, onRename }: { fabric: Fabric; index: number; onAdd: (name: string) => void; onRemove: (name: string) => void; onRename: (name: string) => void }) {
+  const [adding, setAdding] = useState(false);
+  const [value, setValue] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(fabric.name);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const editRef = useRef<HTMLInputElement>(null);
+
+  function submit() {
+    if (!value.trim()) return;
+    onAdd(value);
+    setValue("");
+    setAdding(false);
+  }
+
+  function submitRename() {
+    if (editName.trim() && editName.trim() !== fabric.name) onRename(editName.trim());
+    setEditing(false);
+  }
+
+  return (
+    <div className="rounded-[var(--radius-lg)] border border-border bg-surface overflow-hidden">
+      <div className="flex items-center gap-4 border-b border-border bg-surface-2 px-6 py-4">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-accent-soft text-accent text-sm font-bold">{index + 1}</div>
+        <div className="flex-1 min-w-0">
+          {editing ? (
+            <input
+              ref={editRef}
+              className="w-full rounded-[var(--radius-md)] border border-accent bg-surface px-2 py-1 text-base font-bold outline-none"
+              value={editName}
+              onChange={e => setEditName(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") { setEditing(false); setEditName(fabric.name); } }}
+              onBlur={submitRename}
+              autoFocus
+            />
+          ) : (
+            <>
+              <h2 className="font-bold text-base">{fabric.name}</h2>
+              {fabric.variants.length > 0 && <p className="text-xs text-muted mt-0.5">{fabric.variants.length} แบบ</p>}
+            </>
+          )}
+        </div>
+        <button
+          onClick={() => { setEditing(true); setEditName(fabric.name); setTimeout(() => editRef.current?.focus(), 50); }}
+          className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-border px-2.5 py-1 text-xs text-muted hover:bg-surface-3 hover:text-foreground transition-colors shrink-0"
+        >
+          <Pencil className="h-3 w-3" /> แก้ไข
+        </button>
+      </div>
+      <div className="p-5">
+        <div className="flex flex-wrap gap-2">
+          {fabric.variants.map(v => (
+            <FabricChip key={v.name} name={v.name} onRemove={() => onRemove(v.name)} />
+          ))}
+          {adding ? (
+            <div className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-accent bg-accent-soft pl-3 pr-2 py-2">
+              <input
+                ref={inputRef}
+                value={value}
+                onChange={e => setValue(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") submit(); if (e.key === "Escape") { setAdding(false); setValue(""); } }}
+                onBlur={() => submit()}
+                placeholder="ชื่อแบบผ้า"
+                className="w-28 bg-transparent text-sm outline-none placeholder:text-accent/50 text-accent"
+              />
+              <button onClick={() => { setAdding(false); setValue(""); }} className="text-accent/60 hover:text-accent"><X className="h-3.5 w-3.5" /></button>
+            </div>
+          ) : (
+            <button onClick={() => { setAdding(true); setTimeout(() => inputRef.current?.focus(), 50); }}
+              className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-dashed border-border px-3 py-2 text-sm text-muted hover:border-accent hover:text-accent transition-colors">
+              <Plus className="h-3.5 w-3.5" /> เพิ่มแบบ
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FabricsTab() {
+  const [fabrics, setFabrics] = useState<Fabric[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/fabrics").then(r => r.json()).then(d => { setFabrics(d); setLoading(false); });
+  }, []);
+
+  async function saveFabrics(updated: Fabric[]) {
+    setFabrics(updated);
+    await fetch("/api/fabrics", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updated) });
+  }
+
+  if (loading) return <div className="flex items-center justify-center py-24 text-muted"><Loader2 className="mr-2 h-5 w-5 animate-spin" /> กำลังโหลด…</div>;
+
+  return (
+    <div className="space-y-4">
+      {fabrics.map((f, i) => (
+        <FabricCard
+          key={f.id}
+          fabric={f}
+          index={i}
+          onAdd={(name) => saveFabrics(fabrics.map(x => x.id === f.id ? { ...x, variants: [...x.variants, { name: name.trim() }] } : x))}
+          onRemove={(name) => saveFabrics(fabrics.map(x => x.id === f.id ? { ...x, variants: x.variants.filter(v => v.name !== name) } : x))}
+          onRename={(name) => saveFabrics(fabrics.map(x => x.id === f.id ? { ...x, name } : x))}
+        />
+      ))}
+    </div>
+  );
+}
 
 // ────────────────────────────────────────────────────────────
 // Types
@@ -185,9 +313,9 @@ function StyleAccordion({ style, onEdit }: { style: ShirtStyle; onEdit: (s: Shir
       open ? "border-border" : "border-border"
     )}>
       {/* Header */}
-      <button
+      <div
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-surface-2 transition-colors"
+        className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-surface-2 transition-colors cursor-pointer"
       >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-accent-soft text-accent text-sm font-black">
           {style.name[0]}
@@ -206,7 +334,7 @@ function StyleAccordion({ style, onEdit }: { style: ShirtStyle; onEdit: (s: Shir
           แก้ไข
         </button>
         <ChevronRight className={cn("h-4 w-4 text-muted shrink-0 transition-transform duration-200", open && "rotate-90")} />
-      </button>
+      </div>
 
       {/* Body */}
       {open && (
@@ -561,7 +689,10 @@ function AddStyleModal({
 // Page
 // ────────────────────────────────────────────────────────────
 
+type PageTab = "styles" | "fabrics";
+
 export default function ShirtStylesPage() {
+  const [pageTab, setPageTab] = useState<PageTab>("styles");
   const [styles, setStyles] = useState<ShirtStyle[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editStyle, setEditStyle] = useState<ShirtStyle | undefined>();
@@ -575,24 +706,53 @@ export default function ShirtStylesPage() {
   const openEdit = (s: ShirtStyle) => { setEditStyle(s); setShowModal(true); };
   const closeModal = () => { setShowModal(false); setEditStyle(undefined); };
 
+  const pageTabs: { id: PageTab; label: string }[] = [
+    { id: "styles", label: "ทรงเสื้อ" },
+    { id: "fabrics", label: "เนื้อผ้า" },
+  ];
+
   return (
     <div>
       <PageHeader
-        title="ข้อมูลทรงเสื้อ"
-        subtitle="รวมตัวเลือกคอเสื้อ เนื้อผ้า และราคาแต่ละทรง"
+        title="ข้อมูลเสื้อ"
+        subtitle="ทรงเสื้อ เนื้อผ้า ราคา และตารางไซส์"
         action={
-          <Button onClick={() => setShowModal(true)}>
-            <Plus className="h-4 w-4" />
-            เพิ่มทรงเสื้อ
-          </Button>
+          pageTab === "styles" ? (
+            <Button onClick={() => setShowModal(true)}>
+              <Plus className="h-4 w-4" />
+              เพิ่มทรงเสื้อ
+            </Button>
+          ) : null
         }
       />
+
+      {/* Page-level tabs */}
+      <div className="flex border-b border-border px-6 md:px-8 bg-surface">
+        {pageTabs.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setPageTab(t.id)}
+            className={cn(
+              "px-5 py-3 text-sm font-medium border-b-2 transition-colors",
+              pageTab === t.id
+                ? "border-accent text-accent"
+                : "border-transparent text-muted hover:text-foreground"
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       <div className="p-6 md:p-8 max-w-7xl">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {styles.map((s) => (
-            <StyleAccordion key={s.id} style={s} onEdit={openEdit} />
-          ))}
-        </div>
+        {pageTab === "styles" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {styles.map((s) => (
+              <StyleAccordion key={s.id} style={s} onEdit={openEdit} />
+            ))}
+          </div>
+        )}
+        {pageTab === "fabrics" && <FabricsTab />}
       </div>
 
       {showModal && (

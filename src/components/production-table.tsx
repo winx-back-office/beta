@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Plus,
   Trash2,
@@ -14,6 +15,7 @@ import {
   Sheet,
   AlertCircle,
   RefreshCw,
+  Printer,
 } from "lucide-react";
 import { Button } from "@/components/ui";
 import { useProductionColumns } from "@/lib/use-production-columns";
@@ -89,6 +91,30 @@ export function ProductionTable({
   const [columnLabels, setColumnLabels] = useState<string[]>([]);
   const [sheetsUrl, setSheetsUrl] = useState<string>("");
   const [syncing, setSyncing] = useState(false);
+
+  // ── Sticker Print ──
+  const [showSticker, setShowSticker] = useState(false);
+  const [stickerLogoSvg, setStickerLogoSvg] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem("winx-sticker-logo") || null;
+  });
+  const stickerLogoInputRef = useRef<HTMLInputElement>(null);
+  const [colW, setColW] = useState<{ logo: number; name: number; size: number; num: number; rowH: number; fontSize: number }>(() => {
+    if (typeof window === "undefined") return { logo: 32, name: 80, size: 34, num: 24, rowH: 28, fontSize: 8 };
+    try {
+      const saved = localStorage.getItem("winx-sticker-colw");
+      const def = { logo: 32, name: 80, size: 34, num: 24, rowH: 28, fontSize: 8 };
+      return saved ? { ...def, ...JSON.parse(saved) } : def;
+    } catch { return { logo: 32, name: 80, size: 34, num: 24, rowH: 28, fontSize: 8 }; }
+  });
+  const [stickerSaved, setStickerSaved] = useState(false);
+  const saveSticker = () => {
+    localStorage.setItem("winx-sticker-colw", JSON.stringify(colW));
+    if (stickerLogoSvg) localStorage.setItem("winx-sticker-logo", stickerLogoSvg);
+    else localStorage.removeItem("winx-sticker-logo");
+    setStickerSaved(true);
+    setTimeout(() => setStickerSaved(false), 2000);
+  };
 
   // ── Import from Sheets ──
   const [showImport, setShowImport] = useState(false);
@@ -420,6 +446,10 @@ export function ProductionTable({
                 นำเข้าจาก Sheets
               </Button>
             ) : null}
+            <Button variant="outline" onClick={() => setShowSticker(true)}>
+              <Printer className="h-4 w-4" />
+              <span className="hidden min-[720px]:inline">พิมพ์สติ๊กเกอร์หน้าถุง</span>
+            </Button>
             <Button onClick={onSave} disabled={saveState === "saving"}>
               {saveState === "saving" ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -720,6 +750,275 @@ export function ProductionTable({
           </div>
         </div>
       )}
+
+      {/* ── Sticker Print Modal ── */}
+      {showSticker && (() => {
+        const validRows = rows.filter(r => r.name || r.number);
+        const SZ_BG: Record<string, string> = {
+          "SS": "#7C3AED", "S": "#E8B4A0", "M": "#f5d08a", "L": "#b8e0a0",
+          "XL": "#a8c8f0", "2XL": "#E24B4A", "3XL": "#A32D2D",
+          "4XL": "#533AB7", "5XL": "#0F6E56", "6XL": "#888", "7XL": "#555", "พิเศษ": "#6B21A8",
+        };
+        const SZ_TC: Record<string, string> = {
+          "SS": "#fff", "S": "#7A3822", "M": "#6b4400", "L": "#1a4a08",
+          "XL": "#0c3060", "2XL": "#fff", "3XL": "#fff",
+          "4XL": "#fff", "5XL": "#fff", "6XL": "#fff", "7XL": "#fff", "พิเศษ": "#fff",
+        };
+        const logoHtml = stickerLogoSvg
+          ? stickerLogoSvg
+          : `<svg width="40" height="18" viewBox="0 0 40 18" xmlns="http://www.w3.org/2000/svg"><text x="0" y="14" font-family="Arial Black,sans-serif" font-weight="900" font-size="14" fill="#111">WINX</text></svg>`;
+
+        const colSize = Math.ceil(validRows.length / 3);
+        const cols = [
+          validRows.slice(0, colSize),
+          validRows.slice(colSize, colSize * 2),
+          validRows.slice(colSize * 2),
+        ];
+
+        const buildTable = (colRows: typeof validRows) => {
+          const bodyHtml = colRows.map(r => {
+            const sz = r.size || "";
+            const bg = SZ_BG[sz] || "#ccc";
+            const tc = SZ_TC[sz] || "#333";
+            return `<tr>
+              <td class="td-logo"><div class="logo-cell">${logoHtml}</div></td>
+              <td class="td-name">${r.name || "—"}</td>
+              <td class="td-size"><span class="pill" style="background:${bg};color:${tc};">${sz || "—"}</span></td>
+              <td class="td-num">${r.number || "—"}</td>
+            </tr>`;
+          }).join("");
+          return `<table><tbody>${bodyHtml}</tbody></table>`;
+        };
+
+        const handlePrint = () => {
+          const style = document.createElement("style");
+          style.id = "winx-sticker-style";
+          style.textContent = `
+            @media print {
+              @page { size: A4; margin: 6mm 8mm 6mm 6mm; }
+              html, body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+              body > *:not(#winx-print-sticker) { display: none !important; }
+              #winx-print-sticker {
+                display: grid !important;
+                visibility: visible !important;
+                position: static !important;
+                left: auto !important;
+                top: auto !important;
+                visibility: visible !important;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 0;
+                align-items: start;
+                width: 100% !important;
+              }
+              #winx-print-sticker * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+              #winx-print-sticker table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+              #winx-print-sticker thead th { background: #f3f3f3 !important; font-size: ${(colW.fontSize - 1) * 0.75}pt; font-weight: 700; padding: 3px 4px; border: 1px solid #ddd !important; color: #555 !important; }
+              #winx-print-sticker tbody tr:nth-child(even) td { background: #fafafa !important; }
+              #winx-print-sticker tbody tr:nth-child(odd) td { background: #fff !important; }
+              #winx-print-sticker td { padding: 3px 4px; border: 1px solid #e0e0e0 !important; font-size: ${colW.fontSize * 0.75}pt; vertical-align: middle; color: #111 !important; height: ${colW.rowH * 0.265}mm; }
+              #winx-print-sticker td span { color: #999 !important; font-size: ${(colW.fontSize - 1) * 0.75}pt; }
+            }
+          `;
+          document.head.appendChild(style);
+          window.print();
+          setTimeout(() => document.getElementById("winx-sticker-style")?.remove(), 1000);
+        };
+
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            onClick={(e) => { if (e.target === e.currentTarget) setShowSticker(false); }}
+          >
+            <div className="w-full max-w-5xl rounded-[var(--radius-lg)] border border-border bg-surface shadow-xl flex flex-col max-h-[92vh]">
+              {/* header */}
+              <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                <div>
+                  <h2 className="font-semibold">พิมพ์สติ๊กเกอร์หน้าถุง</h2>
+                  <p className="text-xs text-muted mt-0.5">{validRows.length} แถว · A4</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={saveSticker}>
+                    {stickerSaved ? <><Check className="h-4 w-4" />บันทึกแล้ว</> : <><Save className="h-4 w-4" />บันทึก</>}
+                  </Button>
+                  <Button onClick={handlePrint} disabled={validRows.length === 0}>
+                    <Printer className="h-4 w-4" />
+                    พิมพ์
+                  </Button>
+                  <button onClick={() => setShowSticker(false)} className="rounded-lg p-1.5 text-muted hover:bg-surface-2">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* logo upload */}
+              <div className="border-b border-border px-5 py-3 flex items-center gap-3">
+                <span className="text-sm text-muted shrink-0">โลโก้ (SVG)</span>
+                <input ref={stickerLogoInputRef} type="file" accept=".svg,image/svg+xml" className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => setStickerLogoSvg(ev.target?.result as string);
+                    reader.readAsText(file);
+                  }} />
+                {stickerLogoSvg ? (
+                  <div className="flex items-center gap-3">
+                    <div className="h-7 w-14 rounded border border-border bg-white flex items-center justify-center p-1 overflow-hidden"
+                      dangerouslySetInnerHTML={{ __html: stickerLogoSvg }} />
+                    <button onClick={() => { setStickerLogoSvg(null); if (stickerLogoInputRef.current) stickerLogoInputRef.current.value = ""; }}
+                      className="text-xs text-muted hover:text-foreground">ลบ</button>
+                    <button onClick={() => stickerLogoInputRef.current?.click()}
+                      className="text-xs text-muted hover:text-foreground">เปลี่ยน</button>
+                  </div>
+                ) : (
+                  <button onClick={() => stickerLogoInputRef.current?.click()}
+                    className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-dashed border-border px-3 py-1.5 text-xs text-muted hover:border-accent hover:text-accent transition-colors">
+                    <Upload className="h-3.5 w-3.5" />
+                    อัพโหลด .svg · ถ้าไม่อัพจะแสดงเลข #
+                  </button>
+                )}
+              </div>
+
+              {/* column width controls */}
+              <div className="border-b border-border px-5 py-2.5 grid grid-cols-2 gap-x-6 gap-y-1.5">
+                {([
+                  { key: "name",     label: "ชื่อ",    min: 40,  max: 200, unit: "px" },
+                  { key: "size",     label: "ไซส์",    min: 24,  max: 80,  unit: "px" },
+                  { key: "num",      label: "เลข",     min: 20,  max: 60,  unit: "px" },
+                  { key: "logo",     label: "โลโก้",   min: 16,  max: 80,  unit: "px" },
+                  { key: "rowH",     label: "สูง",     min: 16,  max: 80,  unit: "px" },
+                  { key: "fontSize", label: "ฟ้อนต์",  min: 6,   max: 18,  unit: "pt" },
+                ] as const).map(({ key, label, min, max, unit }) => (
+                  <div key={key} className="flex items-center gap-2 min-w-0">
+                    <span className="text-[11px] text-muted shrink-0 w-10">{label}</span>
+                    <input
+                      type="range" min={min} max={max} step={1}
+                      value={colW[key]}
+                      onChange={e => setColW(prev => ({ ...prev, [key]: Number(e.target.value) }))}
+                      className="flex-1 h-0.5 accent-accent min-w-0"
+                    />
+                    <span className="text-[11px] text-muted tabular-nums shrink-0 w-9 text-right">{colW[key]}{unit}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* preview — A4 portrait */}
+              <div className="flex-1 overflow-auto p-6" style={{ background: "#e5e7eb" }}>
+                {validRows.length === 0 ? (
+                  <p className="text-center text-sm text-muted py-8">ยังไม่มีข้อมูลผู้เล่น</p>
+                ) : (
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    {/* A4 page: 210mm wide, 297mm tall, margin 6mm/8mm */}
+                    <div style={{
+                      width: "210mm", minHeight: "297mm",
+                      background: "#fff",
+                      boxShadow: "0 4px 24px rgba(0,0,0,0.22)",
+                      padding: "6mm 8mm 6mm 6mm",
+                      boxSizing: "border-box",
+                      fontFamily: "'Sarabun','Helvetica Neue',Arial,sans-serif",
+                      flexShrink: 0,
+                    }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 0, alignItems: "start" }}>
+                        {cols.map((colRows, ci) => (
+                          <table key={ci} style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+                            <colgroup>
+                              <col style={{ width: `${colW.logo * 0.265}mm` }} />
+                              <col style={{ width: `${colW.name * 0.265}mm` }} />
+                              <col style={{ width: `${colW.size * 0.265}mm` }} />
+                              <col style={{ width: `${colW.num  * 0.265}mm` }} />
+                            </colgroup>
+                            <thead>
+                              <tr>
+                                {[stickerLogoSvg ? "โลโก้" : "#","ชื่อ","ไซส์","เลข"].map((h, hi) => (
+                                  <th key={hi} style={{ background: "#f3f3f3", color: "#555", border: "1px solid #ddd", fontSize: `${(colW.fontSize - 1) * 0.75}pt`, fontWeight: 700, padding: "3px 4px", textAlign: hi === 0 || hi >= 2 ? "center" : "left" }}>{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {colRows.map((r, i) => (
+                                <tr key={i} style={{ background: i % 2 === 1 ? "#fafafa" : "#fff" }}>
+                                  <td style={{ border: "1px solid #e0e0e0", textAlign: "center", padding: "2px", height: `${colW.rowH * 0.265}mm`, background: "#fff" }}>
+                                    {stickerLogoSvg ? (
+                                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", overflow: "hidden" }}
+                                        dangerouslySetInnerHTML={{ __html: stickerLogoSvg }} />
+                                    ) : (
+                                      <span style={{ fontSize: `${(colW.fontSize - 1) * 0.75}pt`, color: "#999" }}>{i + 1}</span>
+                                    )}
+                                  </td>
+                                  <td style={{ border: "1px solid #e0e0e0", fontSize: `${colW.fontSize * 0.75}pt`, fontWeight: 500, color: "#111", padding: "3px 4px", overflow: "hidden", whiteSpace: "nowrap" }}>{r.name || "—"}</td>
+                                  <td style={{ border: "1px solid #e0e0e0", fontSize: `${colW.fontSize * 0.75}pt`, fontWeight: 700, color: "#111", textAlign: "center", padding: "3px 4px" }}>{r.size || "—"}</td>
+                                  <td style={{ border: "1px solid #e0e0e0", fontSize: `${colW.fontSize * 0.75}pt`, color: "#555", textAlign: "center", padding: "3px 4px" }}>{r.number || "—"}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Portal: print-only sticker content */}
+      {typeof window !== "undefined" && (() => {
+        const validRows = rows.filter(r => r.name || r.number);
+        const colSize = Math.ceil(validRows.length / 3);
+        const cols3 = [
+          validRows.slice(0, colSize),
+          validRows.slice(colSize, colSize * 2),
+          validRows.slice(colSize * 2),
+        ];
+        const logoColW = `${colW.logo * 0.265}mm`;
+        const nameColW = `${colW.name * 0.265}mm`;
+        const sizeColW = `${colW.size * 0.265}mm`;
+        const numColW  = `${colW.num  * 0.265}mm`;
+        const fsPt = `${(colW.fontSize - 1) * 0.75}pt`;
+        const fsPtData = `${colW.fontSize * 0.75}pt`;
+        const thStyle: React.CSSProperties = { background: "#f3f3f3", fontSize: fsPt, fontWeight: 700, padding: "3px 4px", textAlign: "left", border: "1px solid #ddd", color: "#555" };
+        const tdBase: React.CSSProperties = { padding: "3px 4px", border: "1px solid #e0e0e0", fontSize: fsPtData, verticalAlign: "middle", color: "#111" };
+        return createPortal(
+          <div id="winx-print-sticker" style={{ display: "none", gridTemplateColumns: "1fr 1fr 1fr", gap: 0, fontFamily: "'Sarabun','Helvetica Neue',Arial,sans-serif" }}>
+            {cols3.map((colRows, ci) => (
+              <table key={ci} style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+                <colgroup>
+                  <col style={{ width: logoColW }} />
+                  <col style={{ width: nameColW }} />
+                  <col style={{ width: sizeColW }} />
+                  <col style={{ width: numColW }} />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th style={{ ...thStyle, textAlign: "center" }}>{stickerLogoSvg ? "โลโก้" : "#"}</th>
+                    <th style={thStyle}>ชื่อ</th>
+                    <th style={{ ...thStyle, textAlign: "center" }}>ไซส์</th>
+                    <th style={{ ...thStyle, textAlign: "center" }}>เลข</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {colRows.map((r, i) => (
+                    <tr key={i} style={{ background: i % 2 === 1 ? "#fafafa" : "#fff" }}>
+                      <td style={{ ...tdBase, textAlign: "center", padding: "2px", background: "#fff", height: `${colW.rowH * 0.265}mm` }}>
+                        {stickerLogoSvg
+                          ? <div dangerouslySetInnerHTML={{ __html: stickerLogoSvg }} style={{ display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", height: "100%" }} />
+                          : <span style={{ color: "#999", fontSize: "7pt" }}>{i + 1}</span>
+                        }
+                      </td>
+                      <td style={{ ...tdBase, fontWeight: 500, overflow: "hidden", whiteSpace: "nowrap" }}>{r.name || "—"}</td>
+                      <td style={{ ...tdBase, textAlign: "center", fontWeight: 700 }}>{r.size || "—"}</td>
+                      <td style={{ ...tdBase, textAlign: "center", color: "#555" }}>{r.number || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ))}
+          </div>,
+          document.body
+        );
+      })()}
     </div>
   );
 }

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
-import { Plus, Pencil, Trash2, Check, X, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, Eye, EyeOff, ShieldCheck, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge, Card } from "@/components/ui";
 
@@ -11,6 +11,55 @@ import { Badge, Card } from "@/components/ui";
 interface Employee { id: string; name: string; allowedMenus: string[]; isActive: boolean; }
 interface Cutter { id: string; name: string; pin: string; active: boolean; }
 interface Sewer { id: string; name: string; pin: string; active: boolean; }
+
+// ===== Bank Info =====
+interface BankInfo { accountNumber: string; bankName: string; accountName: string; }
+const BANKS = ["กรุงเทพ (BBL)", "กสิกรไทย (KBANK)", "ไทยพาณิชย์ (SCB)", "กรุงไทย (KTB)", "กรุงศรี (BAY)", "ทหารไทยธนชาต (TTB)", "ออมสิน", "ธ.ก.ส.", "ยูโอบี (UOB)"];
+function getBankInfo(type: "cutter" | "sewer", id: string): BankInfo {
+  if (typeof window === "undefined") return { accountNumber: "", bankName: "", accountName: "" };
+  const v = localStorage.getItem(`winx-bank-${type}-${id}`);
+  return v ? JSON.parse(v) : { accountNumber: "", bankName: "", accountName: "" };
+}
+function saveBankInfo(type: "cutter" | "sewer", id: string, info: BankInfo) {
+  localStorage.setItem(`winx-bank-${type}-${id}`, JSON.stringify(info));
+}
+
+function BankInfoDisplay({ type, id, editing }: { type: "cutter" | "sewer"; id: string; editing: boolean }) {
+  const [info, setInfo] = useState<BankInfo>(() => getBankInfo(type, id));
+  const update = (field: keyof BankInfo, val: string) => {
+    const next = { ...info, [field]: val };
+    setInfo(next);
+    saveBankInfo(type, id, next);
+  };
+  if (!editing) {
+    const hasBank = info.accountNumber || info.bankName;
+    return (
+      <div className="flex items-center gap-1.5 text-xs text-muted-2 mt-0.5">
+        <Building2 className="h-3 w-3 shrink-0" />
+        {hasBank ? <span>{info.bankName} · {info.accountNumber}{info.accountName ? ` · ${info.accountName}` : ""}</span> : <span className="italic">ยังไม่กำหนดบัญชี</span>}
+      </div>
+    );
+  }
+  return (
+    <div className="mt-2 grid grid-cols-3 gap-2">
+      <div>
+        <div className="mb-1 text-[10px] text-muted-2">เลขบัญชี</div>
+        <input className="field-input font-mono" placeholder="xxx-x-xxxxx-x" value={info.accountNumber} onChange={(e) => update("accountNumber", e.target.value)} />
+      </div>
+      <div>
+        <div className="mb-1 text-[10px] text-muted-2">ธนาคาร</div>
+        <select className="field-input" value={info.bankName} onChange={(e) => update("bankName", e.target.value)}>
+          <option value="">— เลือกธนาคาร —</option>
+          {BANKS.map((b) => <option key={b} value={b}>{b}</option>)}
+        </select>
+      </div>
+      <div>
+        <div className="mb-1 text-[10px] text-muted-2">ชื่อ-นามสกุล (บัญชี)</div>
+        <input className="field-input" placeholder="ชื่อเจ้าของบัญชี" value={info.accountName} onChange={(e) => update("accountName", e.target.value)} />
+      </div>
+    </div>
+  );
+}
 
 const MENUS = [
   { key: "overview", label: "ภาพรวมการเงิน" },
@@ -145,7 +194,7 @@ function CuttersTab() {
   };
 
   return (
-    <div className="max-w-2xl space-y-4">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-2">ข้อมูลและ PIN ของช่างตัดแพทเทิร์น</p>
         {!adding && (
@@ -179,12 +228,12 @@ function CuttersTab() {
           <thead>
             <tr className="border-b border-border bg-surface-2">
               <th className="px-4 py-2.5 text-left text-xs text-muted-2">ชื่อ</th>
-              <th className="px-4 py-2.5 text-left text-xs text-muted-2">PIN</th>
-              <th className="px-4 py-2.5 text-left text-xs text-muted-2">สถานะ</th>
-              <th className="px-4 py-2.5 text-right text-xs text-muted-2">แก้ไข</th>
+              <th className="px-4 py-2.5 text-left text-xs text-muted-2 w-28">PIN</th>
+              <th className="px-4 py-2.5 text-left text-xs text-muted-2 w-24">สถานะ</th>
+              <th className="px-4 py-2.5 text-right text-xs text-muted-2 w-20">แก้ไข</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody>
             {cutters.length === 0 && (
               <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-muted-2">ยังไม่มีข้อมูลช่างตัด</td></tr>
             )}
@@ -192,42 +241,64 @@ function CuttersTab() {
               const isEditing = !!editing[c.id];
               const draft = editing[c.id] ?? c;
               return (
-                <tr key={c.id} className="hover:bg-surface-2">
-                  <td className="px-4 py-3">
-                    {isEditing ? (
-                      <input className="field-input w-40" value={draft.name}
-                        onChange={(e) => setEditing((prev) => ({ ...prev, [c.id]: { ...draft, name: e.target.value } }))} />
-                    ) : c.name}
-                  </td>
-                  <td className="px-4 py-3">
-                    {isEditing ? (
-                      <input className="field-input w-20 font-mono" value={draft.pin} maxLength={4}
-                        onChange={(e) => setEditing((prev) => ({ ...prev, [c.id]: { ...draft, pin: e.target.value } }))} />
-                    ) : <span className="font-mono">{c.pin}</span>}
-                  </td>
-                  <td className="px-4 py-3">
-                    {isEditing ? (
-                      <button
-                        onClick={() => setEditing((prev) => ({ ...prev, [c.id]: { ...draft, active: !draft.active } }))}
-                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border transition-colors ${draft.active ? "border-green-500/40 bg-green-500/15 text-green-400" : "border-border bg-surface-2 text-muted"}`}>
-                        {draft.active ? "ใช้งาน" : "ไม่ใช้งาน"}
-                      </button>
-                    ) : <Badge tone={c.active ? "success" : "neutral"}>{c.active ? "ใช้งาน" : "ไม่ใช้งาน"}</Badge>}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {isEditing ? (
-                      <button onClick={() => saveOne(c.id)} disabled={saving === c.id}
-                        className="inline-flex items-center gap-1 rounded-md bg-accent px-2.5 py-1 text-xs text-accent-foreground disabled:opacity-60">
-                        <Check className="h-3 w-3" /> บันทึก
-                      </button>
-                    ) : (
-                      <button onClick={() => startEdit(c)}
-                        className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs text-muted hover:bg-surface-3 hover:text-foreground">
-                        <Pencil className="h-3 w-3" /> แก้ไข
-                      </button>
-                    )}
-                  </td>
-                </tr>
+                <React.Fragment key={c.id}>
+                  <tr className={cn("border-t border-border", isEditing ? "bg-surface-2/60" : "hover:bg-surface-2")}>
+                    <td className="px-4 py-3">
+                      {isEditing ? (
+                        <input className="field-input w-44" value={draft.name}
+                          onChange={(e) => setEditing((prev) => ({ ...prev, [c.id]: { ...draft, name: e.target.value } }))} />
+                      ) : (
+                        <>
+                          <div className="font-medium">{c.name}</div>
+                          <BankInfoDisplay type="cutter" id={c.id} editing={false} />
+                        </>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {isEditing ? (
+                        <input className="field-input w-20 font-mono" value={draft.pin} maxLength={4}
+                          onChange={(e) => setEditing((prev) => ({ ...prev, [c.id]: { ...draft, pin: e.target.value } }))} />
+                      ) : <span className="font-mono">{c.pin}</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      {isEditing ? (
+                        <button
+                          onClick={() => setEditing((prev) => ({ ...prev, [c.id]: { ...draft, active: !draft.active } }))}
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border transition-colors ${draft.active ? "border-green-500/40 bg-green-500/15 text-green-400" : "border-border bg-surface-2 text-muted"}`}>
+                          {draft.active ? "ใช้งาน" : "ไม่ใช้งาน"}
+                        </button>
+                      ) : <Badge tone={c.active ? "success" : "neutral"}>{c.active ? "ใช้งาน" : "ไม่ใช้งาน"}</Badge>}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {!isEditing && (
+                        <button onClick={() => startEdit(c)}
+                          className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs text-muted hover:bg-surface-3 hover:text-foreground">
+                          <Pencil className="h-3 w-3" /> แก้ไข
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                  {isEditing && (
+                    <tr className="bg-surface-2/60">
+                      <td colSpan={4} className="px-4 pb-4">
+                        <div className="border-t border-border/50 pt-3">
+                          <div className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-2">ข้อมูลบัญชีธนาคาร</div>
+                          <BankInfoDisplay type="cutter" id={c.id} editing={true} />
+                          <div className="mt-3 flex gap-2">
+                            <button onClick={() => saveOne(c.id)} disabled={saving === c.id}
+                              className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs text-accent-foreground disabled:opacity-60">
+                              <Check className="h-3 w-3" /> บันทึก
+                            </button>
+                            <button onClick={() => setEditing((prev) => { const n = { ...prev }; delete n[c.id]; return n; })}
+                              className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs text-muted hover:bg-surface-3">
+                              <X className="h-3 w-3" /> ยกเลิก
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               );
             })}
           </tbody>
@@ -273,7 +344,7 @@ function SewersTab() {
   };
 
   return (
-    <div className="max-w-2xl space-y-4">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-2">ข้อมูลและ PIN ของช่างเย็บ</p>
         {!adding && (
@@ -307,12 +378,12 @@ function SewersTab() {
           <thead>
             <tr className="border-b border-border bg-surface-2">
               <th className="px-4 py-2.5 text-left text-xs text-muted-2">ชื่อ</th>
-              <th className="px-4 py-2.5 text-left text-xs text-muted-2">PIN</th>
-              <th className="px-4 py-2.5 text-left text-xs text-muted-2">สถานะ</th>
-              <th className="px-4 py-2.5 text-right text-xs text-muted-2">แก้ไข</th>
+              <th className="px-4 py-2.5 text-left text-xs text-muted-2 w-28">PIN</th>
+              <th className="px-4 py-2.5 text-left text-xs text-muted-2 w-24">สถานะ</th>
+              <th className="px-4 py-2.5 text-right text-xs text-muted-2 w-20">แก้ไข</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody>
             {sewers.length === 0 && (
               <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-muted-2">ยังไม่มีช่างเย็บ</td></tr>
             )}
@@ -320,42 +391,64 @@ function SewersTab() {
               const isEditing = !!editing[s.id];
               const draft = editing[s.id] ?? s;
               return (
-                <tr key={s.id} className="hover:bg-surface-2">
-                  <td className="px-4 py-3">
-                    {isEditing ? (
-                      <input className="field-input w-40" value={draft.name}
-                        onChange={(e) => setEditing((prev) => ({ ...prev, [s.id]: { ...draft, name: e.target.value } }))} />
-                    ) : s.name}
-                  </td>
-                  <td className="px-4 py-3">
-                    {isEditing ? (
-                      <input className="field-input w-20 font-mono" value={draft.pin} maxLength={4}
-                        onChange={(e) => setEditing((prev) => ({ ...prev, [s.id]: { ...draft, pin: e.target.value } }))} />
-                    ) : <span className="font-mono">{s.pin}</span>}
-                  </td>
-                  <td className="px-4 py-3">
-                    {isEditing ? (
-                      <button
-                        onClick={() => setEditing((prev) => ({ ...prev, [s.id]: { ...draft, active: !draft.active } }))}
-                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border transition-colors ${draft.active ? "border-green-500/40 bg-green-500/15 text-green-400" : "border-border bg-surface-2 text-muted"}`}>
-                        {draft.active ? "ใช้งาน" : "ไม่ใช้งาน"}
-                      </button>
-                    ) : <Badge tone={s.active ? "success" : "neutral"}>{s.active ? "ใช้งาน" : "ไม่ใช้งาน"}</Badge>}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {isEditing ? (
-                      <button onClick={() => saveOne(s.id)} disabled={saving === s.id}
-                        className="inline-flex items-center gap-1 rounded-md bg-accent px-2.5 py-1 text-xs text-accent-foreground disabled:opacity-60">
-                        <Check className="h-3 w-3" /> บันทึก
-                      </button>
-                    ) : (
-                      <button onClick={() => startEdit(s)}
-                        className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs text-muted hover:bg-surface-3 hover:text-foreground">
-                        <Pencil className="h-3 w-3" /> แก้ไข
-                      </button>
-                    )}
-                  </td>
-                </tr>
+                <React.Fragment key={s.id}>
+                  <tr className={cn("border-t border-border", isEditing ? "bg-surface-2/60" : "hover:bg-surface-2")}>
+                    <td className="px-4 py-3">
+                      {isEditing ? (
+                        <input className="field-input w-44" value={draft.name}
+                          onChange={(e) => setEditing((prev) => ({ ...prev, [s.id]: { ...draft, name: e.target.value } }))} />
+                      ) : (
+                        <>
+                          <div className="font-medium">{s.name}</div>
+                          <BankInfoDisplay type="sewer" id={s.id} editing={false} />
+                        </>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {isEditing ? (
+                        <input className="field-input w-20 font-mono" value={draft.pin} maxLength={4}
+                          onChange={(e) => setEditing((prev) => ({ ...prev, [s.id]: { ...draft, pin: e.target.value } }))} />
+                      ) : <span className="font-mono">{s.pin}</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      {isEditing ? (
+                        <button
+                          onClick={() => setEditing((prev) => ({ ...prev, [s.id]: { ...draft, active: !draft.active } }))}
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border transition-colors ${draft.active ? "border-green-500/40 bg-green-500/15 text-green-400" : "border-border bg-surface-2 text-muted"}`}>
+                          {draft.active ? "ใช้งาน" : "ไม่ใช้งาน"}
+                        </button>
+                      ) : <Badge tone={s.active ? "success" : "neutral"}>{s.active ? "ใช้งาน" : "ไม่ใช้งาน"}</Badge>}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {!isEditing && (
+                        <button onClick={() => startEdit(s)}
+                          className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs text-muted hover:bg-surface-3 hover:text-foreground">
+                          <Pencil className="h-3 w-3" /> แก้ไข
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                  {isEditing && (
+                    <tr className="bg-surface-2/60">
+                      <td colSpan={4} className="px-4 pb-4">
+                        <div className="border-t border-border/50 pt-3">
+                          <div className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-2">ข้อมูลบัญชีธนาคาร</div>
+                          <BankInfoDisplay type="sewer" id={s.id} editing={true} />
+                          <div className="mt-3 flex gap-2">
+                            <button onClick={() => saveOne(s.id)} disabled={saving === s.id}
+                              className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs text-accent-foreground disabled:opacity-60">
+                              <Check className="h-3 w-3" /> บันทึก
+                            </button>
+                            <button onClick={() => setEditing((prev) => { const n = { ...prev }; delete n[s.id]; return n; })}
+                              className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs text-muted hover:bg-surface-3">
+                              <X className="h-3 w-3" /> ยกเลิก
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               );
             })}
           </tbody>
@@ -420,7 +513,7 @@ export default function EmployeesPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
+    <div className="mx-auto max-w-4xl px-4 py-8">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>

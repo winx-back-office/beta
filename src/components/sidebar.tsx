@@ -69,8 +69,7 @@ const navGroups: NavGroup[] = [
     groupLabel: "แพคเกจ & ข้อมูลเสื้อ",
     items: [
       { href: "/design-packages", label: "แพคเกจออกแบบ", icon: Crown, badge: null, menuKey: null, adminOnly: true },
-      { href: "/shirt-styles", label: "ข้อมูลทรงเสื้อ", icon: Shirt, badge: null, menuKey: null, adminOnly: true },
-      { href: "/fabrics", label: "ข้อมูลเนื้อผ้า", icon: Layers, badge: null, menuKey: null, adminOnly: true },
+      { href: "/shirt-styles", label: "ข้อมูลเสื้อ", icon: Shirt, badge: null, menuKey: null, adminOnly: true },
     ],
   },
   {

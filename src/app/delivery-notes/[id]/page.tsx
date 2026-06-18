@@ -39,26 +39,25 @@ function PrintSlipModal({ order, players, onClose }: {
     style.textContent = `
       @media print {
         @page { margin: 12mm; size: A4; }
-        html, body {
-          background: #fff !important;
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
-        body * { visibility: hidden; }
-        #winx-print-slip, #winx-print-slip * { visibility: visible; }
+        html, body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        body > *:not(#winx-print-slip) { display: none !important; }
         #winx-print-slip {
-          position: static;
-          width: 100%;
+          display: block !important;
+          position: static !important;
+          left: auto !important;
+          top: auto !important;
+          width: 100% !important;
+          visibility: visible !important;
           background: #fff !important;
-          padding: 0;
+          padding: 28px 36px !important;
           font-family: 'Sarabun','Helvetica Neue',sans-serif;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
+        #winx-print-slip * { visibility: visible !important; }
         #winx-print-slip table { background: #fff !important; }
         #winx-print-slip tr { page-break-inside: avoid; background: #fff !important; }
         #winx-print-slip thead { display: table-header-group; }
-        #winx-print-slip tfoot { display: table-footer-group; }
       }
     `;
     document.head.appendChild(style);
@@ -70,7 +69,7 @@ function PrintSlipModal({ order, players, onClose }: {
     <>
 
       {/* Hidden print content rendered directly in body via portal */}
-      {createPortal(<div id="winx-print-slip" style={{ display: "none", fontFamily: "'Sarabun','Helvetica Neue',sans-serif", fontSize: 13, color: "#111", background: "#fff", padding: "0 0 24px" }}>
+      {createPortal(<div id="winx-print-slip" style={{ position: "absolute", left: "-9999px", top: 0, width: "210mm", fontFamily: "'Sarabun','Helvetica Neue',sans-serif", fontSize: 13, color: "#111", background: "#fff", padding: "0 0 24px" }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>{order.teamName}</h1>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0 20px", fontSize: 12, color: "#555", marginBottom: 20, paddingBottom: 14, borderBottom: "1.5px solid #ddd" }}>
           <span><b style={{ color: "#222" }}>รหัส</b> {order.id}</span>

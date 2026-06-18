@@ -698,7 +698,7 @@ export default function CuttingJobsPage() {
             const sewTotal = groupJobs.length;
             const allDone = groupJobs.every(j => j.status === "done");
             const hasAnySewing = groupJobs.some(j => j.status === "sewing" || j.status === "cut_done" || j.status === "done");
-            const defaultExpanded = !allDone && groupJobs.length <= 3;
+            const defaultExpanded = !allDone;
             return (
               <OrderGroup
                 key={orderId}
