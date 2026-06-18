@@ -16,6 +16,7 @@ import {
   Search,
   Scissors,
   PackageCheck,
+  Wallet,
   Users,
   LogOut,
   BarChart2,
@@ -82,6 +83,7 @@ const navGroups: NavGroup[] = [
     groupLabel: "จัดการพนักงาน",
     items: [
       { href: "/admin/employees", label: "จัดการพนักงาน", icon: Users, badge: null, menuKey: null, adminOnly: true },
+      { href: "/expense", label: "รายจ่ายช่างตัดเย็บ", icon: Wallet, badge: null, menuKey: null, adminOnly: true },
     ],
   },
 ];
@@ -257,7 +259,7 @@ export function Sidebar() {
         <div className="hidden min-[720px]:block px-4 pb-2 pt-3">
           <div className="text-[11px] text-muted-2">WINX STUDIO</div>
           <div className="text-[11px] text-muted-2">Looking good at every stage</div>
-          <div className="mt-0.5 text-[11px] font-medium text-accent">Beta 1.4.0</div>
+          <div className="mt-0.5 text-[11px] font-medium text-accent">Beta 1.4.2</div>
         </div>
       )}
 

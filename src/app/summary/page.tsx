@@ -581,7 +581,7 @@ export default function SummaryPage() {
                       <span className="text-sm font-semibold text-purple-400">ผลิต</span>
                       <span className="text-xs text-muted-2">{produceOrders.filter(o => !isDelivered(o)).length} งาน</span>
                     </div>
-                    <div className="grid grid-cols-2 min-[480px]:grid-cols-3 min-[720px]:grid-cols-4 min-[1024px]:grid-cols-5 gap-2">
+                    <div className="flex flex-wrap gap-2">
                       {produceOrders.filter(o => !isDelivered(o)).map((o) => {
                         const col = activeProdCols.find((c) => c.id === o.productionStatus);
                         const inner = (
@@ -595,8 +595,8 @@ export default function SummaryPage() {
                           </>
                         );
                         return isAdmin
-                          ? <Link key={o.id} href={`/orders/${o.id}`} className="rounded-lg border border-border bg-surface-2 p-3 hover:bg-surface-3 transition-colors block">{inner}</Link>
-                          : <div key={o.id} className="rounded-lg border border-border bg-surface-2 p-3">{inner}</div>;
+                          ? <Link key={o.id} href={`/orders/${o.id}`} className="w-[160px] shrink-0 rounded-lg border border-border bg-surface-2 p-3 hover:bg-surface-3 transition-colors block">{inner}</Link>
+                          : <div key={o.id} className="w-[160px] shrink-0 rounded-lg border border-border bg-surface-2 p-3">{inner}</div>;
                       })}
                     </div>
                   </div>
@@ -608,7 +608,7 @@ export default function SummaryPage() {
                       <span className="text-sm font-semibold text-blue-400">ออกแบบ</span>
                       <span className="text-xs text-muted-2">{designOrders.filter(o => o.designStatus !== "done" && !isDelivered(o)).length} งาน</span>
                     </div>
-                    <div className="grid grid-cols-2 min-[480px]:grid-cols-3 min-[720px]:grid-cols-4 min-[1024px]:grid-cols-5 gap-2">
+                    <div className="flex flex-wrap gap-2">
                       {designOrders.filter(o => o.designStatus !== "done" && !isDelivered(o)).map((o) => {
                         const statusLabel = DESIGN_COLS.find((c) => c.id === (o.designStatus ?? "wait_design"))?.label;
                         const inner = (
@@ -618,8 +618,8 @@ export default function SummaryPage() {
                           </>
                         );
                         return isAdmin
-                          ? <Link key={o.id} href={`/orders/${o.id}`} className="rounded-lg border border-border bg-surface-2 p-3 hover:bg-surface-3 transition-colors block">{inner}</Link>
-                          : <div key={o.id} className="rounded-lg border border-border bg-surface-2 p-3">{inner}</div>;
+                          ? <Link key={o.id} href={`/orders/${o.id}`} className="w-[160px] shrink-0 rounded-lg border border-border bg-surface-2 p-3 hover:bg-surface-3 transition-colors block">{inner}</Link>
+                          : <div key={o.id} className="w-[160px] shrink-0 rounded-lg border border-border bg-surface-2 p-3">{inner}</div>;
                       })}
                     </div>
                   </div>
