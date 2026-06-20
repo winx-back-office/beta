@@ -22,6 +22,7 @@ import {
   BarChart2,
   PanelLeftClose,
   PanelLeftOpen,
+  Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
@@ -82,6 +83,7 @@ const navGroups: NavGroup[] = [
     groupLabel: "จัดการพนักงาน",
     items: [
       { href: "/admin/employees", label: "จัดการพนักงาน", icon: Users, badge: null, menuKey: null, adminOnly: true },
+      { href: "/clock-in", label: "ระบบลงเวลา (TV)", icon: Clock, badge: null, menuKey: null, adminOnly: true },
       { href: "/expense", label: "รายจ่ายช่างตัดเย็บ", icon: Wallet, badge: null, menuKey: null, adminOnly: true },
     ],
   },
